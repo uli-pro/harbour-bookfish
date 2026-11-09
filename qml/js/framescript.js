@@ -282,6 +282,9 @@ function isBlankLine(element, style) {
 var overridden = []
 
 function override(element, property, value) {
+    // An element of a namespace unknown to Gecko has no style.
+    if (!element.style)
+        return
     overridden.push([element, property, element.style.getPropertyValue(property),
                      element.style.getPropertyPriority(property)])
     element.style.setProperty(property, value, "important")
@@ -405,8 +408,12 @@ function normalize(doc, o) {
         override(justified[j], "text-align", "start")
     for (var c = 0; c < centred.length; ++c)
         override(centred[c], "text-indent", "0")
-    fitTables(doc, o.margin)
-    splitTallTables(doc)
+    // A book's odd table must not cost the whole chapter: without the layout
+    // finishing, QML keeps the view covered.
+    try {
+        fitTables(doc, o.margin)
+        splitTallTables(doc)
+    } catch (e) { }
 }
 
 // Only outer tables: a nested one goes along with the one around it.
