@@ -195,3 +195,68 @@ class AudioPositionTest(TempDirTestCase):
         os.rmdir(folder)
         self.assertIsNone(positions.load_last(self.path))
         self.assertEqual(positions.load_recent(self.path), [])
+
+
+class ProgressTest(TempDirTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.path = os.path.join(self.tmp, "positions.json")
+
+    def test_progress_and_time_kept(self):
+        self.write_position(dict(POSITION, progress=0.43, time=1700000000.0))
+        self.assertEqual(positions.load(self.path, "book"),
+                         dict(POSITION, progress=0.43, time=1700000000))
+        for stamp in (-1, 2.5, True, "1", float("inf")):
+            self.write_position(dict(POSITION, time=stamp))
+            self.assertEqual(positions.load(self.path, "book"), POSITION, stamp)
+        positions.save(self.path, "audio:b", {"file": "b.mp3", "ms": 5, "progress": 1})
+        self.assertEqual(positions.load(self.path, "audio:b"),
+                         {"file": "b.mp3", "ms": 5, "progress": 1.0})
+
+    def test_bad_values_dropped_not_the_place(self):
+        for progress, stamp in [(-0.1, -1), (1.5, 2.5), (float("nan"), True), ("0.5", "1"),
+                                (True, None), (None, float("inf"))]:
+            with self.subTest(progress=progress, time=stamp):
+                positions.save(self.path, "book", dict(POSITION, progress=progress, time=stamp))
+                self.assertEqual(positions.load(self.path, "book"), POSITION)
+
+    def test_time_only_when_moved(self):
+        positions.save(self.path, "book", POSITION, now=100)
+        self.assertEqual(positions.load(self.path, "book")["time"], 100)
+        # Opened and closed again, laid out anew: the place may differ a
+        # little, the book was not used.
+        positions.save(self.path, "book", dict(POSITION, offset=1100, fraction=0.2))
+        self.assertEqual(positions.load(self.path, "book")["time"], 100)
+        # A time from QML does not count.
+        positions.save(self.path, "book", dict(POSITION, time=999))
+        self.assertEqual(positions.load(self.path, "book")["time"], 100)
+        positions.save(self.path, "book", dict(POSITION, time=999), now=400)
+        self.assertEqual(positions.load(self.path, "book")["time"], 400)
+
+    def test_never_moved_has_no_time(self):
+        positions.save(self.path, "book", POSITION)
+        self.assertNotIn("time", positions.load(self.path, "book"))
+        positions.save(self.path, "audio:b", {"file": "b.mp3", "ms": 5})
+        self.assertNotIn("time", positions.load(self.path, "audio:b"))
+
+    def test_progress_stays_until_moved(self):
+        # Saved before the reader knows the lengths of the chapters.
+        positions.save(self.path, "book", dict(POSITION, progress=0.4), now=100)
+        positions.save(self.path, "book", POSITION)
+        self.assertEqual(positions.load(self.path, "book")["progress"], 0.4)
+        positions.save(self.path, "book", dict(POSITION, progress=0.5))
+        self.assertEqual(positions.load(self.path, "book")["progress"], 0.5)
+        positions.save(self.path, "book", dict(POSITION, spine=4), now=300)
+        self.assertNotIn("progress", positions.load(self.path, "book"))
+
+    def test_place_from_an_older_file_has_no_time(self):
+        self.write_position(POSITION)
+        positions.save(self.path, "book", POSITION)
+        self.assertNotIn("time", positions.load(self.path, "book"))
+        positions.save(self.path, "book", dict(POSITION, spine=4), now=200)
+        self.assertEqual(positions.load(self.path, "book")["time"], 200)
+
+    def write_position(self, position):
+        with open(self.path, "w", encoding="utf-8") as f:
+            json.dump({"books": {"book": position}}, f)

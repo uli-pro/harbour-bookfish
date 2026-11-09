@@ -26,6 +26,11 @@ Readalouds can be created from an EPUB and an audiobook with
   History where you listened. The place is saved to the second. A folder
   opens at once; until its files have been read once, chapter lengths are
   estimated from the file sizes.
+- **Book and audiobook of the same title** (not a readaloud) keep their own
+  places. Opening one after the other was used later offers to go to about
+  the same share of the book ("Listened to 43 %", "Go there"); the top of
+  its history page always shows that place. The share is rough: front
+  matter and appendices move it.
 - **Turn pages** by swiping, or by tapping the left or right edge.
 - **Listen** by tapping a sentence: narration starts there. Tapping where
   there is no sentence starts at the top of the page. When a book is opened

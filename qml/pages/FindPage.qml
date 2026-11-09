@@ -25,12 +25,17 @@ Page {
     // An audiobook's chapters, [{title, begin}]; null for an EPUB.
     property var audioChapters: null
     readonly property bool audio: audioChapters !== null
+    // The other form of the book, see bridge.partner: its place is offered
+    // above the history.
+    property var partner: null
 
     // The hits and the one chosen, for going from hit to hit in the book.
     signal selected(var hits, int index, string query)
     // An entry of the history chosen: {spine, offset, length, text},
     // see bridge.history.
     signal chosen(var place)
+    // The place of the partner chosen.
+    signal partnerChosen()
 
     function chapterName(item) {
         //: Chapter of a search hit without a title, e.g. "Chapter 12"
@@ -97,20 +102,45 @@ Page {
         return new Date(seconds * 1000).toLocaleTimeString(Qt.locale(), Locale.ShortFormat)
     }
 
-    // "Reading · Today, 22:40–23:15"
-    function sessionText(session) {
-        var start = new Date(session.start * 1000)
+    // "Today", "Yesterday" or the date.
+    function dayText(seconds) {
+        var start = new Date(seconds * 1000)
         var day = new Date(start.getFullYear(), start.getMonth(), start.getDate())
         var now = new Date()
         var today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
         var days = Math.round((today - day) / 86400000)
-        var date = days === 0
+        return days === 0
                 //: Heading of a session of reading or listening today, before its times
                 ? qsTr("Today")
                 : days === 1
                   //: Heading of a session of reading or listening yesterday, before its times
                   ? qsTr("Yesterday")
                   : start.toLocaleDateString(Qt.locale(), Locale.ShortFormat)
+    }
+
+    // "Audiobook · Today, 14:05"; without the time if it is not known (a
+    // place stored before it was kept).
+    function partnerInfo() {
+        if (!partner)
+            return ""
+        var audiobook = partner.kind === "audiobook"
+        if (!(partner.time > 0))
+            //: Above the history: the place of this book's audiobook follows
+            return audiobook ? qsTr("Audiobook")
+                             //: Above an audiobook's history: the place of its book follows
+                             : qsTr("Book")
+        var day = dayText(partner.time)
+        var time = timeText(partner.time)
+        return audiobook
+                //: Above the history: when the audiobook of this book was listened to last, e.g. "Audiobook · Today, 14:05"
+                ? qsTr("Audiobook · %1, %2").arg(day).arg(time)
+                //: Above an audiobook's history: when its book was read last, e.g. "Book · Today, 14:05"
+                : qsTr("Book · %1, %2").arg(day).arg(time)
+    }
+
+    // "Reading · Today, 22:40–23:15"
+    function sessionText(session) {
+        var date = dayText(session.start)
         var times = timeText(session.start)
         if (timeText(session.end) !== times)
             times += "–" + timeText(session.end)
@@ -310,6 +340,47 @@ Page {
                 }
                 EnterKey.iconSource: "image://theme/icon-m-enter-close"
                 EnterKey.onClicked: focus = false
+            }
+
+            // Where the other form of the book is, above the history.
+            BackgroundItem {
+                width: parent.width
+                height: partnerColumn.height + 2 * Theme.paddingMedium
+                visible: !!page.partner && page.partner.progress >= 0
+                         && page.query.trim().length < 2
+                onClicked: {
+                    Qt.inputMethod.hide()
+                    page.partnerChosen()
+                    pageStack.pop()
+                }
+
+                Column {
+                    id: partnerColumn
+
+                    x: Theme.horizontalPageMargin
+                    y: Theme.paddingMedium
+                    width: parent.width - 2 * x
+
+                    Label {
+                        width: parent.width
+                        truncationMode: TruncationMode.Fade
+                        font.pixelSize: Theme.fontSizeExtraSmall
+                        color: parent.parent.highlighted ? Theme.highlightColor : Theme.secondaryHighlightColor
+                        text: page.partnerInfo()
+                    }
+
+                    Label {
+                        width: parent.width
+                        truncationMode: TruncationMode.Fade
+                        color: parent.parent.highlighted ? Theme.highlightColor : Theme.primaryColor
+                        text: !page.partner ? ""
+                              : page.partner.kind === "audiobook"
+                                //: Offer on opening a book whose audiobook was listened to later, e.g. "Listened to 43 %"
+                                ? qsTr("Listened to %1 %").arg(app.percent(page.partner.progress))
+                                //: Offer on opening an audiobook whose book was read later, e.g. "Read to 43 %"
+                                : qsTr("Read to %1 %").arg(app.percent(page.partner.progress))
+                    }
+                }
             }
 
             // Which of the two lists is shown: the history or the hits.

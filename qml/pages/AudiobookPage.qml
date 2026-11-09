@@ -29,6 +29,13 @@ Page {
     property double shown: 0
     // Left for the library: no further saving.
     property bool closed: false
+    // The EPUB of this audiobook, see bridge.partner; null if none.
+    property var partner: null
+    // Offering to go where the EPUB was read last.
+    property bool partnerShown: false
+    // Listened or gone elsewhere since the place was saved: the book has
+    // been used.
+    property bool moved: false
     // How the next end of listening goes into the history, if not as the
     // player says: "timer", "close" or "end".
     property string stopKind: ""
@@ -110,9 +117,20 @@ Page {
     }
 
     function start() {
+        py.call("bookfish.bridge.partner", [book.path, app.libraryCache, app.positionsFile],
+                function (found) {
+            if (typeof page === "undefined" || !page)
+                return
+            partner = found
+            resume()
+        })
+    }
+
+    function resume() {
         py.call("bookfish.bridge.load_position", [app.positionsFile, book.key], function (pos) {
             if (typeof page === "undefined" || !page)
                 return  // the page was closed meanwhile
+            partnerShown = app.partnerOffered(pos, partner)
             // A file renamed or gone: from the start.
             if (pos && typeof pos.ms === "number") {
                 for (var i = chapters.length - 1; i >= 0; --i) {
@@ -134,6 +152,7 @@ Page {
         ms = limit(index, ms)
         chapter = index
         offset = ms
+        moved = true
         lastHeard = { chapter: index, offset: ms }
         atEnd = false
         // Stopped by the system, the file is loaded afresh by play().
@@ -148,6 +167,19 @@ Page {
         if (!player.playing)
             savePosition()
         refresh()
+    }
+
+    // Where the EPUB was read last, roughly; paused until Play.
+    function goToPartner() {
+        partnerShown = false
+        if (!partner || !ready)
+            return
+        // Not at the very end: Play would begin the book again.
+        var goal = Math.min(partner.progress * duration, Math.max(0, duration - 10000))
+        var index = 0
+        while (index + 1 < chapters.length && chapters[index + 1].start <= goal)
+            ++index
+        seek(index, goal - chapters[index].start)
     }
 
     // To ms in chapter index, and play.
@@ -253,6 +285,8 @@ Page {
     // history, however it came.
     function playbackChanged() {
         if (player.playing) {
+            partnerShown = false
+            moved = true
             stopKind = ""
             // Once the player has gone to the place it starts at.
             startNote.restart()
@@ -297,11 +331,16 @@ Page {
     }
 
     function savePosition() {
-        if (closed)
+        // Not before the place saved has been read: it would be lost.
+        if (closed || !ready)
             return
         var item = chapters[current]
+        var progress = duration > 0 ? Math.min(1, (item.start + place()) / duration) : -1
+        var used = moved || player.playing
+        moved = false
         py.call("bookfish.bridge.save_position",
-                [app.positionsFile, book.key, { file: item.file, ms: Math.round(item.begin + place()) }],
+                [app.positionsFile, book.key, { file: item.file, ms: Math.round(item.begin + place()),
+                                                progress: progress }, used],
                 function (result) {
                     if (result !== true)
                         console.warn("Cannot save position", result.error, result.detail)
@@ -352,7 +391,9 @@ Page {
             return { title: titleOf(index), begin: item.begin }
         })
         var history = pageStack.push(Qt.resolvedUrl("FindPage.qml"),
-                                     { root: book.root, bookKey: book.key, audioChapters: names })
+                                     { root: book.root, bookKey: book.key, audioChapters: names,
+                                       partner: partner })
+        history.partnerChosen.connect(goToPartner)
         history.chosen.connect(function (place) {
             // The book may have changed since.
             if (place.spine < chapters.length)
@@ -705,6 +746,49 @@ Page {
                               ? qsTr("Chapter")
                               //: Sleep timer button with the minutes left, e.g. "23 min"
                               : qsTr("%1 min").arg(Math.ceil(sleepTimer.remaining / 60000))
+                    }
+                }
+            }
+
+            // Offered when the EPUB was read later, see start().
+            Item {
+                x: Theme.horizontalPageMargin
+                width: parent.width - x - Theme.paddingMedium
+                height: Theme.itemSizeMedium
+                visible: partnerShown
+
+                Label {
+                    anchors {
+                        left: parent.left
+                        right: partnerButtons.left
+                        verticalCenter: parent.verticalCenter
+                    }
+                    truncationMode: TruncationMode.Fade
+                    color: Theme.secondaryHighlightColor
+                    //: Offer on opening an audiobook whose book was read later, e.g. "Read to 43 %"
+                    text: partner ? qsTr("Read to %1 %").arg(app.percent(partner.progress)) : ""
+                }
+
+                Row {
+                    id: partnerButtons
+
+                    anchors {
+                        right: parent.right
+                        verticalCenter: parent.verticalCenter
+                    }
+                    spacing: Theme.paddingMedium
+
+                    Button {
+                        anchors.verticalCenter: parent.verticalCenter
+                        preferredWidth: Theme.buttonWidthExtraSmall
+                        //: Goes to the place in the book or audiobook offered
+                        text: qsTr("Go there")
+                        onClicked: page.goToPartner()
+                    }
+                    IconButton {
+                        anchors.verticalCenter: parent.verticalCenter
+                        icon.source: "image://theme/icon-m-clear"
+                        onClicked: partnerShown = false
                     }
                 }
             }

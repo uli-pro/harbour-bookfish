@@ -262,7 +262,8 @@ def open_book(epub_path, cache_dir):
         spine_index.setdefault(item.path, index)
     return {
         "root": root,
-        "key": _position_key(book.identifier or os.path.basename(epub_path)),
+        "path": epub_path,
+        "key": _epub_key(book.identifier, epub_path),
         "title": book.title,
         "authors": book.authors,
         "language": book.language,
@@ -312,7 +313,7 @@ def open_audiobook(path, library_cache, folders, covers_dir, audio_cache):
         info = _tags_info(path)
         title, authors, cover_file = info["title"], info["authors"], ""
     book.update(kind="audiobook", path=path, title=title, authors=authors, cover=cover_file,
-                key=_position_key("audio:" + os.path.basename(path)))
+                key=_audio_key(path))
     if not book["complete"]:
         _audiobooks.submit(path, audio_cache)
     return book
@@ -400,9 +401,10 @@ def load_position(path, key):
     return positions.load(path, key)
 
 
-def save_position(path, key, position):
+def save_position(path, key, position, moved=False):
+    """moved: the reader moved the place, see positions.save."""
     try:
-        positions.save(path, key, position)
+        positions.save(path, key, position, time.time() if moved else None)
     except OSError as e:
         return _error("io", str(e))
     return True
@@ -418,6 +420,40 @@ def save_last_book(path, epub_path):
     except OSError as e:
         return _error("io", str(e))
     return True
+
+
+def partner(path, library_cache, positions_file):
+    """The other form of the book at path, as the library pairs them: the
+    audiobook of an EPUB, the EPUB of an audiobook; None for a readaloud or
+    a book without one. {path, key, kind, progress, time}: its place as
+    stored, progress -1 and time 0 if not known. Of several audiobooks of
+    one EPUB the one used last that has a progress."""
+    found = []
+    for entry, _, epub in library.arranged(library.load_cached(library_cache)):
+        if epub is None:
+            continue
+        if entry["path"] == path:
+            found.append((epub["path"], _epub_key(epub["info"]["identifier"], epub["path"]),
+                          "epub"))
+        elif epub["path"] == path:
+            found.append((entry["path"], _audio_key(entry["path"]), "audiobook"))
+    best = None
+    for other, key, kind in found:
+        stored = positions.load(positions_file, key) or {}
+        candidate = {"path": other, "key": key, "kind": kind,
+                     "progress": stored.get("progress", -1), "time": stored.get("time", 0)}
+        if best is None or ((candidate["progress"] >= 0, candidate["time"])
+                            > (best["progress"] >= 0, best["time"])):
+            best = candidate
+    return best
+
+
+def _epub_key(identifier, epub_path):
+    return _position_key(identifier or os.path.basename(epub_path))
+
+
+def _audio_key(path):
+    return _position_key("audio:" + os.path.basename(path))
 
 
 def _position_key(name):

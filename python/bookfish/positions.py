@@ -13,6 +13,11 @@ fallback for pages without either.
 In an audiobook a position is {file, ms}: the name of the audio file and
 the place in it.
 
+Either may have progress (0 to 1, how far into the whole book; left out
+until the reader knows the lengths of the chapters) and time (when the
+reader last moved the place, in seconds since 1970). An EPUB and its audiobook
+compare both to offer going to the place of the one used last.
+
 File format: {"books": {key: position}, "last": path of the EPUB file,
 "recent": paths of the books opened last, newest first}; a book's path is
 that of its EPUB or audio file, or of the folder of an audiobook.
@@ -33,12 +38,28 @@ def load(path, key):
     return _valid(_read_all(path)["books"].get(key))
 
 
-def save(path, key, position):
-    """Store position for key. A damaged file is replaced."""
+def save(path, key, position, now=None):
+    """Store position for key. A damaged file is replaced.
+
+    now is given when the reader moved the place (turned pages, jumped,
+    listened): time becomes now. Otherwise the old time stays, and the old
+    progress if none is given (not known yet): a book only opened, or laid
+    out anew, has not been used.
+    """
     position = _valid(position)
     if position is None:
         raise ValueError("invalid position")
     state = _read_all(path)
+    position.pop("time", None)
+    if now is not None:
+        position["time"] = int(now)
+    else:
+        old = _valid(state["books"].get(key))
+        if old is not None:
+            if "time" in old:
+                position["time"] = old["time"]
+            if "progress" not in position and "progress" in old:
+                position["progress"] = old["progress"]
     state["books"][key] = position
     _write(path, state)
 
@@ -86,8 +107,24 @@ def _valid(position):
     """A clean copy of position, or None if it is not a valid position."""
     if not isinstance(position, dict):
         return None
-    if "file" in position:
-        return _valid_audio(position)
+    valid = _valid_audio(position) if "file" in position else _valid_text(position)
+    if valid is None:
+        return None
+    # Only needed to compare with the other form of the book: a bad value
+    # is dropped, not the place.
+    progress = position.get("progress")
+    if (isinstance(progress, (int, float)) and not isinstance(progress, bool)
+            and math.isfinite(progress) and 0 <= progress <= 1):
+        valid["progress"] = float(progress)
+    stamp = position.get("time")
+    if isinstance(stamp, float) and stamp.is_integer():
+        stamp = int(stamp)
+    if isinstance(stamp, int) and not isinstance(stamp, bool) and stamp >= 0:
+        valid["time"] = stamp
+    return valid
+
+
+def _valid_text(position):
     spine = position.get("spine")
     sentence = position.get("id")
     fraction = position.get("fraction")

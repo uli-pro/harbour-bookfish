@@ -75,7 +75,16 @@ WebViewPage {
     // An entry of the history chosen, likewise; see FindPage.
     property var pendingPlace: null
     // A bar covers the bottom of the text: the player's or the search's.
-    readonly property bool lowerBar: barShown || findShown
+    // The audiobook of this EPUB, see bridge.partner; null if none.
+    property var partner: null
+    // Offering to go where the audiobook was listened to last.
+    property bool partnerShown: false
+    // Going there from the history, once this page is back.
+    property bool pendingPartner: false
+    // Pages turned, a jump or listening since the place was saved: the
+    // book has been used. A layout alone moves the page a little.
+    property bool moved: false
+    readonly property bool lowerBar: barShown || findShown || partnerShown
     readonly property bool listening: player.active && player.chapter === chapter
     readonly property bool playing: player.playing
     readonly property bool hasAudio: book.spine.some(function (item) { return !!item.overlay })
@@ -111,10 +120,27 @@ WebViewPage {
         return "file://" + path.split("/").map(encodeURIComponent).join("/")
     }
 
+    // A readaloud is its own audiobook.
     function start() {
+        if (hasAudio) {
+            resume()
+            return
+        }
+        py.call("bookfish.bridge.partner", [book.path, app.libraryCache, app.positionsFile],
+                function (found) {
+            if (typeof page === "undefined" || !page)
+                return
+            partner = found
+            resume()
+        })
+    }
+
+    function resume() {
         py.call("bookfish.bridge.load_position", [app.positionsFile, book.key], function (pos) {
             if (typeof page === "undefined" || !page)
                 return  // the page was closed meanwhile
+            // Before the first layout, which then leaves room for the bar.
+            partnerShown = app.partnerOffered(pos, partner)
             if (pos && pos.spine < book.spine.length) {
                 if (pos.heard)
                     resumeId = pos.id
@@ -254,6 +280,10 @@ WebViewPage {
                         return
                     chapterChars = lengths
                     updateBookPages()
+                    // Now with progress; not while a chapter is loading,
+                    // whose place is not known yet.
+                    if (ready)
+                        savePosition()
                 })
             }
             return
@@ -275,6 +305,73 @@ WebViewPage {
         }
         bookPage = before + pageIndex + 1
         bookPages = before + pageCount + after
+    }
+
+    // How far into the book a place is, 0 to 1: the characters of the
+    // chapters before and the share of this one by pages. The frame script
+    // counts the characters of a chapter differently (with the spaces of
+    // the source), so a place in it goes by pages. Chapters outside the
+    // reading order (notes) are not in the audiobook and not counted. -1
+    // while the lengths are not known.
+    function progressAt(spine, fraction) {
+        if (chapterChars.length !== book.spine.length)
+            return -1
+        var before = 0
+        var total = 0
+        for (var i = 0; i < chapterChars.length; ++i) {
+            if (!book.spine[i].linear)
+                continue
+            if (i < spine)
+                before += chapterChars[i]
+            total += chapterChars[i]
+        }
+        if (total <= 0)
+            return -1
+        var length = book.spine[spine] && book.spine[spine].linear ? chapterChars[spine] : 0
+        return Math.min(1, (before + fraction * length) / total)
+    }
+
+    // The other way: chapter and share of it for progress.
+    function placeAt(progress) {
+        var total = 0
+        var last = -1
+        for (var i = 0; i < chapterChars.length; ++i) {
+            if (book.spine[i].linear) {
+                total += chapterChars[i]
+                last = i
+            }
+        }
+        if (last < 0)
+            return null
+        var goal = progress * total
+        for (i = 0; i < chapterChars.length; ++i) {
+            if (!book.spine[i].linear)
+                continue
+            if (goal < chapterChars[i])
+                return { spine: i, fraction: goal / chapterChars[i] }
+            goal -= chapterChars[i]
+        }
+        return { spine: last, fraction: 1 }
+    }
+
+    // Where the audiobook was listened to last, roughly.
+    function goToPartner() {
+        partnerShown = false
+        if (!partner)
+            return
+        if (chapterChars.length !== book.spine.length) {
+            var paths = book.spine.map(function (item) { return item.path })
+            py.call("bookfish.bridge.chapter_lengths", [book.root, paths], function (lengths) {
+                if (typeof page === "undefined" || !page || closed)
+                    return
+                chapterChars = lengths
+                goToPartner()
+            })
+            return
+        }
+        var place = placeAt(partner.progress)
+        if (place)
+            jumpTo(place.spine, { fraction: place.fraction })
     }
 
     function sameUrl(a, b) {
@@ -465,6 +562,8 @@ WebViewPage {
                 note("jump")
             turnedSinceJump = false
         }
+        partnerShown = false
+        moved = true
         resumeId = ""
         jumpId = ""
         pause()
@@ -484,7 +583,7 @@ WebViewPage {
     function openFind() {
         var find = pageStack.push(Qt.resolvedUrl("FindPage.qml"),
                                   { root: book.root, here: here(), initialQuery: findQuery,
-                                    bookKey: book.key })
+                                    bookKey: book.key, partner: partner })
         find.selected.connect(function (hits, index, query) {
             findHits = hits
             findQuery = query
@@ -492,6 +591,9 @@ WebViewPage {
         })
         find.chosen.connect(function (place) {
             pendingPlace = place
+        })
+        find.partnerChosen.connect(function () {
+            pendingPartner = true
         })
     }
 
@@ -566,6 +668,7 @@ WebViewPage {
             awayAt = 0
             // One set while not playing would apply to a later pause.
             stopKind = ""
+            moved = true
             record("start")
             return
         }
@@ -703,13 +806,19 @@ WebViewPage {
             turnedSinceEntry = true
             turnedSinceJump = true
         }
+        moved = true
         resumeId = ""
         jumpId = ""
+        // First the layout without the bar, then the turn from the page it
+        // keeps: the frame script takes messages in order, and its answer at
+        // the end of a chapter then carries the new serial.
+        partnerShown = false
         flickable.webView.sendAsyncMessage("bookfish:turn", { delta: delta })
     }
 
     function savePosition() {
-        if (chapter < 0 || closed)
+        // Not before the first page is shown: its place is not known yet.
+        if (chapter < 0 || closed || topChapter < 0)
             return
         savedAt = Date.now()
         // The sentence heard, unless the reader paused and turned away; or
@@ -722,10 +831,14 @@ WebViewPage {
         // The page read, by its first character: also right after a change
         // of font size in books without sentences. Not while listening.
         var offset = heardId === "" && spine === topChapter && topOffsetOnPage ? topOffset : -1
+        var share = spine === chapter ? fraction : 0
+        var used = moved || player.playing
+        moved = false
         py.call("bookfish.bridge.save_position",
                 [app.positionsFile, book.key, { spine: spine, id: heardId || firstId,
-                                                fraction: spine === chapter ? fraction : 0,
-                                                heard: heardId !== "", offset: offset }],
+                                                fraction: share, heard: heardId !== "",
+                                                offset: offset, progress: progressAt(spine, share) },
+                 used],
                 function (result) {
                     if (result !== true)
                         console.warn("Cannot save position", result.error, result.detail)
@@ -762,7 +875,7 @@ WebViewPage {
     onStatusChanged: {
         if (status !== PageStatus.Active)
             return
-        if (pendingHit >= 0 || pendingPlace) {
+        if (pendingHit >= 0 || pendingPlace || pendingPartner) {
             keyboardGone.restart()
             heightSettled.restart()
         } else if (ready) {
@@ -788,6 +901,10 @@ WebViewPage {
             var place = pendingPlace
             pendingPlace = null
             showPlace(place)
+        } else if (pendingPartner) {
+            pendingPartner = false
+            findShown = false
+            goToPartner()
         }
     }
 
@@ -1170,6 +1287,56 @@ WebViewPage {
                     findShown = false
                     unmark()
                 }
+            }
+        }
+    }
+
+    // Offered when the audiobook was listened to later, see start().
+    Rectangle {
+        anchors.bottom: parent.bottom
+        width: parent.width
+        height: bar.height
+        color: pageColor
+        visible: partnerShown && !barShown && !findShown
+
+        MouseArea {
+            anchors.fill: parent
+        }
+
+        Label {
+            anchors {
+                left: parent.left
+                leftMargin: Theme.horizontalPageMargin
+                right: partnerButtons.left
+                verticalCenter: parent.verticalCenter
+            }
+            truncationMode: TruncationMode.Fade
+            color: palette.secondaryHighlightColor
+            //: Offer on opening a book whose audiobook was listened to later, e.g. "Listened to 43 %"
+            text: partner ? qsTr("Listened to %1 %").arg(app.percent(partner.progress)) : ""
+        }
+
+        Row {
+            id: partnerButtons
+
+            anchors {
+                right: parent.right
+                rightMargin: Theme.paddingMedium
+                verticalCenter: parent.verticalCenter
+            }
+            spacing: Theme.paddingMedium
+
+            Button {
+                anchors.verticalCenter: parent.verticalCenter
+                preferredWidth: Theme.buttonWidthExtraSmall
+                //: Goes to the place in the book or audiobook offered
+                text: qsTr("Go there")
+                onClicked: goToPartner()
+            }
+            IconButton {
+                anchors.verticalCenter: parent.verticalCenter
+                icon.source: "image://theme/icon-m-clear"
+                onClicked: partnerShown = false
             }
         }
     }

@@ -6,7 +6,7 @@ import time
 import unittest
 from unittest import mock
 
-from bookfish import bridge
+from bookfish import bridge, library
 
 from . import audiodata as ad
 from .helpers import TempDirTestCase, make_epub, mini_entries, write_files
@@ -47,6 +47,7 @@ class BridgeTest(TempDirTestCase):
         json.dumps(book)  # QML gets only plain values
         self.assertEqual(os.path.dirname(book["root"]), self.cache_dir)
         self.assertEqual(book["key"], "urn:uuid:4f1c2a9e-6b0d-4d5e-9a57-3c8e2f7b1d60")
+        self.assertEqual(book["path"], self.epub)
         self.assertEqual(book["title"], "The Happy Prince")
         self.assertEqual(book["authors"], ["Wilde, Oscar"])
         self.assertEqual(book["language"], "en")
@@ -157,6 +158,9 @@ class BridgeTest(TempDirTestCase):
         position = {"spine": 1, "id": "chapter-s1", "fraction": 0.5, "heard": True, "offset": -1}
         self.assertIs(bridge.save_position(path, "book", position), True)
         self.assertEqual(bridge.load_position(path, "book"), position)
+        with mock.patch.object(bridge.time, "time", return_value=1700000000.5):
+            self.assertIs(bridge.save_position(path, "book", position, True), True)
+        self.assertEqual(bridge.load_position(path, "book"), dict(position, time=1700000000))
 
     def test_last_book(self):
         path = os.path.join(self.tmp, "positions.json")
@@ -279,6 +283,64 @@ class LibraryViewTest(TempDirTestCase):
         self.assertEqual(bridge.scan_now([books], cache_file, covers), {"unchanged": True})
         self.assertEqual(bridge.cached_library(cache_file, [books]), view)
         self.assertEqual(bridge.cached_library(cache_file, [books + "x"])["books"], [])
+
+
+class PartnerTest(TempDirTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.cache = os.path.join(self.tmp, "library.json")
+        self.positions = os.path.join(self.tmp, "positions.json")
+
+    def library(self, *entries):
+        library._save_cache(self.cache, list(entries))
+
+    def partner(self, path):
+        return bridge.partner(path, self.cache, self.positions)
+
+    def test_both_ways(self):
+        self.library(entry("/l/A/x.epub", "X", ["A"], identifier="urn:isbn:1"),
+                     entry("/l/A/x.m4b", "x", ["R"], kind="audiobook"),
+                     entry("/l/A/talk.mp3", "Talk", kind="audiobook"),
+                     entry("/l/A/y.epub", "Y", ["A"]))
+        self.assertEqual(self.partner("/l/A/x.epub"), {
+            "path": "/l/A/x.m4b", "key": "audio:x.m4b", "kind": "audiobook",
+            "progress": -1, "time": 0})
+        bridge.positions.save(self.positions, "urn:isbn:1",
+                              {"spine": 2, "id": "", "fraction": 0, "progress": 0.25}, now=50)
+        self.assertEqual(self.partner("/l/A/x.m4b"), {
+            "path": "/l/A/x.epub", "key": "urn:isbn:1", "kind": "epub",
+            "progress": 0.25, "time": 50})
+        for alone in ("/l/A/talk.mp3", "/l/A/y.epub", "/l/A/gone.epub"):
+            self.assertIsNone(self.partner(alone), alone)
+
+    def test_key_of_an_epub_without_identifier(self):
+        self.library(entry("/l/A/x.epub", "X"), entry("/l/A/x", "x", kind="audiobook"))
+        self.assertEqual(self.partner("/l/A/x")["key"], "x.epub")
+        self.assertEqual(self.partner("/l/A/x.epub")["key"], "audio:x")
+
+    def test_readaloud_has_none(self):
+        self.library(entry("/l/A/x.epub", "X", identifier="i"),
+                     entry("/l/A/x-readaloud.epub", "X", identifier="i", audio=True),
+                     entry("/l/A/x.mp3", "x", kind="audiobook"))
+        for path in ("/l/A/x.epub", "/l/A/x-readaloud.epub", "/l/A/x.mp3"):
+            self.assertIsNone(self.partner(path), path)
+
+    def test_two_audiobooks_the_one_used_last(self):
+        self.library(entry("/l/A/x.epub", "X", identifier="i"),
+                     entry("/l/A/x.mp3", "x", kind="audiobook"),
+                     entry("/l/A/x", "x", kind="audiobook"))
+        bridge.positions.save(self.positions, "audio:x", {"file": "1.mp3", "ms": 0}, now=10)
+        self.assertEqual(self.partner("/l/A/x.epub")["path"], "/l/A/x")
+        bridge.positions.save(self.positions, "audio:x.mp3", {"file": "x.mp3", "ms": 0}, now=20)
+        self.assertEqual(self.partner("/l/A/x.epub")["path"], "/l/A/x.mp3")
+        # One with a progress before one used later without.
+        bridge.positions.save(self.positions, "audio:x",
+                              {"file": "1.mp3", "ms": 0, "progress": 0.5}, now=10)
+        self.assertEqual(self.partner("/l/A/x.epub")["path"], "/l/A/x")
+
+    def test_no_library_yet(self):
+        self.assertIsNone(self.partner("/l/A/x.epub"))
 
 
 class SearchTest(TempDirTestCase):

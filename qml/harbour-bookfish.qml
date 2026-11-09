@@ -104,6 +104,24 @@ ApplicationWindow {
         playbackRateSetting.value = Math.round(rate * 100) / 100
     }
 
+    // An EPUB and its audiobook: offer going to the place of the other one
+    // when that was used later and is elsewhere. own is the book's stored
+    // place, partner what bridge.partner gives. A place stored before
+    // progress was kept says nothing about where it is.
+    function partnerOffered(own, partner) {
+        if (!partner || !(partner.progress >= 0))
+            return false
+        var progress = own ? own.progress : 0
+        var time = own && typeof own.time === "number" ? own.time : 0
+        return typeof progress === "number" && partner.time > time
+                && Math.abs(partner.progress - progress) > 0.01
+    }
+
+    // "43" for 0.437: never more than reached.
+    function percent(progress) {
+        return Math.floor(100 * progress)
+    }
+
     function errorText(code) {
         switch (code) {
         case "not_zip":
