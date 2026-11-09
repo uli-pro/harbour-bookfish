@@ -405,6 +405,90 @@ function normalize(doc, o) {
         override(justified[j], "text-align", "start")
     for (var c = 0; c < centred.length; ++c)
         override(centred[c], "text-indent", "0")
+    fitTables(doc, o.margin)
+}
+
+// A table is at least as wide as the longest words of its columns together;
+// overflow-wrap: break-word does not change that. What sticks out of a column
+// is drawn in the next one, on the next page. So a table too wide gives up its
+// own width, then shrinks its text; breaking words is the last resort, below
+// minTableScale: small text reads better than broken words.
+var minTableScale = 0.4
+
+function fitTables(doc, margin) {
+    var tables = Array.prototype.filter.call(doc.body.getElementsByTagName("table"), function (table) {
+        // A nested table shrinks with the outer one.
+        return table.namespaceURI === xhtml && !table.parentElement.closest("table")
+    })
+    // All reads before all writes: one reflow per round, however many tables.
+    function tooWide(list) {
+        // Not innerWidth: rounded, and far into a long chapter the small
+        // difference would put a box on the wrong page.
+        var width = doc.body.getBoundingClientRect().width
+        var scrolled = doc.body.scrollLeft
+        var wide = []
+        for (var i = 0; i < list.length; ++i) {
+            var box = boxes(list[i])[0]
+            if (!box)
+                continue
+            var left = box.left + scrolled
+            // With margin: a table moved left by the book may start in the
+            // gap before its page.
+            var room = (Math.floor((left + margin) / width) + 1) * width - margin - left
+            if (box.width > room + 1)
+                wide.push({ table: list[i], share: room / box.width })
+        }
+        return wide
+    }
+    function tablesOf(wide) {
+        return wide.map(function (item) { return item.table })
+    }
+    function fontSize(element) {
+        return parseFloat(content.getComputedStyle(element).fontSize)
+    }
+    var wide = tooWide(tables)
+    // Sizes the book gives in pt or rem would not follow the table's; as
+    // shares of the parent they do, and look the same.
+    var scales = new Map()
+    var shares = []
+    wide.forEach(function (item) {
+        scales.set(item.table, fontSize(item.table) / fontSize(item.table.parentElement))
+        var inside = item.table.getElementsByTagName("*")
+        for (var i = 0; i < inside.length; ++i) {
+            var parentSize = fontSize(inside[i].parentElement)
+            if (inside[i].namespaceURI === xhtml && parentSize > 0)
+                shares.push([inside[i], fontSize(inside[i]) / parentSize])
+        }
+    })
+    shares.forEach(function (share) { override(share[0], "font-size", share[1] + "em") })
+    function dropWidth(table) {
+        override(table, "width", "auto")
+        override(table, "min-width", "0")
+    }
+    wide.forEach(function (item) {
+        dropWidth(item.table)
+        Array.prototype.forEach.call(item.table.getElementsByTagName("table"), dropWidth)
+    })
+    // Fixed spacing in the cells does not shrink with the text, so one round
+    // falls short; with much of it, several do. A little more than the exact
+    // share gets there sooner, and breaks no words for a pixel left over.
+    for (var round = 0; round < 6; ++round) {
+        wide = tooWide(tablesOf(wide))
+        var shrunk = false
+        wide.forEach(function (item) {
+            var scale = Math.max(minTableScale, scales.get(item.table) * item.share * 0.98)
+            if (scale < scales.get(item.table)) {
+                scales.set(item.table, scale)
+                override(item.table, "font-size", scale + "em")
+                shrunk = true
+            }
+        })
+        if (!shrunk)
+            break
+    }
+    tooWide(tablesOf(wide)).forEach(function (item) {
+        override(item.table, "overflow-wrap", "anywhere")
+    })
 }
 
 // After a layout QML covers the view until Gecko has painted it; the layout
