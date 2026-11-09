@@ -95,6 +95,10 @@ addMessageListener("bookfish:layout", function (message) {
         "  break-inside: avoid; }" +
         // Links cannot be followed, so they look like the text around them.
         "body a, body a:link, body a:visited { color: inherit; text-decoration: none; }" +
+        // Books are made for white pages: their own black text or light
+        // backgrounds would be unreadable on a black one. A rule may be drawn
+        // with its background.
+        (o.background === "black" ? "body h|*:not(h|hr) { color: inherit; background-color: transparent; }" : "") +
         // Our own mark for the sentence spoken, and for the one heard last
         // where listening goes on: the book's style for its active class is
         // made for white pages.
