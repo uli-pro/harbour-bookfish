@@ -38,7 +38,7 @@ _BOOK_ERRORS = (EpubError, zipfile.BadZipFile, zipfile.LargeZipFile, KeyError, V
 _UNREAD = [-1, -1]
 # Prefixes of the same identifier: Storyteller writes "uuid:…" where the
 # book it started from had "urn:uuid:…" or nothing.
-_ID_PREFIXES = ("urn:", "uuid:", "url:", "asin:")
+_ID_PREFIXES = ("urn:", "uuid:", "url:", "asin:", "isbn:")
 _COVER_FILE = re.compile(r"^([0-9a-f]{16})(\.[a-z]+)?(\.part)?$")
 # A picture beside the audio files of a folder; or the one in the tags.
 _FOLDER_COVER = re.compile(r"cover\.(jpe?g|png)", re.IGNORECASE)
