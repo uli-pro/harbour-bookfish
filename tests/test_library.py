@@ -259,6 +259,8 @@ class ReplacedTest(unittest.TestCase):
         for identifier in ("urn:uuid:abc", "uuid:ABC", " abc ", "url:abc"):
             self.assertEqual(normal_identifier(identifier), "abc")
         self.assertEqual(normal_identifier("urn:asin:B006"), "b006")
+        for identifier in ("ISBN:978", "urn:isbn:978", "978"):
+            self.assertEqual(normal_identifier(identifier), "978")
 
 
 class CoverTest(TempDirTestCase):
@@ -425,6 +427,15 @@ class ArrangedTest(unittest.TestCase):
         audio = audio_entry("/l/x.m4b")
         self.assertEqual([e["path"] for e, _, _ in library.arranged([epub, readaloud, audio])],
                          ["/l/x-readaloud.epub"])
+
+    def test_readaloud_with_isbn_prefix_hides_epub_and_its_audiobook(self):
+        # Storyteller writes an identifier with opf:scheme="ISBN" with a prefix.
+        epub = audio_entry("/l/x.epub", "T", kind="epub", identifier="978")
+        readaloud = audio_entry("/l/x-readaloud.epub", "T", kind="epub", identifier="ISBN:978",
+                                audio=True)
+        for audio in (audio_entry("/l/x.m4b"), audio_entry("/l/x")):
+            self.assertEqual([e["path"] for e, _, _ in library.arranged([epub, readaloud, audio])],
+                             ["/l/x-readaloud.epub"])
 
     def test_unpaired_audiobook_takes_the_author_beside_it(self):
         epubs = [audio_entry("/l/Keller/a.epub", kind="epub", authors=["Keller, Timothy"],
