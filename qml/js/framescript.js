@@ -406,6 +406,14 @@ function normalize(doc, o) {
     for (var c = 0; c < centred.length; ++c)
         override(centred[c], "text-indent", "0")
     fitTables(doc, o.margin)
+    splitTallTables(doc)
+}
+
+// Only outer tables: a nested one goes along with the one around it.
+function outerTables(doc) {
+    return Array.prototype.filter.call(doc.body.getElementsByTagName("table"), function (table) {
+        return table.namespaceURI === xhtml && !table.parentElement.closest("table")
+    })
 }
 
 // A table is at least as wide as the longest words of its columns together;
@@ -416,10 +424,7 @@ function normalize(doc, o) {
 var minTableScale = 0.4
 
 function fitTables(doc, margin) {
-    var tables = Array.prototype.filter.call(doc.body.getElementsByTagName("table"), function (table) {
-        // A nested table shrinks with the outer one.
-        return table.namespaceURI === xhtml && !table.parentElement.closest("table")
-    })
+    var tables = outerTables(doc)
     // All reads before all writes: one reflow per round, however many tables.
     function tooWide(list) {
         // Not innerWidth: rounded, and far into a long chapter the small
@@ -489,6 +494,83 @@ function fitTables(doc, margin) {
     tooWide(tablesOf(wide)).forEach(function (item) {
         override(item.table, "overflow-wrap", "anywhere")
     })
+}
+
+// Gecko never splits a table over CSS columns: what is below the page is cut
+// off, and the next page goes on after the table. So a table taller than the
+// page turns into blocks, one grid per row, in the columns it had as a table.
+// Rows are blocks and may go to the next page; a row taller than a page has to
+// be split itself, so its cells stack. Other tables stay tables: a grid is no
+// match for cells spanning rows, and a short table would be torn apart.
+function splitTallTables(doc) {
+    var rect = doc.body.getBoundingClientRect()
+    var style = content.getComputedStyle(doc.body)
+    var bottom = rect.bottom - parseFloat(style.paddingBottom)
+    var pageHeight = bottom - rect.top - parseFloat(style.paddingTop)
+    function below(element) {
+        return boxes(element).some(function (box) { return box.bottom > bottom + 1 })
+    }
+    function own(table, selector) {
+        return Array.prototype.filter.call(table.querySelectorAll(selector), function (element) {
+            return element.closest("table") === table && boxes(element).length > 0
+        })
+    }
+    // All reads before all writes.
+    var plans = outerTables(doc).filter(below).map(function (table) {
+        var cells = own(table, "td, th")
+        var places = cells.map(function (cell) { return cell.getBoundingClientRect() })
+        // Spacing between cells becomes a column of its own, so the table's
+        // left edge counts too.
+        var lines = [boxes(table)[0].left]
+        places.forEach(function (place) { lines.push(place.left, place.right) })
+        lines.sort(function (a, b) { return a - b })
+        var edges = lines.filter(function (line, i) { return i === 0 || line - lines[i - 1] > 1.5 })
+        function lineAt(x) {
+            var n = 0
+            while (n + 1 < edges.length && edges[n + 1] <= x + 1.5)
+                ++n
+            return n + 1
+        }
+        var tracks = []
+        for (var i = 1; i < edges.length; ++i)
+            tracks.push((edges[i] - edges[i - 1]) + "px")
+        return { table: table, cells: cells, rows: own(table, "tr"), tracks: tracks.join(" "),
+                 columns: places.map(function (place) { return lineAt(place.left) + " / " + lineAt(place.right) }) }
+    })
+    plans.forEach(function (plan) {
+        var blocks = new Set([plan.table])
+        Array.prototype.forEach.call(plan.table.getElementsByTagName("caption"), function (caption) {
+            if (caption.closest("table") === plan.table)
+                blocks.add(caption)
+        })
+        plan.rows.forEach(function (row) {
+            override(row, "display", "grid")
+            override(row, "grid-template-columns", plan.tracks)
+            for (var up = row.parentElement; up !== plan.table; up = up.parentElement)
+                blocks.add(up)
+        })
+        blocks.forEach(function (block) { override(block, "display", "block") })
+        Array.prototype.forEach.call(plan.table.querySelectorAll("col, colgroup"), function (column) {
+            override(column, "display", "none")
+        })
+        plan.cells.forEach(function (cell, i) {
+            override(cell, "display", "block")
+            override(cell, "grid-column", plan.columns[i])
+            // Its width as a share of the table would now refer to its column;
+            // a margin, without effect on a table cell, would now count.
+            override(cell, "width", "auto")
+            override(cell, "min-width", "0")
+            override(cell, "margin", "0")
+        })
+    })
+    var tallRows = []
+    plans.forEach(function (plan) {
+        plan.rows.forEach(function (row) {
+            if (below(row) || boxes(row).some(function (box) { return box.height > pageHeight - 1 }))
+                tallRows.push(row)
+        })
+    })
+    tallRows.forEach(function (row) { override(row, "display", "block") })
 }
 
 // After a layout QML covers the view until Gecko has painted it; the layout
