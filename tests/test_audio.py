@@ -53,6 +53,17 @@ class Mp3Test(TempDirTestCase):
                 self.assertEqual((info["series"], info["series_index"]),
                                  ("Die Känguru-Werke", 4.0), (version, encoding))
 
+    def test_series_in_utf16be_and_without_bom(self):
+        path = self.write(ad.mp3([ad.txxx("SERIES", "Reihe", 4, 2), ad.txxx("SERIES-PART", "2", 4, 2)],
+                                 version=4))
+        self.assertEqual((mp3.read(path)["series"], mp3.read(path)["series_index"]), ("Reihe", 2.0))
+        data = b"\x01" + "SERIES".encode("utf-16-le") + b"\0\0" + "Reihe".encode("utf-16-le")
+        path = self.write(ad.mp3([ad.frame("TXXX", data)]))
+        self.assertEqual(mp3.read(path)["series"], "Reihe")
+        # No terminator after the description: no series, the rest is read.
+        path = self.write(ad.mp3([ad.frame("TXXX", b"\x03SERIES"), ad.text("TIT2", "T")]))
+        self.assertEqual((mp3.read(path)["series"], mp3.read(path)["title"]), ("", "T"))
+
     def test_series_from_movement_only_without_series(self):
         movement = [ad.text("MVNM", "Narnia"), ad.text("MVIN", "3/7")]
         path = self.write(ad.mp3(movement))
@@ -233,6 +244,18 @@ class Mp4Test(TempDirTestCase):
         info = mp4.read(self.write(ad.m4b(items=[ad.item(b"\xa9mvn", "Ryan".encode()),
                                                  ad.item(b"\xa9mvi", b"\xff", 21)])))
         self.assertEqual((info["series"], info["series_index"]), ("Ryan", None))
+
+    def test_broken_series_items_passed_over(self):
+        broken_name = ad.box(b"----", ad.box(b"mean", bytes(4) + b"com.apple.iTunes")
+                             + struct.pack(">I4s", 999, b"name"))
+        broken_movement = ad.box(b"\xa9mvn", struct.pack(">I4s", 999, b"data"))
+        no_name = ad.box(b"----", ad.box(b"mean", bytes(4) + b"com.apple.iTunes"))
+        for item in (broken_name, broken_movement, no_name):
+            info = mp4.read(self.write(ad.m4b(items=[ad.item(b"\xa9nam", b"T"), item])))
+            self.assertEqual((info["title"], info["series"]), ("T", ""))
+        info = mp4.read(self.write(ad.m4b(items=[ad.freeform("SERIES", "S"),
+                                                 ad.freeform("SERIES-PART", "7", data_type=21)])))
+        self.assertEqual((info["series"], info["series_index"]), ("S", None))
 
     def test_meta_written_like_quicktime(self):
         path = self.write(ad.m4b(items=[ad.item(b"\xa9nam", b"T")], meta_version=False))

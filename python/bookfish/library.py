@@ -191,7 +191,7 @@ def _without_series(title, series, index):
     ":"; the rest of the title must remain."""
     if not series or index is None:
         return title
-    number = "{:g}".format(index).replace(".", "[.,]")
+    number = re.escape(("%.3f" % index).rstrip("0").rstrip(".")).replace(r"\.", "[.,]")
     match = re.match(re.escape(series) + r"\s+0*" + number + r"(?:\s*[-–—]\s+|\s*:\s+)(\S.*)",
                      title, re.IGNORECASE)
     return match.group(1) if match else title

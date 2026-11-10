@@ -57,14 +57,8 @@ def read(path, chapters=True):
                             info[name] = clean_text(data[1].decode("utf-8", errors="replace"))
                     elif box[0] == b"covr" and info["picture"] is None:
                         info["picture"] = _picture_kind(boxes, box)
-                    elif box[0] == b"----":
-                        field = _SERIES.get(_freeform_name(boxes, box).upper())
-                        if field is not None and not series[field]:
-                            series[field] = _text(boxes, box, (0, 1))
-                    elif box[0] == _MOVEMENT_NAME and not series["movement"]:
-                        series["movement"] = _text(boxes, box, (1,))
-                    elif box[0] == _MOVEMENT_PART and not series["movement_part"]:
-                        series["movement_part"] = _integer(boxes, box)
+                    elif box[0] in (b"----", _MOVEMENT_NAME, _MOVEMENT_PART):
+                        _series_item(boxes, box, series)
         info["series"], info["series_index"] = audioutil.series(
             series["series"], series["part"], series["movement"], series["movement_part"])
     return info
@@ -193,6 +187,22 @@ def _data(boxes, item):
         return None
     content = boxes.read(data, 64 * 1024)
     return struct.unpack(">I", content[:4])[0] & 0xffffff, content[8:]
+
+
+def _series_item(boxes, item, series):
+    """Note what the item says about the series in series. A broken item
+    is passed over: the book is still usable without its series."""
+    try:
+        if item[0] == b"----":
+            field = _SERIES.get(_freeform_name(boxes, item).upper())
+            if field is not None and not series[field]:
+                series[field] = _text(boxes, item, (0, 1))
+        elif item[0] == _MOVEMENT_NAME and not series["movement"]:
+            series["movement"] = _text(boxes, item, (1,))
+        elif item[0] == _MOVEMENT_PART and not series["movement_part"]:
+            series["movement_part"] = _integer(boxes, item)
+    except AudioError:
+        pass
 
 
 def _text(boxes, item, types):

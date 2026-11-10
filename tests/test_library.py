@@ -362,6 +362,17 @@ class AudiobookTest(TempDirTestCase):
         self.write({"f/01.mp3": ad.mp3([ad.text("TALB", "S 1.5 – X"), ad.txxx("SERIES", "S"),
                                         ad.txxx("SERIES-PART", "1.5")])})
         self.assertEqual(library.audio_info(list_books([self.tmp])[0])["title"], "X")
+        for part, album, title in (("123456.5", "S 123456 – X", "S 123456 – X"),
+                                   ("1234.567", "S 1234,567 — X", "X"),
+                                   ("4", "S 4.0 – X", "S 4.0 – X")):
+            self.write({"f/01.mp3": ad.mp3([ad.text("TALB", album), ad.txxx("SERIES", "S"),
+                                            ad.txxx("SERIES-PART", part)])})
+            self.assertEqual(library.audio_info(list_books([self.tmp])[0])["title"], title, part)
+        self.write({"f/01.mp3": ad.mp3([ad.text("TALB", "S.* 2: X"), ad.txxx("SERIES", "S.*"),
+                                        ad.txxx("SERIES-PART", "2")])})
+        self.assertEqual(library.audio_info(list_books([self.tmp])[0])["title"], "X")
+        self.write({"f/01.mp3": ad.mp3([ad.text("TALB", "Sx 2: X"), ad.txxx("SERIES", "S.")])})
+        self.assertEqual(library.audio_info(list_books([self.tmp])[0])["title"], "Sx 2: X")
         self.write({"f/01.mp3": ad.mp3([ad.text("TALB", "S 1 – X"), ad.txxx("SERIES", "S")])})
         info = library.audio_info(list_books([self.tmp])[0])
         self.assertEqual((info["title"], info["series"], info["index"]), ("S 1 – X", "S", None))
