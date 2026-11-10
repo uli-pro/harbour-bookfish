@@ -9,6 +9,7 @@ from .errors import EpubError
 MAX_TEXT_LENGTH = 500
 _CONTROL = re.compile("[\x00-\x1f\x7f]+")
 _NUMBER = re.compile(r"(\d+)")
+_PART = re.compile(r"\d{1,6}(\.\d{1,3})?")
 
 
 class AudioError(EpubError):
@@ -39,6 +40,19 @@ def clean_text(text):
     """text from a tag for display: control characters out, at most
     MAX_TEXT_LENGTH characters."""
     return _CONTROL.sub(" ", text).strip()[:MAX_TEXT_LENGTH].strip()
+
+
+def series(name, part, movement, movement_part):
+    """(name, index) of the series from the tags SERIES and SERIES-PART,
+    else from iTunes' movement tags; ("", None) without either. index is
+    None if the part is no plain number ("1-3")."""
+    for found, number in ((name, part), (movement, movement_part)):
+        found = clean_text(found)
+        if found:
+            # MVIN may say "3/7".
+            number = number.split("/")[0].strip()
+            return found, float(number) if _PART.fullmatch(number) else None
+    return "", None
 
 
 def picture_type(data):

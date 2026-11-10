@@ -345,6 +345,38 @@ class AudiobookTest(TempDirTestCase):
             "series": "", "index": None, "cover": "embedded.jpg", "audio": False,
             "broken": False, "kind": "audiobook"})
 
+    def test_series_of_an_audiobook(self):
+        tags = [ad.txxx("SERIES", "Die Känguru-Werke"), ad.txxx("SERIES-PART", "4")]
+        for album, title in (("Die Känguru-Werke 4 – Die Känguru-Apokryphen", "Die Känguru-Apokryphen"),
+                             ("die känguru-werke 04: Apokryphen", "Apokryphen"),
+                             ("Die Känguru-Werke 4 - X", "X"),
+                             ("Die Känguru-Werke 40 – X", "Die Känguru-Werke 40 – X"),
+                             ("Die Känguru-Werke 3 – X", "Die Känguru-Werke 3 – X"),
+                             ("Das Känguru 4 – X", "Das Känguru 4 – X"),
+                             ("Die Känguru-Werke 4 – ", "Die Känguru-Werke 4 –"),
+                             ("Apokryphen", "Apokryphen")):
+            self.write({"f/01.mp3": ad.mp3([ad.text("TALB", album)] + tags), "f/02.mp3": ad.mp3([])})
+            info = library.audio_info(list_books([self.tmp])[0])
+            self.assertEqual((info["title"], info["series"], info["index"]),
+                             (title, "Die Känguru-Werke", 4.0), album)
+        self.write({"f/01.mp3": ad.mp3([ad.text("TALB", "S 1.5 – X"), ad.txxx("SERIES", "S"),
+                                        ad.txxx("SERIES-PART", "1.5")])})
+        self.assertEqual(library.audio_info(list_books([self.tmp])[0])["title"], "X")
+        for part, album, title in (("123456.5", "S 123456 – X", "S 123456 – X"),
+                                   ("1234.567", "S 1234,567 — X", "X"),
+                                   ("4", "S 4.0 – X", "S 4.0 – X")):
+            self.write({"f/01.mp3": ad.mp3([ad.text("TALB", album), ad.txxx("SERIES", "S"),
+                                            ad.txxx("SERIES-PART", part)])})
+            self.assertEqual(library.audio_info(list_books([self.tmp])[0])["title"], title, part)
+        self.write({"f/01.mp3": ad.mp3([ad.text("TALB", "S.* 2: X"), ad.txxx("SERIES", "S.*"),
+                                        ad.txxx("SERIES-PART", "2")])})
+        self.assertEqual(library.audio_info(list_books([self.tmp])[0])["title"], "X")
+        self.write({"f/01.mp3": ad.mp3([ad.text("TALB", "Sx 2: X"), ad.txxx("SERIES", "S.")])})
+        self.assertEqual(library.audio_info(list_books([self.tmp])[0])["title"], "Sx 2: X")
+        self.write({"f/01.mp3": ad.mp3([ad.text("TALB", "S 1 – X"), ad.txxx("SERIES", "S")])})
+        info = library.audio_info(list_books([self.tmp])[0])
+        self.assertEqual((info["title"], info["series"], info["index"]), ("S 1 – X", "S", None))
+
     def test_info_of_a_folder(self):
         first = ad.mp3([ad.text("TIT2", "Chapter 1"), ad.text("TALB", "The Book"),
                         ad.text("TPE1", "Reader"), ad.text("TPE2", "Writer, Wanda"), ad.apic(ad.PNG)])
@@ -419,6 +451,13 @@ class ArrangedTest(unittest.TestCase):
                          [("/l/A/x.epub", "Real Title", ["Ann, A"], "S", None),
                           ("/l/A/x.mp3", "Real Title", ["Ann, A"], "S", "/l/A/x.epub"),
                           ("/l/A/x", "Real Title", ["Ann, A"], "S", "/l/A/x.epub")])
+
+    def test_series_of_the_epub_wins(self):
+        epub = audio_entry("/l/A/x.epub", kind="epub", identifier="id")
+        audio = audio_entry("/l/A/x.mp3", series="Tag", index=4.0)
+        other = audio_entry("/l/A/y.mp3", series="Tag", index=5.0)
+        self.assertEqual([(i["series"], i["index"]) for _, i, _ in library.arranged([epub, audio, other])],
+                         [("", None), ("", None), ("Tag", 5.0)])
 
     def test_readaloud_hides_epub_and_its_audiobook(self):
         epub = audio_entry("/l/x.epub", "T", kind="epub", identifier="urn:uuid:1")

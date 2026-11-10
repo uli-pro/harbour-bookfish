@@ -5,7 +5,7 @@ A book is an EPUB file or an audiobook. An audiobook is an M4B file, an MP3
 file beside EPUBs (an author's folder holding several books) or in a library
 folder itself, or a folder of MP3 files without EPUBs, each file a chapter. An audiobook named like an
 EPUB beside it is that book read aloud: it shows the EPUB's title, author,
-series and cover.
+series and cover. Another audiobook takes its series from its tags.
 """
 
 import collections
@@ -30,7 +30,7 @@ MAX_COVER_SIZE = 5 * 1024 * 1024
 # file can hold a huge image. JPEG is decoded scaled.
 MAX_COVER_PIXELS = 4096
 # Raised whenever what is read from a book changes, so that all are read again.
-_CACHE_VERSION = 5
+_CACHE_VERSION = 6
 # Errors that say something about the book. Others (a card pulled out, no
 # memory) may pass, so the book is read again next time.
 _BOOK_ERRORS = (EpubError, zipfile.BadZipFile, zipfile.LargeZipFile, KeyError, ValueError,
@@ -171,6 +171,8 @@ def audio_info(book):
         title = min(names, key=len) if names else ""
     else:
         title = tags["album"]
+    series, index = tags["series"], tags["series_index"]
+    title = _without_series(title, series, index)
     author = tags["albumartist"] or tags["artist"]
     cover = None
     if book.path != first:
@@ -179,8 +181,20 @@ def audio_info(book):
     if cover is None and tags["picture"]:
         cover = "embedded." + tags["picture"]
     return {"identifier": "", "title": title or book.name, "authors": [author] if author else [],
-            "sort": "", "series": "", "index": None, "cover": cover, "audio": False,
+            "sort": "", "series": series, "index": index, "cover": cover, "audio": False,
             "broken": False, "kind": "audiobook"}
+
+
+def _without_series(title, series, index):
+    """title without a leading "<series> <index> – ", which the library
+    shows as the heading and "Book <index>" already. Also with "-", "—" or
+    ":"; the rest of the title must remain."""
+    if not series or index is None:
+        return title
+    number = re.escape(("%.3f" % index).rstrip("0").rstrip(".")).replace(r"\.", "[.,]")
+    match = re.match(re.escape(series) + r"\s+0*" + number + r"(?:\s*[-–—]\s+|\s*:\s+)(\S.*)",
+                     title, re.IGNORECASE)
+    return match.group(1) if match else title
 
 
 def broken_info(path, kind="epub"):

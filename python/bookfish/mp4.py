@@ -1,5 +1,5 @@
 """What an M4B (MPEG-4 audio) file says about itself: duration, Nero
-chapters (chpl), tags and cover from the iTunes item list.
+chapters (chpl), tags, series and cover from the iTunes item list.
 
 An MPEG-4 file is a tree of boxes ("atoms"), each with a size and a type.
 Only the boxes needed are visited; the sample tables (trak) and the audio
@@ -9,6 +9,7 @@ around it, so a broken file ends the reading instead of looping.
 
 import struct
 
+from . import audioutil
 from .audioutil import AudioError, clean_text, open_regular, picture_type, read_exact
 
 MAX_BOXES = 10000
@@ -20,17 +21,23 @@ _CHPL_UNIT = 10000  # 100 ns per unit, 10000 per ms
 
 _ITEMS = {b"\xa9nam": "title", b"\xa9alb": "album", b"\xa9ART": "artist",
           b"aART": "albumartist"}
+# Free-form items ("----") of iTunes by name (any case), and the movement.
+_SERIES = {"SERIES": "series", "SERIES-PART": "part"}
+_ITUNES = "com.apple.iTunes"
+_MOVEMENT_NAME = b"\xa9mvn"
+_MOVEMENT_PART = b"\xa9mvi"
 
 
 def read(path, chapters=True):
-    """{title, album, artist, albumartist, picture, duration, chapters} like
-    mp3.read. Raises AudioError if the file is no MPEG-4 file, OSError if it
+    """{title, album, artist, albumartist, series, series_index, picture,
+    duration, chapters} like mp3.read. Raises AudioError if the file is no MPEG-4 file, OSError if it
     cannot be read."""
     with open_regular(path) as f:
         boxes = _Boxes(f)
         moov = boxes.find_top(b"moov")
         info = {"title": "", "album": "", "artist": "", "albumartist": "", "picture": None,
                 "duration": None, "chapters": []}
+        series = {"series": "", "part": "", "movement": "", "movement_part": ""}
         mvhd = boxes.child(moov, b"mvhd")
         if mvhd is not None:
             info["duration"] = _duration(boxes.read(mvhd, 32))
@@ -50,6 +57,10 @@ def read(path, chapters=True):
                             info[name] = clean_text(data[1].decode("utf-8", errors="replace"))
                     elif box[0] == b"covr" and info["picture"] is None:
                         info["picture"] = _picture_kind(boxes, box)
+                    elif box[0] in (b"----", _MOVEMENT_NAME, _MOVEMENT_PART):
+                        _series_item(boxes, box, series)
+        info["series"], info["series_index"] = audioutil.series(
+            series["series"], series["part"], series["movement"], series["movement_part"])
     return info
 
 
@@ -176,6 +187,50 @@ def _data(boxes, item):
         return None
     content = boxes.read(data, 64 * 1024)
     return struct.unpack(">I", content[:4])[0] & 0xffffff, content[8:]
+
+
+def _series_item(boxes, item, series):
+    """Note what the item says about the series in series. A broken item
+    is passed over: the book is still usable without its series."""
+    try:
+        if item[0] == b"----":
+            field = _SERIES.get(_freeform_name(boxes, item).upper())
+            if field is not None and not series[field]:
+                series[field] = _text(boxes, item, (0, 1))
+        elif item[0] == _MOVEMENT_NAME and not series["movement"]:
+            series["movement"] = _text(boxes, item, (1,))
+        elif item[0] == _MOVEMENT_PART and not series["movement_part"]:
+            series["movement_part"] = _integer(boxes, item)
+    except AudioError:
+        pass
+
+
+def _text(boxes, item, types):
+    """The text of an item whose data box has one of types, else ""."""
+    data = _data(boxes, item)
+    if data is None or data[0] not in types:
+        return ""
+    return data[1].decode("utf-8", errors="replace")
+
+
+def _integer(boxes, item):
+    """The number in an item of type integer (21) as text, else ""."""
+    data = _data(boxes, item)
+    if data is None or data[0] not in (0, 21) or len(data[1]) not in (1, 2, 4, 8):
+        return ""
+    return str(int.from_bytes(data[1], "big", signed=True))
+
+
+def _freeform_name(boxes, item):
+    """The name of a free-form item of iTunes ("SERIES"), else "". mean and
+    name are full boxes: 4 bytes of version and flags, then the text."""
+    mean = boxes.child(item, b"mean")
+    name = boxes.child(item, b"name")
+    if mean is None or name is None:
+        return ""
+    if boxes.read(mean, 4 + 256)[4:].decode("utf-8", errors="replace") != _ITUNES:
+        return ""
+    return boxes.read(name, 4 + 256)[4:].decode("utf-8", errors="replace")
 
 
 def _picture_kind(boxes, covr):

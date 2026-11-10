@@ -1,5 +1,5 @@
 """What an MP3 file says about itself: ID3v2 tags (title, album, artists,
-chapter marks, picture) and the duration, read from the frame headers
+series, chapter marks, picture) and the duration, read from the frame headers
 without decoding.
 
 The files come from anywhere, so nothing is read whole: frame headers are
@@ -11,6 +11,7 @@ audiobooks, and the app then falls back to file names.
 
 import struct
 
+from . import audioutil
 from .audioutil import AudioError, clean_text, open_regular, picture_type, read_exact
 
 MAX_TEXT = 64 * 1024
@@ -25,6 +26,10 @@ _SYNC_SEARCH = 64 * 1024
 _TEXT = {"TIT2": "title", "TALB": "album", "TPE1": "artist", "TPE2": "albumartist",
          "TT2": "title", "TAL": "album", "TP1": "artist", "TP2": "albumartist"}
 _PICTURE = ("APIC", "PIC")
+# User text frames by description (any case), and iTunes' movement frames.
+_USER_TEXT = ("TXXX", "TXX")
+_SERIES = {"SERIES": "series", "SERIES-PART": "part"}
+_MOVEMENT = {"MVNM": "movement", "MVIN": "movement_part"}
 
 # kbit/s by version (1 or 2, 2.5 using 2) and layer, index 1 to 14.
 _BITRATES = {
@@ -39,10 +44,11 @@ _SAMPLE_RATES = {1: (44100, 48000, 32000), 2: (22050, 24000, 16000), 25: (11025,
 
 
 def read(path, chapters=True):
-    """{title, album, artist, albumartist, picture, duration, chapters} of
-    the MP3 at path.
+    """{title, album, artist, albumartist, series, series_index, picture,
+    duration, chapters} of the MP3 at path.
 
-    Missing tags are ""; picture is "jpg", "png" or None; duration in ms or
+    Missing tags are ""; series_index a float or None (see
+    audioutil.series); picture is "jpg", "png" or None; duration in ms or
     None if no audio frame was found; chapters [(begin ms, title)] as in
     the file, unchecked (see audioutil.chapter_list). Raises AudioError if
     the file is no MP3, OSError if it cannot be read.
@@ -164,11 +170,20 @@ class _Tag:
     def read(self, chapters):
         info = {"title": "", "album": "", "artist": "", "albumartist": "", "picture": None,
                 "chapters": []}
+        series = {"series": "", "part": "", "movement": "", "movement_part": ""}
         front = False
         for frame_id, offset, size in self.frames():
             if frame_id in _TEXT:
                 if not info[_TEXT[frame_id]] and size <= MAX_TEXT:
                     info[_TEXT[frame_id]] = clean_text(_text(self._content(offset, size)))
+            elif frame_id in _USER_TEXT and size <= MAX_TEXT:
+                description, value = _user_text(self._content(offset, size))
+                field = _SERIES.get(description.strip().upper())
+                if field is not None and not series[field]:
+                    series[field] = value
+            elif frame_id in _MOVEMENT and size <= MAX_TEXT:
+                if not series[_MOVEMENT[frame_id]]:
+                    series[_MOVEMENT[frame_id]] = _text(self._content(offset, size))
             elif frame_id in _PICTURE and not front:
                 found = self._picture(frame_id, offset, size)
                 if found is not None:
@@ -178,6 +193,8 @@ class _Tag:
                     chapter = self._chapter(offset, size)
                     if chapter is not None:
                         info["chapters"].append(chapter)
+        info["series"], info["series_index"] = audioutil.series(
+            series["series"], series["part"], series["movement"], series["movement_part"])
         return info
 
     def picture(self):
@@ -292,6 +309,18 @@ def _text(data):
     if end is not None:
         body = body[:end - (2 if encoding in (1, 2) else 1)]
     return _decode(body, encoding)
+
+
+def _user_text(data):
+    """(description, first value) of a TXXX frame."""
+    if not data:
+        return "", ""
+    encoding = data[0]
+    end = _terminator(data, 1, encoding)
+    if end is None:
+        return "", ""
+    description = _decode(data[1:end - (2 if encoding in (1, 2) else 1)], encoding)
+    return description, _text(bytes([encoding]) + data[end:])
 
 
 def _terminator(data, start, encoding):

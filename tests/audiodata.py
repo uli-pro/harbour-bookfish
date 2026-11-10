@@ -28,6 +28,13 @@ def text(frame_id, value, version=3, encoding=3):
     return frame(frame_id, bytes([encoding]) + value.encode(codec), version)
 
 
+def txxx(description, value, version=3, encoding=3):
+    codec = {0: "latin-1", 1: "utf-16", 2: "utf-16-be", 3: "utf-8"}[encoding]
+    nul = b"\0\0" if encoding in (1, 2) else b"\0"
+    return frame("TXX" if version == 2 else "TXXX",
+                 bytes([encoding]) + description.encode(codec) + nul + value.encode(codec), version)
+
+
 def apic(image, mime="image/jpeg", kind=3, description=b"", version=3):
     if version == 2:
         return frame("PIC", b"\0" + mime.encode() + bytes([kind]) + description + b"\0" + image,
@@ -69,6 +76,11 @@ def box(kind, payload):
 
 def item(kind, data, data_type=1):
     return box(kind, box(b"data", struct.pack(">II", data_type, 0) + data))
+
+
+def freeform(name, value, mean="com.apple.iTunes", data_type=1):
+    return box(b"----", box(b"mean", bytes(4) + mean.encode()) + box(b"name", bytes(4) + name.encode())
+               + box(b"data", struct.pack(">II", data_type, 0) + value.encode()))
 
 
 def chpl(chapters):

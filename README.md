@@ -18,8 +18,10 @@ Readalouds can be created from an EPUB and an audiobook with
   folder of MP3 files without EPUB books, each file a chapter in the order
   of the file names. An audiobook named like an EPUB book next to it (the
   folder `Book/` or the file `Book.mp3` next to `Book.epub`) is listed with
-  the title, author, series and cover of that book. Icons tell books,
-  audiobooks and readalouds apart.
+  the title, author, series and cover of that book. Other audiobooks take
+  their series from the tags `SERIES` and `SERIES-PART` (MP3: `TXXX`, M4B:
+  `----:com.apple.iTunes:`), else from iTunes' movement tags (`MVNM`/`MVIN`,
+  `©mvn`/`©mvi`). Icons tell books, audiobooks and readalouds apart.
 - **Audiobooks** open a player: chapter, place in it and time left in the
   book; back and forward by chapter or 30 seconds, also on the lock screen
   and the headphones. Contents lists the chapters with their start times,
