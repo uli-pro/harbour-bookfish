@@ -3,7 +3,7 @@ import struct
 import unittest
 
 from bookfish import mp3, mp4
-from bookfish.audioutil import AudioError, chapter_list, clean_text, natural_key
+from bookfish.audioutil import AudioError, chapter_list, clean_text, natural_key, series
 
 from . import audiodata as ad
 from .helpers import TempDirTestCase
@@ -41,6 +41,29 @@ class Mp3Test(TempDirTestCase):
     def test_long_text_cut(self):
         path = self.write(ad.mp3([ad.text("TIT2", "x" * 2000)]))
         self.assertEqual(len(mp3.read(path)["title"]), 500)
+
+    def test_series(self):
+        for version in (2, 3, 4):
+            for encoding in (0, 1, 3):
+                path = self.write(ad.mp3([ad.txxx("Other", "x", version, encoding),
+                                          ad.txxx("series", "Die Känguru-Werke", version, encoding),
+                                          ad.txxx("SERIES-PART", "4", version, encoding)],
+                                         version=version))
+                info = mp3.read(path)
+                self.assertEqual((info["series"], info["series_index"]),
+                                 ("Die Känguru-Werke", 4.0), (version, encoding))
+
+    def test_series_from_movement_only_without_series(self):
+        movement = [ad.text("MVNM", "Narnia"), ad.text("MVIN", "3/7")]
+        path = self.write(ad.mp3(movement))
+        info = mp3.read(path)
+        self.assertEqual((info["series"], info["series_index"]), ("Narnia", 3.0))
+        path = self.write(ad.mp3(movement + [ad.txxx("SERIES", "Chronicles")]))
+        info = mp3.read(path)
+        self.assertEqual((info["series"], info["series_index"]), ("Chronicles", None))
+        path = self.write(ad.mp3([ad.txxx("SERIES-PART", "2")]))
+        info = mp3.read(path)
+        self.assertEqual((info["series"], info["series_index"]), ("", None))
 
     def test_duration_from_bitrate(self):
         path = self.write(ad.mp3([ad.text("TIT2", "T")], audio_frames=100))
@@ -194,9 +217,22 @@ class Mp4Test(TempDirTestCase):
         info = mp4.read(path)
         self.assertEqual(info, {"title": "Title", "album": "Album", "artist": "Reader",
                                 "albumartist": "Müller, Anna", "picture": "png",
-                                "duration": 3600000,
+                                "series": "", "series_index": None, "duration": 3600000,
                                 "chapters": [(0, "Intro"), (60000, "Kapitel 1")]})
         self.assertEqual(mp4.picture(path), ad.PNG)
+
+    def test_series(self):
+        movement = [ad.item(b"\xa9mvn", "Löwenthals".encode()),
+                    ad.item(b"\xa9mvi", struct.pack(">h", 3), 21)]
+        info = mp4.read(self.write(ad.m4b(items=movement)))
+        self.assertEqual((info["series"], info["series_index"]), ("Löwenthals", 3.0))
+        info = mp4.read(self.write(ad.m4b(items=movement + [
+            ad.freeform("SERIES", "Other", mean="com.example"), ad.freeform("series", "Das Erbe"),
+            ad.freeform("SERIES-PART", "2.5")])))
+        self.assertEqual((info["series"], info["series_index"]), ("Das Erbe", 2.5))
+        info = mp4.read(self.write(ad.m4b(items=[ad.item(b"\xa9mvn", "Ryan".encode()),
+                                                 ad.item(b"\xa9mvi", b"\xff", 21)])))
+        self.assertEqual((info["series"], info["series_index"]), ("Ryan", None))
 
     def test_meta_written_like_quicktime(self):
         path = self.write(ad.m4b(items=[ad.item(b"\xa9nam", b"T")], meta_version=False))
@@ -275,6 +311,13 @@ class AudioUtilTest(unittest.TestCase):
                          [(0, 5000, "A"), (5000, 9000, "B"), (9000, None, "C")])
         self.assertEqual(chapter_list([(70000, "beyond")], 60000), [])
         self.assertEqual(chapter_list([], None), [])
+
+    def test_series_index(self):
+        for part, index in (("4", 4.0), (" 04 ", 4.0), ("1.5", 1.5), ("3/7", 3.0), ("", None),
+                            ("1-3", None), ("x", None), ("-1", None), ("inf", None), ("1e5", None)):
+            self.assertEqual(series("S", part, "", ""), ("S", index), part)
+        self.assertEqual(series(" ", "1", "M", "2"), ("M", 2.0))
+        self.assertEqual(series("", "", "", "1"), ("", None))
 
     def test_clean_text(self):
         self.assertEqual(clean_text("  a\tb\x00c  "), "a b c")
