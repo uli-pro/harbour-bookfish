@@ -431,65 +431,65 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
 <context>
     <name>ReaderPage</name>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="957"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="960"/>
         <source>The narration could not be played.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1261"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1284"/>
         <source>Settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1277"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1300"/>
         <source>Find &amp; history</source>
         <extracomment>Opens the search in the book and its history of reading and listening</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1193"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1214"/>
         <source>%1×</source>
         <extracomment>Playback speed on the button that opens the settings, e.g. &quot;1.25×&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1184"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1205"/>
         <source>Chapter</source>
         <extracomment>Sleep timer button while it waits for the end of the chapter</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1186"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1207"/>
         <source>%1 min</source>
         <extracomment>Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1111"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1132"/>
         <source>%1 / %2</source>
         <extracomment>Search hit shown and number of hits, e.g. &quot;3 / 39&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1133"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1154"/>
         <source>Listened to %1 %</source>
         <extracomment>Offer on opening a book whose audiobook was listened to later, e.g. &quot;Listened to 43 %&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1166"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1187"/>
         <source>%1/%2</source>
         <extracomment>Estimated page in the whole book, e.g. &quot;30/295&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1232"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1253"/>
         <source>Go there</source>
         <extracomment>Goes to the place in the book or audiobook offered</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1265"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1288"/>
         <source>Library</source>
         <translation type="unfinished"></translation>
     </message>
@@ -500,7 +500,7 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1281"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1304"/>
         <source>Contents</source>
         <translation type="unfinished"></translation>
     </message>
@@ -508,85 +508,99 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
 <context>
     <name>SettingsPage</name>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="33"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="36"/>
         <source>Settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="44"/>
-        <source>%1×</source>
-        <extracomment>Playback speed, e.g. &quot;1.25×&quot;</extracomment>
+        <location filename="../qml/pages/SettingsPage.qml" line="49"/>
+        <source>Speed %1×</source>
+        <extracomment>Playback speed with its value, e.g. &quot;Speed 1.25×&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="45"/>
-        <source>Speed</source>
+        <location filename="../qml/pages/SettingsPage.qml" line="60"/>
+        <source>Text size %1</source>
+        <extracomment>Text size in pixels on the screen, with its value, e.g. &quot;Text size 36&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="57"/>
-        <source>Text size</source>
-        <extracomment>Text size in pixels on the screen</extracomment>
+        <location filename="../qml/pages/SettingsPage.qml" line="71"/>
+        <source>Line spacing %1</source>
+        <extracomment>Line spacing with its value, e.g. &quot;Line spacing 1.30&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="89"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="83"/>
+        <source>Paragraph spacing %1 lines</source>
+        <extracomment>Space between paragraphs, counted in lines of text, with its value, e.g. &quot;Paragraph spacing 0.5 lines&quot;</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="85"/>
+        <source>Paragraph spacing: indent</source>
+        <extracomment>No space between paragraphs: the first lines are indented instead</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="92"/>
         <source>Page</source>
         <extracomment>Colours of the reading page</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="93"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="96"/>
         <source>Light</source>
         <extracomment>Black text on white</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="95"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="98"/>
         <source>Dark</source>
         <extracomment>White text on black</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="102"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="105"/>
         <source>Font</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="105"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="108"/>
         <source>Sans serif</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="106"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="109"/>
         <source>Serif</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="134"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="117"/>
+        <source>Controls</source>
+        <extracomment>Where the reading page shows its buttons</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="121"/>
+        <source>Top</source>
+        <extracomment>Buttons above the text, beside the notch if there is one</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="123"/>
+        <source>Bottom</source>
+        <extracomment>Buttons below the text</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="151"/>
         <source>He was gilded all over with thin leaves of fine gold, for eyes he had two bright sapphires, and a large red ruby glowed on his sword-hilt.</source>
         <extracomment>Sample text showing the chosen text settings, second paragraph</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="68"/>
-        <source>Line spacing</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="80"/>
-        <source>Indent</source>
-        <extracomment>No space between paragraphs: the first lines are indented instead</extracomment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="82"/>
-        <source>Paragraph spacing (lines)</source>
-        <extracomment>Space between paragraphs, counted in lines of text</extracomment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="132"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="149"/>
         <source>High above the city, on a tall column, stood the statue of the Happy Prince.</source>
         <extracomment>Sample text showing the chosen text settings, first paragraph</extracomment>
         <translation type="unfinished"></translation>
@@ -647,47 +661,47 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
 <context>
     <name>harbour-bookfish</name>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="129"/>
+        <location filename="../qml/harbour-bookfish.qml" line="141"/>
         <source>This file is not an EPUB book.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="132"/>
+        <location filename="../qml/harbour-bookfish.qml" line="144"/>
         <source>This book is too large or damaged.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="134"/>
+        <location filename="../qml/harbour-bookfish.qml" line="146"/>
         <source>Not enough free space to open this book.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="136"/>
+        <location filename="../qml/harbour-bookfish.qml" line="148"/>
         <source>This book contains unsafe file names and was not opened.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="138"/>
+        <location filename="../qml/harbour-bookfish.qml" line="150"/>
         <source>This book is protected by DRM and cannot be opened.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="140"/>
+        <location filename="../qml/harbour-bookfish.qml" line="152"/>
         <source>The book could not be read.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="142"/>
+        <location filename="../qml/harbour-bookfish.qml" line="154"/>
         <source>This audiobook cannot be played.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="144"/>
+        <location filename="../qml/harbour-bookfish.qml" line="156"/>
         <source>This book is damaged.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="223"/>
+        <location filename="../qml/harbour-bookfish.qml" line="241"/>
         <source>Internal error. Please report it with the log.</source>
         <translation type="unfinished"></translation>
     </message>

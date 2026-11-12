@@ -45,13 +45,21 @@ addMessageListener("bookfish:layout", function (message) {
     var width = content.innerWidth
     var margin = o.margin
     var target = o.target
-    // Laid out again (new text size): replace our style and stay with the
-    // sentence at the top of the page, even if it began on the page before.
-    // The first sentence starting on the page would drift forward.
+    // Laid out again (new text size, controls moved): replace our style and
+    // show the page with the character in the middle of the page shown now.
+    // Wherever the reader is on the page, the text moves by half a page at
+    // most, and laying out again and again does not drift: the first
+    // character, or the sentence at the top (led back to where it began),
+    // took the place a little further back each time. Without text in the
+    // middle (a picture) the first character counts, else that sentence.
     var style = current() ? state.style : null
     if (style && target.keep) {
-        var top = firstSentenceOn(currentPage())
-        target = { id: top, offset: firstOffsetOn(currentPage()), fraction: target.fraction }
+        var page = currentPage()
+        var offset = middleOffset(page, margin)
+        if (offset < 0)
+            offset = firstOffsetOn(page)
+        target = offset >= 0 ? { offset: offset, fraction: target.fraction }
+                             : { id: firstSentenceOn(page), fraction: target.fraction }
     }
     if (!style) {
         style = doc.createElement("style")
@@ -793,6 +801,27 @@ function firstTextOn(page) {
         return none
     var rects = textBoxes(node, c, c + 1)
     return { offset: texts.starts[i] + c, onPage: pageOfBox(rects[0]) <= page }
+}
+
+// The first character of the line in the middle of the page shown, as an
+// offset in body.textContent (see findRange); -1 if there is none there.
+// Asked just inside the left margin: a short line (a paragraph's end,
+// dialogue) leaves the middle of the screen empty, but every line has text
+// at its start, the caret goes there also beside an indent.
+function middleOffset(page, margin) {
+    var pos = state.doc.caretPositionFromPoint ? state.doc.caretPositionFromPoint(margin + 2,
+                                                                                   content.innerHeight / 2)
+                                               : null
+    // Text or CDATA, as textNodes() counts them.
+    if (!pos || !pos.offsetNode || (pos.offsetNode.nodeType !== 3 && pos.offsetNode.nodeType !== 4))
+        return -1
+    var texts = textNodes()
+    var i = texts ? texts.nodes.indexOf(pos.offsetNode) : -1
+    if (i < 0)
+        return -1
+    var offset = texts.starts[i] + pos.offset
+    // Beside a picture the nearest text may lie on another page.
+    return pageOfOffset(offset) === page ? offset : -1
 }
 
 // The offset of the first character on the page, -1 if it holds no text.
