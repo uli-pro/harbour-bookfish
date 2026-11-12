@@ -436,66 +436,66 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1030"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1232"/>
         <source>Chapter %1/%2</source>
         <extracomment>Chapter in the book, e.g. &quot;Chapter 3/12&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1046"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1245"/>
         <source>Page %1/%2</source>
         <extracomment>Estimated page in the whole book, e.g. &quot;Page 30/295&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1070"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1034"/>
         <source>Settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1086"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1050"/>
         <source>Find &amp; history</source>
         <extracomment>Opens the search in the book and its history of reading and listening</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1208"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1169"/>
         <source>%1×</source>
         <extracomment>Playback speed on the button that opens the settings, e.g. &quot;1.25×&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1230"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1178"/>
         <source>Chapter</source>
         <extracomment>Sleep timer button while it waits for the end of the chapter</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1232"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1180"/>
         <source>%1 min</source>
         <extracomment>Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1270"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1277"/>
         <source>%1 / %2</source>
         <extracomment>Search hit shown and number of hits, e.g. &quot;3 / 39&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1310"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1321"/>
         <source>Listened to %1 %</source>
         <extracomment>Offer on opening a book whose audiobook was listened to later, e.g. &quot;Listened to 43 %&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1327"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1337"/>
         <source>Go there</source>
         <extracomment>Goes to the place in the book or audiobook offered</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1074"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1038"/>
         <source>Library</source>
         <translation type="unfinished"></translation>
     </message>
@@ -506,7 +506,7 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1090"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1054"/>
         <source>Contents</source>
         <translation type="unfinished"></translation>
     </message>

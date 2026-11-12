@@ -225,10 +225,10 @@ WebViewPage {
             markColor: light ? "rgba(255,225,0,0.55)" : "rgba(230,190,0,0.45)",
             margin: 24,
             marginTop: 4,
-            marginBottom: 12,
             // The bars' strip is kept free of text even with no bar shown:
             // a bar coming or going would otherwise lay the chapter out
-            // again, and the page would move.
+            // again, and the page would move. It is margin enough.
+            marginBottom: 0,
             barHeight: bar.height,
             fontSize: app.fontSize,
             fontFamily: app.fontFamily === "serif" ? "serif" : "sans-serif",
@@ -1001,63 +1001,27 @@ WebViewPage {
         color: pageColor
     }
 
-    // Chapter and page beside the notch, so the text can use the screen
-    // down to its bottom edge.
+    // Above the text only room for a cutout in the screen (notch, camera
+    // hole); chapter and page are shown below, in the bars' strip.
     Item {
-        id: statusLine
-
-        // Only a notch in the middle leaves room on both sides.
-        readonly property bool notch: Screen.hasCutouts === true && Screen.topCutout.width > 0
-                                      && Screen.topCutout.x > width / 5
-                                      && Screen.topCutout.x + Screen.topCutout.width < width * 4 / 5
-        readonly property real gap: Theme.paddingMedium
+        id: topEdge
 
         width: parent.width
-        height: Math.max(notch ? Screen.topCutout.y + Screen.topCutout.height : 0,
-                         Theme.fontSizeExtraSmall + 2 * Theme.paddingSmall)
-        visible: ready
-
-        Label {
-            x: Theme.paddingLarge
-            width: (statusLine.notch ? Screen.topCutout.x : parent.width / 2) - x - statusLine.gap
-            anchors.verticalCenter: parent.verticalCenter
-            // Beside a notch there is little room; shrink rather than cut.
-            fontSizeMode: Text.HorizontalFit
-            minimumPixelSize: Theme.fontSizeTiny / 2
-            font.pixelSize: Theme.fontSizeExtraSmall
-            color: palette.secondaryColor
-            //: Chapter in the book, e.g. "Chapter 3/12"
-            text: qsTr("Chapter %1/%2").arg(chapter + 1).arg(book.spine.length)
-        }
-
-        Label {
-            readonly property real start: statusLine.notch ? Screen.topCutout.x + Screen.topCutout.width
-                                                      : parent.width / 2
-            x: start + statusLine.gap
-            width: parent.width - Theme.paddingLarge - x
-            anchors.verticalCenter: parent.verticalCenter
-            horizontalAlignment: Text.AlignRight
-            fontSizeMode: Text.HorizontalFit
-            minimumPixelSize: Theme.fontSizeTiny / 2
-            font.pixelSize: Theme.fontSizeExtraSmall
-            color: palette.secondaryColor
-            visible: bookPages > 0
-            //: Estimated page in the whole book, e.g. "Page 30/295"
-            text: qsTr("Page %1/%2").arg(bookPage).arg(bookPages)
-        }
+        height: Screen.hasCutouts === true && Screen.topCutout.height > 0
+                ? Screen.topCutout.y + Screen.topCutout.height : Theme.paddingSmall
     }
 
     WebViewFlickable {
         id: flickable
 
         anchors {
-            top: statusLine.bottom
+            top: topEdge.bottom
             left: parent.left
             right: parent.right
             bottom: parent.bottom
         }
         // The pulley sits above the flickable; unclipped it would cover the
-        // status line.
+        // cutout.
         clip: true
 
         PullDownMenu {
@@ -1165,12 +1129,14 @@ WebViewPage {
         }
     }
 
+    // The bars are low: their strip stays free of text all the time, see
+    // layout(). Their contents sit a little above the middle (BarButton).
     Rectangle {
         id: bar
 
         anchors.bottom: parent.bottom
         width: parent.width
-        height: Theme.itemSizeSmall
+        height: Theme.itemSizeExtraSmall
         color: pageColor
         visible: barShown
 
@@ -1180,63 +1146,111 @@ WebViewPage {
         }
 
         Row {
-            anchors.centerIn: parent
-            spacing: Theme.paddingLarge
+            anchors.fill: parent
 
-            IconButton {
-                icon.source: "image://theme/icon-m-previous"
+            BarButton {
+                width: bar.width / 5
+                iconName: "icon-m-previous"
                 onClicked: player.previous()
             }
-            IconButton {
-                icon.source: player.playing ? "image://theme/icon-m-pause" : "image://theme/icon-m-play"
+            BarButton {
+                width: bar.width / 5
+                iconName: player.playing ? "icon-m-pause" : "icon-m-play"
                 onClicked: togglePlay()
             }
-            IconButton {
-                icon.source: "image://theme/icon-m-next"
+            BarButton {
+                width: bar.width / 5
+                iconName: "icon-m-next"
                 onClicked: player.next()
             }
-            BackgroundItem {
-                width: Theme.itemSizeMedium
-                height: Theme.itemSizeSmall
-                anchors.verticalCenter: parent.verticalCenter
+            BarButton {
+                width: bar.width / 5
+                //: Playback speed on the button that opens the settings, e.g. "1.25×"
+                text: qsTr("%1×").arg(Number(app.playbackRate).toLocaleString(Qt.locale(), "f", 2))
                 onClicked: pageStack.push(Qt.resolvedUrl("SettingsPage.qml"))
-
-                Label {
-                    anchors.centerIn: parent
-                    color: parent.highlighted ? palette.highlightColor : palette.primaryColor
-                    //: Playback speed on the button that opens the settings, e.g. "1.25×"
-                    text: qsTr("%1×").arg(Number(app.playbackRate).toLocaleString(Qt.locale(), "f", 2))
-                }
             }
-            BackgroundItem {
-                width: Theme.itemSizeMedium
-                height: Theme.itemSizeSmall
-                anchors.verticalCenter: parent.verticalCenter
+            BarButton {
+                width: bar.width / 5
+                iconName: sleepTimer.mode === "off" ? "icon-m-timer" : ""
+                text: sleepTimer.mode === "off" ? ""
+                      : sleepTimer.mode === "chapter"
+                        //: Sleep timer button while it waits for the end of the chapter
+                        ? qsTr("Chapter")
+                        //: Sleep timer button with the minutes left, e.g. "23 min"
+                        : qsTr("%1 min").arg(Math.ceil(sleepTimer.remaining / 60000))
                 onClicked: openSleepTimer()
+            }
+        }
+    }
 
-                Image {
-                    anchors.centerIn: parent
-                    visible: sleepTimer.mode === "off"
-                    source: "image://theme/icon-m-timer?" + (parent.highlighted ? palette.highlightColor
-                                                                                : palette.primaryColor)
-                }
-                Label {
-                    anchors.centerIn: parent
-                    visible: sleepTimer.mode !== "off"
-                    color: parent.highlighted ? palette.highlightColor : palette.primaryColor
-                    font.pixelSize: Theme.fontSizeSmall
-                    text: sleepTimer.mode === "chapter"
-                          //: Sleep timer button while it waits for the end of the chapter
-                          ? qsTr("Chapter")
-                          //: Sleep timer button with the minutes left, e.g. "23 min"
-                          : qsTr("%1 min").arg(Math.ceil(sleepTimer.remaining / 60000))
-                }
+    // While no bar is shown the strip offers the search and, in a
+    // readaloud, Play (where the player's bar has it), and shows chapter
+    // and page, small, level with the bars' contents. Taps beside the
+    // buttons go through to the page and turn it there.
+    Item {
+        id: readingBar
+
+        anchors.bottom: parent.bottom
+        width: parent.width
+        height: bar.height
+        visible: ready && !barShown && !findShown && !partnerShown
+
+        BarButton {
+            id: findButton
+
+            width: readingBar.width / 5
+            iconName: "icon-m-search"
+            onClicked: openFind()
+        }
+        BarButton {
+            id: playButton
+
+            x: findButton.width
+            width: readingBar.width / 5
+            visible: hasAudio
+            iconName: "icon-m-play"
+            onClicked: play()
+        }
+
+        Item {
+            id: info
+
+            readonly property real start: (hasAudio ? playButton.x + playButton.width
+                                                    : findButton.width) + Theme.paddingSmall
+
+            x: start
+            width: parent.width - Theme.horizontalPageMargin - x
+            height: parent.height - Theme.paddingMedium
+
+            Label {
+                width: parent.width / 2 - Theme.paddingSmall
+                anchors.verticalCenter: parent.verticalCenter
+                truncationMode: TruncationMode.Fade
+                font.pixelSize: Theme.fontSizeTiny
+                color: palette.secondaryColor
+                //: Chapter in the book, e.g. "Chapter 3/12"
+                text: qsTr("Chapter %1/%2").arg(chapter + 1).arg(book.spine.length)
+            }
+
+            Label {
+                x: parent.width / 2 + Theme.paddingSmall
+                width: parent.width / 2 - Theme.paddingSmall
+                anchors.verticalCenter: parent.verticalCenter
+                horizontalAlignment: Text.AlignRight
+                truncationMode: TruncationMode.Fade
+                font.pixelSize: Theme.fontSizeTiny
+                color: palette.secondaryColor
+                visible: bookPages > 0
+                //: Estimated page in the whole book, e.g. "Page 30/295"
+                text: qsTr("Page %1/%2").arg(bookPage).arg(bookPages)
             }
         }
     }
 
     // Going from hit to hit of the search; the player's bar takes its place.
     Rectangle {
+        id: findBar
+
         anchors.bottom: parent.bottom
         width: parent.width
         height: bar.height
@@ -1248,35 +1262,30 @@ WebViewPage {
         }
 
         Row {
-            anchors.centerIn: parent
-            spacing: Theme.paddingLarge
+            anchors.fill: parent
 
-            IconButton {
-                icon.source: "image://theme/icon-m-left"
+            BarButton {
+                width: findBar.width / 4
+                iconName: "icon-m-left"
                 enabled: findIndex > 0
                 onClicked: showHit(findIndex - 1)
             }
-            BackgroundItem {
-                width: Theme.itemSizeExtraLarge
-                height: Theme.itemSizeSmall
-                anchors.verticalCenter: parent.verticalCenter
+            BarButton {
+                width: findBar.width / 4
                 // Back to the list of hits.
+                //: Search hit shown and number of hits, e.g. "3 / 39"
+                text: qsTr("%1 / %2").arg(findIndex + 1).arg(findHits.length)
                 onClicked: openFind()
-
-                Label {
-                    anchors.centerIn: parent
-                    color: parent.highlighted ? palette.highlightColor : palette.primaryColor
-                    //: Search hit shown and number of hits, e.g. "3 / 39"
-                    text: qsTr("%1 / %2").arg(findIndex + 1).arg(findHits.length)
-                }
             }
-            IconButton {
-                icon.source: "image://theme/icon-m-right"
+            BarButton {
+                width: findBar.width / 4
+                iconName: "icon-m-right"
                 enabled: findIndex + 1 < findHits.length
                 onClicked: showHit(findIndex + 1)
             }
-            IconButton {
-                icon.source: "image://theme/icon-m-clear"
+            BarButton {
+                width: findBar.width / 4
+                iconName: "icon-m-clear"
                 onClicked: {
                     findShown = false
                     unmark()
@@ -1303,9 +1312,11 @@ WebViewPage {
                 leftMargin: Theme.horizontalPageMargin
                 right: partnerButtons.left
                 verticalCenter: parent.verticalCenter
+                verticalCenterOffset: -Theme.paddingMedium / 2
             }
             truncationMode: TruncationMode.Fade
             color: palette.secondaryHighlightColor
+            font.pixelSize: Theme.fontSizeSmall
             //: Offer on opening a book whose audiobook was listened to later, e.g. "Listened to 43 %"
             text: partner ? qsTr("Listened to %1 %").arg(app.percent(partner.progress)) : ""
         }
@@ -1314,22 +1325,21 @@ WebViewPage {
             id: partnerButtons
 
             anchors {
+                top: parent.top
+                bottom: parent.bottom
                 right: parent.right
-                rightMargin: Theme.paddingMedium
-                verticalCenter: parent.verticalCenter
             }
-            spacing: Theme.paddingMedium
 
-            Button {
-                anchors.verticalCenter: parent.verticalCenter
-                preferredWidth: Theme.buttonWidthExtraSmall
+            BarButton {
+                width: implicitWidth
+                textColor: palette.highlightColor
                 //: Goes to the place in the book or audiobook offered
                 text: qsTr("Go there")
                 onClicked: goToPartner()
             }
-            IconButton {
-                anchors.verticalCenter: parent.verticalCenter
-                icon.source: "image://theme/icon-m-clear"
+            BarButton {
+                width: Theme.itemSizeMedium
+                iconName: "icon-m-clear"
                 onClicked: partnerShown = false
             }
         }
