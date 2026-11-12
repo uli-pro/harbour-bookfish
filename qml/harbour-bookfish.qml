@@ -52,6 +52,14 @@ ApplicationWindow {
     readonly property string fontFamily: fontFamilySetting.value === "serif" ? "serif" : "sans"
     // "light" or "dark" once chosen; "" follows the ambience.
     readonly property string pageColors: pageColorsSetting.value || ""
+    // Only a notch in the middle of the top edge leaves room on both sides.
+    readonly property bool middleNotch: Screen.hasCutouts === true && Screen.topCutout.width > 0
+                                        && Screen.topCutout.x > Screen.width / 5
+                                        && Screen.topCutout.x + Screen.topCutout.width < Screen.width * 4 / 5
+    // The reading page's controls: "top" or "bottom" once chosen; until
+    // then beside a notch, below the text on a screen without one.
+    readonly property bool controlsAtBottom: controlsSetting.value === "bottom"
+                                             || (controlsSetting.value !== "top" && !middleNotch)
     // A cover taken out of a book by Python's cover thread; file is "" if
     // the book has none that can be shown.
     signal coverReady(string key, string file)
@@ -77,6 +85,10 @@ ApplicationWindow {
 
     function setPageColors(colors) {
         pageColorsSetting.value = colors
+    }
+
+    function setControls(where) {
+        controlsSetting.value = where
     }
 
     function setFontSize(size) {
@@ -175,6 +187,12 @@ ApplicationWindow {
     ConfigurationValue {
         id: pageColorsSetting
         key: "/apps/harbour-bookfish/pageColors"
+        defaultValue: ""
+    }
+
+    ConfigurationValue {
+        id: controlsSetting
+        key: "/apps/harbour-bookfish/controls"
         defaultValue: ""
     }
 

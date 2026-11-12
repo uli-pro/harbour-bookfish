@@ -1,11 +1,10 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
 
-// A button of the reader's controls beside the notch: an icon or a short
-// text, without a background. It takes taps from the top edge of the
-// screen down to a little below its row, over the first line of text;
-// its contents sit in the row. IconButton has a fixed size taller than
-// the row.
+// A button of the reader's controls (ReaderPage, controls): an icon or a
+// short text, without a background. It takes taps from the screen's edge
+// to a little beyond its row, over the first or last line of text; its
+// contents sit in the row. IconButton has a fixed size taller than the row.
 BackgroundItem {
     id: button
 
@@ -14,8 +13,12 @@ BackgroundItem {
     // Shown dimmed and not reacting, unlike enabled: false, which would
     // let a tap fall through to the page below the reach.
     property bool available: true
-    // Below the row, taken from the text: the row alone is low.
-    property real reach: Theme.paddingLarge
+    // The row it sits in, with reach, atBottom, iconSize, faceTop and
+    // faceHeight (where icon and text are centred).
+    property Item strip
+    // Beyond the row, taken from the text: the row alone is low.
+    readonly property real reach: strip ? strip.reach : 0
+    readonly property bool reachUp: strip ? strip.atBottom : false
     // Grey on the white page, so the controls do not draw the eye.
     readonly property color restColor: palette.colorScheme === Theme.DarkOnLight
                                        ? palette.secondaryColor : palette.primaryColor
@@ -23,11 +26,7 @@ BackgroundItem {
     // Filled symbols (Play, Pause) look heavier than outlined ones in the
     // same colour; they are drawn paler.
     property real iconOpacity: 1
-    readonly property real rowHeight: height - reach
-    // About what the row allows; the symbol fills only the middle of the
-    // icon (its disc is not drawn), so the icon may be a little larger.
-    readonly property real iconSize: Math.round(1.15 * Math.min(Theme.iconSizeSmallPlus,
-                                                                rowHeight - 2 * Theme.paddingSmall))
+    readonly property real iconSize: strip ? strip.iconSize : Theme.iconSizeSmall
     // Icons without a disc (search, timer) fill the whole icon: drawn
     // smaller, their symbol is as large as those standing on a disc.
     property real iconScale: 1
@@ -36,6 +35,7 @@ BackgroundItem {
 
     // Only used where the button is as wide as its content.
     implicitWidth: (iconName !== "" ? iconSize : label.implicitWidth) + 2 * Theme.paddingMedium
+    y: reachUp ? -reach : 0
     height: parent.height + reach
     opacity: available ? 1 : Theme.opacityLow
     highlighted: down && available
@@ -47,9 +47,9 @@ BackgroundItem {
     Item {
         id: face
 
-        y: Math.min(Theme.paddingMedium, (button.rowHeight - button.iconSize) / 2)
+        y: (button.reachUp ? button.reach : 0) + (button.strip ? button.strip.faceTop : 0)
         width: parent.width
-        height: button.rowHeight - y
+        height: button.strip ? button.strip.faceHeight : button.height - button.reach
     }
 
     Image {

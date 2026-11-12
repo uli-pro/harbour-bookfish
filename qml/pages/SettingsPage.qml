@@ -18,6 +18,9 @@ Page {
             // Kept unset, following the ambience, until a choice differs.
             if ((pageBox.currentIndex === 0) !== lightPage)
                 app.setPageColors(pageBox.currentIndex === 0 ? "light" : "dark")
+            // Likewise unset, following the screen, until a choice differs.
+            if ((controlsBox.currentIndex === 1) !== app.controlsAtBottom)
+                app.setControls(controlsBox.currentIndex === 1 ? "bottom" : "top")
         }
     }
 
@@ -104,6 +107,20 @@ Page {
                 menu: ContextMenu {
                     MenuItem { text: qsTr("Sans serif") }
                     MenuItem { text: qsTr("Serif") }
+                }
+            }
+
+            ComboBox {
+                id: controlsBox
+                width: parent.width
+                //: Where the reading page shows its buttons
+                label: qsTr("Controls")
+                currentIndex: app.controlsAtBottom ? 1 : 0
+                menu: ContextMenu {
+                    //: Buttons above the text, beside the notch
+                    MenuItem { text: qsTr("Top") }
+                    //: Buttons below the text
+                    MenuItem { text: qsTr("Bottom") }
                 }
             }
 

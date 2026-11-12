@@ -201,7 +201,7 @@ WebViewPage {
 
     function layoutSettings() {
         return [app.fontSize, app.fontFamily, app.lineHeight, app.paragraphSpacing,
-                lightPage].join("|")
+                lightPage, app.controlsAtBottom].join("|")
     }
 
     function layout(target) {
@@ -225,10 +225,10 @@ WebViewPage {
             markColor: light ? "rgba(255,225,0,0.55)" : "rgba(230,190,0,0.45)",
             margin: 24,
             marginTop: 4,
-            marginBottom: 12,
-            // The controls sit above the text, beside the notch; nothing
-            // covers the text from below.
-            barHeight: 0,
+            // Below the text the controls' row is margin enough; above it
+            // they cover nothing.
+            marginBottom: app.controlsAtBottom ? 0 : 12,
+            barHeight: app.controlsAtBottom ? controls.height : 0,
             fontSize: app.fontSize,
             fontFamily: app.fontFamily === "serif" ? "serif" : "sans-serif",
             lineHeight: app.lineHeight,
@@ -841,6 +841,7 @@ WebViewPage {
         onFontFamilyChanged: settingsTimer.restart()
         onLineHeightChanged: settingsTimer.restart()
         onParagraphSpacingChanged: settingsTimer.restart()
+        onControlsAtBottomChanged: settingsTimer.restart()
     }
 
     onLightPageChanged: relayout()
@@ -1000,47 +1001,58 @@ WebViewPage {
         color: pageColor
     }
 
-    // All controls in one row above the text, beside the notch: a bar
-    // coming or going never changes the height of the text, so the chapter
-    // is not laid out again and the page stays put. The left side holds the
-    // controls used most; where they need more room the right side helps,
-    // and the page number stands at the right end.
+    // All controls in one row, above the text beside the notch or below the
+    // text (app.controlsAtBottom): a bar coming or going never changes the
+    // height of the text, so the chapter is not laid out again and the page
+    // stays put. The left side holds the controls used most; where they need
+    // more room the right side helps, and the page number stands at the
+    // right end.
     Item {
         id: controls
 
-        // Above the text: the buttons take taps a little below the row.
-        z: 1
-        // Only a notch in the middle leaves room on both sides.
-        readonly property bool notch: Screen.hasCutouts === true && Screen.topCutout.width > 0
-                                      && Screen.topCutout.x > width / 5
-                                      && Screen.topCutout.x + Screen.topCutout.width < width * 4 / 5
+        readonly property bool atBottom: app.controlsAtBottom
+        readonly property bool besideNotch: app.middleNotch && !atBottom
+        // Room for a notch above the text, also with the controls below.
+        readonly property real cutoutHeight: Screen.hasCutouts === true && Screen.topCutout.height > 0
+                                             ? Screen.topCutout.y + Screen.topCutout.height : 0
         readonly property real gap: Theme.paddingSmall
-        readonly property real leftEnd: (notch ? Screen.topCutout.x : width / 2) - gap
-        readonly property real rightStart: (notch ? Screen.topCutout.x + Screen.topCutout.width
-                                                  : width / 2) + gap
-        // Taps a little below the row, over the first line of text; not
-        // while the pulley is open, whose top item is there then.
-        readonly property real reach: pulley.active ? 0 : Theme.paddingLarge
-        // Three buttons fill the left side.
-        readonly property real buttonWidth: Math.min(Theme.itemSizeExtraSmall, (leftEnd - gap) / 3)
+        readonly property real leftEnd: (besideNotch ? Screen.topCutout.x : width / 2) - gap
+        readonly property real rightStart: (besideNotch ? Screen.topCutout.x + Screen.topCutout.width
+                                                        : width / 2) + gap
+        // Taps beyond the row, over the first or last line of text (80 px
+        // on a screen of pixel ratio 1.5): a sentence there can still be
+        // tapped on its other lines or the next page. At the top not while
+        // the pulley is open, whose top item is there then.
+        readonly property real reach: atBottom || !pulley.active ? Math.round(53 * Theme.pixelRatio) : 0
+        // Three buttons fill the left side; below the text it is wider.
+        readonly property real buttonWidth: atBottom ? (leftEnd - gap) / 3
+                                                     : Math.min(Theme.itemSizeExtraSmall, (leftEnd - gap) / 3)
         readonly property string mode: barShown ? "listen" : findShown ? "find"
                                                 : partnerShown ? "partner" : "read"
+        // The same size in both places; the symbol fills only the middle of
+        // the icon (its disc is not drawn), so the icon is a little larger
+        // than a small one.
+        readonly property real iconSize: Math.round(1.15 * Theme.iconSizeSmall)
+        // Where icons and texts are centred: a little away from the screen's
+        // edge, as far as the row allows.
+        readonly property real edge: Math.max(0, Math.min(Theme.paddingMedium, (height - iconSize) / 2))
+        readonly property real faceTop: atBottom ? 0 : edge
+        readonly property real faceHeight: height - edge
 
-        // Where texts sit below the top edge, level with BarButton's icons.
-        readonly property real inset: Math.min(Theme.paddingMedium, (height - Math.round(1.15 * Math.min(
-                                           Theme.iconSizeSmallPlus, height - 2 * Theme.paddingSmall))) / 2)
-
+        // Above the text: its buttons take taps beyond the row.
+        z: 1
+        y: atBottom ? parent.height - height : 0
         width: parent.width
-        // Only as high as the notch: the text begins right below it. Without
-        // one the row takes the height of a small list item.
-        height: notch ? Screen.topCutout.y + Screen.topCutout.height : Theme.itemSizeExtraSmall
+        // As high as the notch, also below the text; without one a little
+        // lower than a small list item.
+        height: cutoutHeight > 0 ? cutoutHeight : Math.round(0.8 * Theme.itemSizeExtraSmall)
 
         // Taps beside the buttons must not reach anything below.
         MouseArea {
             anchors.fill: parent
         }
 
-        // Left of the notch.
+        // Left of the notch or the middle.
         Item {
             x: controls.gap
             width: controls.leftEnd - x
@@ -1051,14 +1063,14 @@ WebViewPage {
                 visible: controls.mode === "read"
 
                 BarButton {
-                    reach: controls.reach
+                    strip: controls
                     width: controls.buttonWidth
                     iconName: "icon-m-search"
                     iconScale: 0.7
                     onClicked: openFind()
                 }
                 BarButton {
-                    reach: controls.reach
+                    strip: controls
                     width: controls.buttonWidth
                     visible: hasAudio
                     iconName: "icon-m-play"
@@ -1072,20 +1084,20 @@ WebViewPage {
                 visible: controls.mode === "listen"
 
                 BarButton {
-                    reach: controls.reach
+                    strip: controls
                     width: controls.buttonWidth
                     iconName: "icon-m-previous"
                     onClicked: player.previous()
                 }
                 BarButton {
-                    reach: controls.reach
+                    strip: controls
                     width: controls.buttonWidth
                     iconName: player.playing ? "icon-m-pause" : "icon-m-play"
                     iconOpacity: 0.8
                     onClicked: togglePlay()
                 }
                 BarButton {
-                    reach: controls.reach
+                    strip: controls
                     width: controls.buttonWidth
                     iconName: "icon-m-next"
                     onClicked: player.next()
@@ -1097,14 +1109,14 @@ WebViewPage {
                 visible: controls.mode === "find"
 
                 BarButton {
-                    reach: controls.reach
+                    strip: controls
                     width: controls.buttonWidth
                     iconName: "icon-m-left"
                     available: findIndex > 0
                     onClicked: if (available) showHit(findIndex - 1)
                 }
                 BarButton {
-                    reach: controls.reach
+                    strip: controls
                     width: controls.buttonWidth
                     // Back to the list of hits.
                     //: Search hit shown and number of hits, e.g. "3 / 39"
@@ -1112,7 +1124,7 @@ WebViewPage {
                     onClicked: openFind()
                 }
                 BarButton {
-                    reach: controls.reach
+                    strip: controls
                     width: controls.buttonWidth
                     iconName: "icon-m-right"
                     available: findIndex + 1 < findHits.length
@@ -1121,9 +1133,9 @@ WebViewPage {
             }
 
             Label {
-                y: controls.inset
+                y: controls.faceTop
                 width: parent.width
-                height: parent.height - y
+                height: controls.faceHeight
                 visible: controls.mode === "partner"
                 verticalAlignment: Text.AlignVCenter
                 truncationMode: TruncationMode.Fade
@@ -1134,7 +1146,7 @@ WebViewPage {
             }
         }
 
-        // Right of the notch, ending with the page number.
+        // Right of the notch or the middle, ending with the page number.
         Row {
             id: rightSide
 
@@ -1150,9 +1162,9 @@ WebViewPage {
                 // than pushes them over the notch.
                 readonly property real room: controls.width - controls.gap - controls.rightStart
                                              - (findButtons.visible ? findButtons.width : 0)
-                y: controls.inset
+                y: controls.faceTop
                 width: Math.min(implicitWidth, Math.max(0, room))
-                height: parent.height - y
+                height: controls.faceHeight
                 // Not beside the player's buttons: there it distracts.
                 visible: bookPages > 0 && controls.mode !== "partner" && controls.mode !== "listen"
                 verticalAlignment: Text.AlignVCenter
@@ -1174,7 +1186,7 @@ WebViewPage {
                 layoutDirection: Qt.RightToLeft
 
                 BarButton {
-                    reach: controls.reach
+                    strip: controls
                     width: controls.buttonWidth
                     iconName: sleepTimer.mode === "off" ? "icon-m-timer" : ""
                     iconScale: 0.65
@@ -1187,7 +1199,7 @@ WebViewPage {
                     onClicked: openSleepTimer()
                 }
                 BarButton {
-                    reach: controls.reach
+                    strip: controls
                     width: implicitWidth
                     //: Playback speed on the button that opens the settings, e.g. "1.25×"
                     text: qsTr("%1×").arg(Number(app.playbackRate).toLocaleString(Qt.locale(), "f", 2))
@@ -1202,7 +1214,7 @@ WebViewPage {
                 visible: controls.mode === "find"
 
                 BarButton {
-                    reach: controls.reach
+                    strip: controls
                     width: controls.buttonWidth
                     iconName: "icon-m-clear"
                     onClicked: {
@@ -1218,13 +1230,13 @@ WebViewPage {
                 layoutDirection: Qt.RightToLeft
 
                 BarButton {
-                    reach: controls.reach
+                    strip: controls
                     width: controls.buttonWidth
                     iconName: "icon-m-clear"
                     onClicked: partnerShown = false
                 }
                 BarButton {
-                    reach: controls.reach
+                    strip: controls
                     width: implicitWidth
                     textColor: palette.highlightColor
                     fontSize: Theme.fontSizeExtraSmall
@@ -1240,7 +1252,9 @@ WebViewPage {
         id: flickable
 
         anchors {
-            top: controls.bottom
+            top: parent.top
+            topMargin: controls.atBottom ? Math.max(controls.cutoutHeight, Theme.paddingSmall)
+                                         : controls.height
             left: parent.left
             right: parent.right
             bottom: parent.bottom
