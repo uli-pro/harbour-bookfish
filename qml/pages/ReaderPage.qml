@@ -1050,6 +1050,7 @@ WebViewPage {
                 BarButton {
                     width: controls.buttonWidth
                     iconName: "icon-m-search"
+                    iconScale: 0.7
                     onClicked: openFind()
                 }
                 BarButton {
@@ -1147,7 +1148,8 @@ WebViewPage {
                 horizontalAlignment: Text.AlignRight
                 fontSizeMode: Text.HorizontalFit
                 minimumPixelSize: Theme.fontSizeTiny / 2
-                font.pixelSize: Theme.fontSizeTiny
+                // As small as the buttons' texts.
+                font.pixelSize: Math.round(0.85 * Theme.fontSizeTiny)
                 color: palette.secondaryColor
                 //: Estimated page in the whole book, e.g. "30/295"
                 text: qsTr("%1/%2").arg(bookPage).arg(bookPages)
@@ -1163,6 +1165,7 @@ WebViewPage {
                 BarButton {
                     width: controls.buttonWidth
                     iconName: sleepTimer.mode === "off" ? "icon-m-timer" : ""
+                    iconScale: 0.65
                     text: sleepTimer.mode === "off" ? ""
                           : sleepTimer.mode === "chapter"
                             //: Sleep timer button while it waits for the end of the chapter

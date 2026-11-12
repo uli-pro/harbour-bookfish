@@ -436,60 +436,60 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1240"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1243"/>
         <source>Settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1256"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1259"/>
         <source>Find &amp; history</source>
         <extracomment>Opens the search in the book and its history of reading and listening</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1177"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1180"/>
         <source>%1×</source>
         <extracomment>Playback speed on the button that opens the settings, e.g. &quot;1.25×&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1169"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1172"/>
         <source>Chapter</source>
         <extracomment>Sleep timer button while it waits for the end of the chapter</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1171"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1174"/>
         <source>%1 min</source>
         <extracomment>Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1100"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1101"/>
         <source>%1 / %2</source>
         <extracomment>Search hit shown and number of hits, e.g. &quot;3 / 39&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1121"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1122"/>
         <source>Listened to %1 %</source>
         <extracomment>Offer on opening a book whose audiobook was listened to later, e.g. &quot;Listened to 43 %&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1153"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1155"/>
         <source>%1/%2</source>
         <extracomment>Estimated page in the whole book, e.g. &quot;30/295&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1213"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1216"/>
         <source>Go there</source>
         <extracomment>Goes to the place in the book or audiobook offered</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1244"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1247"/>
         <source>Library</source>
         <translation type="unfinished"></translation>
     </message>
@@ -500,7 +500,7 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1260"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1263"/>
         <source>Contents</source>
         <translation type="unfinished"></translation>
     </message>
