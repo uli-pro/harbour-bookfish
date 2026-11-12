@@ -55,7 +55,7 @@ addMessageListener("bookfish:layout", function (message) {
     var style = current() ? state.style : null
     if (style && target.keep) {
         var page = currentPage()
-        var offset = middleOffset(page)
+        var offset = middleOffset(page, margin)
         if (offset < 0)
             offset = firstOffsetOn(page)
         target = offset >= 0 ? { offset: offset, fraction: target.fraction }
@@ -803,14 +803,17 @@ function firstTextOn(page) {
     return { offset: texts.starts[i] + c, onPage: pageOfBox(rects[0]) <= page }
 }
 
-// The offset of the first character on the page, -1 if it holds no text.
-// The character in the middle of the page shown, as an offset in
-// body.textContent (see findRange); -1 if there is none there.
-function middleOffset(page) {
-    var pos = state.doc.caretPositionFromPoint ? state.doc.caretPositionFromPoint(content.innerWidth / 2,
+// The first character of the line in the middle of the page shown, as an
+// offset in body.textContent (see findRange); -1 if there is none there.
+// Asked just inside the left margin: a short line (a paragraph's end,
+// dialogue) leaves the middle of the screen empty, but every line has text
+// at its start, the caret goes there also beside an indent.
+function middleOffset(page, margin) {
+    var pos = state.doc.caretPositionFromPoint ? state.doc.caretPositionFromPoint(margin + 2,
                                                                                    content.innerHeight / 2)
                                                : null
-    if (!pos || !pos.offsetNode || pos.offsetNode.nodeType !== 3)
+    // Text or CDATA, as textNodes() counts them.
+    if (!pos || !pos.offsetNode || (pos.offsetNode.nodeType !== 3 && pos.offsetNode.nodeType !== 4))
         return -1
     var texts = textNodes()
     var i = texts ? texts.nodes.indexOf(pos.offsetNode) : -1
@@ -821,6 +824,7 @@ function middleOffset(page) {
     return pageOfOffset(offset) === page ? offset : -1
 }
 
+// The offset of the first character on the page, -1 if it holds no text.
 function firstOffsetOn(page) {
     var text = firstTextOn(page)
     return text.onPage ? text.offset : -1
