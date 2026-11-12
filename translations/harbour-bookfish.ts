@@ -513,20 +513,33 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="47"/>
-        <source>%1×</source>
-        <extracomment>Playback speed, e.g. &quot;1.25×&quot;</extracomment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="48"/>
-        <source>Speed</source>
+        <location filename="../qml/pages/SettingsPage.qml" line="49"/>
+        <source>Speed %1×</source>
+        <extracomment>Playback speed with its value, e.g. &quot;Speed 1.25×&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/pages/SettingsPage.qml" line="60"/>
-        <source>Text size</source>
-        <extracomment>Text size in pixels on the screen</extracomment>
+        <source>Text size %1</source>
+        <extracomment>Text size in pixels on the screen, with its value, e.g. &quot;Text size 36&quot;</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="71"/>
+        <source>Line spacing %1</source>
+        <extracomment>Line spacing with its value, e.g. &quot;Line spacing 1.30&quot;</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="83"/>
+        <source>Paragraph spacing %1 lines</source>
+        <extracomment>Space between paragraphs, counted in lines of text, with its value, e.g. &quot;Paragraph spacing 0.5 lines&quot;</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="85"/>
+        <source>Paragraph spacing: indent</source>
+        <extracomment>No space between paragraphs: the first lines are indented instead</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -584,23 +597,6 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
         <location filename="../qml/pages/SettingsPage.qml" line="151"/>
         <source>He was gilded all over with thin leaves of fine gold, for eyes he had two bright sapphires, and a large red ruby glowed on his sword-hilt.</source>
         <extracomment>Sample text showing the chosen text settings, second paragraph</extracomment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="71"/>
-        <source>Line spacing</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="83"/>
-        <source>Indent</source>
-        <extracomment>No space between paragraphs: the first lines are indented instead</extracomment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="85"/>
-        <source>Paragraph spacing (lines)</source>
-        <extracomment>Space between paragraphs, counted in lines of text</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>

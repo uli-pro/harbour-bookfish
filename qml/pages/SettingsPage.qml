@@ -43,9 +43,10 @@ Page {
                 maximumValue: app.maxPlaybackRate
                 stepSize: 0.05
                 value: app.playbackRate
-                //: Playback speed, e.g. "1.25×"
-                valueText: qsTr("%1×").arg(value.toLocaleString(Qt.locale(), "f", 2))
-                label: qsTr("Speed")
+                // The value in the label below, not in the large figure
+                // above the slider, which takes much room (as below).
+                //: Playback speed with its value, e.g. "Speed 1.25×"
+                label: qsTr("Speed %1×").arg(value.toLocaleString(Qt.locale(), "f", 2))
             }
 
             Slider {
@@ -55,9 +56,8 @@ Page {
                 maximumValue: app.maxFontSize
                 stepSize: 2
                 value: app.fontSize
-                valueText: value
-                //: Text size in pixels on the screen
-                label: qsTr("Text size")
+                //: Text size in pixels on the screen, with its value, e.g. "Text size 36"
+                label: qsTr("Text size %1").arg(value)
             }
 
             Slider {
@@ -67,8 +67,8 @@ Page {
                 maximumValue: app.maxLineHeight
                 stepSize: 0.05
                 value: app.lineHeight
-                valueText: value.toLocaleString(Qt.locale(), "f", 2)
-                label: qsTr("Line spacing")
+                //: Line spacing with its value, e.g. "Line spacing 1.30"
+                label: qsTr("Line spacing %1").arg(value.toLocaleString(Qt.locale(), "f", 2))
             }
 
             Slider {
@@ -78,11 +78,11 @@ Page {
                 maximumValue: app.maxParagraphSpacing
                 stepSize: 0.1
                 value: app.paragraphSpacing
-                valueText: value > 0 ? value.toLocaleString(Qt.locale(), "f", 1)
-                                     //: No space between paragraphs: the first lines are indented instead
-                                     : qsTr("Indent")
-                //: Space between paragraphs, counted in lines of text
-                label: qsTr("Paragraph spacing (lines)")
+                label: value > 0
+                       //: Space between paragraphs, counted in lines of text, with its value, e.g. "Paragraph spacing 0.5 lines"
+                       ? qsTr("Paragraph spacing %1 lines").arg(value.toLocaleString(Qt.locale(), "f", 1))
+                       //: No space between paragraphs: the first lines are indented instead
+                       : qsTr("Paragraph spacing: indent")
             }
 
             ComboBox {
