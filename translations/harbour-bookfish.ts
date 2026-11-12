@@ -84,46 +84,49 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
 <context>
     <name>AuthorPage</name>
     <message>
-        <location filename="../qml/pages/AuthorPage.qml" line="23"/>
+        <location filename="../qml/pages/AuthorPage.qml" line="25"/>
+        <source>Unknown author</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/AuthorPage.qml" line="30"/>
+        <source>Other books</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/AuthorPage.qml" line="43"/>
+        <source>Opening book</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>BookItem</name>
+    <message>
+        <location filename="../qml/components/BookItem.qml" line="21"/>
         <source>Book %1</source>
         <extracomment>Place of the book in its series, e.g. &quot;Book 3&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/AuthorPage.qml" line="33"/>
-        <source>with %1</source>
-        <extracomment>Further authors of a book, e.g. &quot;with Andrew Child&quot;</extracomment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/AuthorPage.qml" line="27"/>
+        <location filename="../qml/components/BookItem.qml" line="25"/>
         <source>Cannot be opened</source>
         <extracomment>The book is damaged or protected by DRM</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/AuthorPage.qml" line="29"/>
+        <location filename="../qml/components/BookItem.qml" line="27"/>
         <source>SD card</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/AuthorPage.qml" line="29"/>
+        <location filename="../qml/components/BookItem.qml" line="27"/>
         <source>Device</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/AuthorPage.qml" line="46"/>
-        <source>Unknown author</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/AuthorPage.qml" line="51"/>
-        <source>Other books</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/AuthorPage.qml" line="65"/>
-        <source>Opening book</source>
+        <location filename="../qml/components/BookItem.qml" line="31"/>
+        <source>with %1</source>
+        <extracomment>Further authors of a book, e.g. &quot;with Andrew Child&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -358,72 +361,71 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
 <context>
     <name>LibraryPage</name>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="225"/>
-        <location filename="../qml/pages/LibraryPage.qml" line="367"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="237"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="379"/>
         <source>Book folder</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="233"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="245"/>
         <source>All folders</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="237"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="249"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="246"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="258"/>
         <source>Library</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="248"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="260"/>
         <source>Documents and memory cards</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="254"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="266"/>
         <source>Author, title or series</source>
         <extracomment>Search field of the library</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="267"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="279"/>
         <source>Continue</source>
         <extracomment>Books and audiobooks opened last</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="284"/>
-        <location filename="../qml/pages/LibraryPage.qml" line="304"/>
-        <location filename="../qml/pages/LibraryPage.qml" line="331"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="296"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="316"/>
         <source>Unknown author</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="338"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="350"/>
         <source>Nothing found</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="338"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="350"/>
         <source>No books</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="340"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="352"/>
         <source>Copy EPUB books or audiobooks (MP3, M4B) to Documents or a memory card, or choose another book folder in the pulley menu</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="360"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="372"/>
         <source>Searching for books</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="355"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="367"/>
         <source>Opening book</source>
         <translation type="unfinished"></translation>
     </message>

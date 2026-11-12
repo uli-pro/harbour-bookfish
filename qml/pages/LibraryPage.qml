@@ -117,20 +117,32 @@ Page {
             }
             return
         }
+        // The books come sorted by author: each author's books follow one
+        // another, below a row that leads to the author's page.
+        var byGroup = {}
+        for (var k = 0; k < authors.length; ++k)
+            byGroup[authors[k].group] = authors[k]
+        var shownGroup = null
         for (var j = 0; j < books.length; ++j) {
             var book = books[j]
             var matches = words.every(function (w) { return book.search.indexOf(w) >= 0 })
-            if (matches)
-                rows.append({ group: book.group, name: book.author, count: 0, letter: "",
-                              bookIndex: j })
+            if (!matches)
+                continue
+            if (book.group !== shownGroup) {
+                shownGroup = book.group
+                var bookAuthor = byGroup[book.group]
+                rows.append({ group: book.group, name: bookAuthor ? bookAuthor.name : book.author,
+                              count: bookAuthor ? bookAuthor.count : 0, letter: "", bookIndex: -1 })
+            }
+            rows.append({ group: book.group, name: book.author, count: 0, letter: "",
+                          bookIndex: j })
         }
     }
 
-    function showAuthor(group, focusPath) {
+    function showAuthor(group) {
         var list = books.filter(function (book) { return book.group === group })
         pageStack.push(Qt.resolvedUrl("AuthorPage.qml"), {
-            library: page, name: list.length > 0 ? list[0].author : "", books: list,
-            focusPath: focusPath || ""
+            library: page, name: list.length > 0 ? list[0].author : "", books: list
         })
     }
 
@@ -284,7 +296,7 @@ Page {
             text: section === "?" ? qsTr("Unknown author") : section
         }
 
-        // An author, or with a search a book.
+        // An author, or with a search also a book.
         delegate: Item {
             width: listView.width
             height: model.bookIndex < 0 ? authorRow.height : bookRow.height
@@ -295,7 +307,7 @@ Page {
                 visible: model.bookIndex < 0
                 width: parent.width
                 height: Theme.itemSizeSmall
-                onClicked: page.showAuthor(model.group, "")
+                onClicked: page.showAuthor(model.group)
 
                 Label {
                     x: Theme.horizontalPageMargin
@@ -328,8 +340,8 @@ Page {
                 visible: model.bookIndex >= 0
                 width: parent.width
                 book: model.bookIndex >= 0 ? page.books[model.bookIndex] : null
-                detail: model.name || qsTr("Unknown author")
-                onClicked: page.showAuthor(model.group, book.path)
+                detail: bookRow.describe(true)
+                onClicked: page.openEntry(book)
             }
         }
 
