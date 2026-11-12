@@ -86,20 +86,6 @@ Page {
             }
 
             ComboBox {
-                id: pageBox
-                width: parent.width
-                //: Colours of the reading page
-                label: qsTr("Page")
-                currentIndex: lightPage ? 0 : 1
-                menu: ContextMenu {
-                    //: Black text on white
-                    MenuItem { text: qsTr("Light") }
-                    //: White text on black
-                    MenuItem { text: qsTr("Dark") }
-                }
-            }
-
-            ComboBox {
                 id: fontBox
                 width: parent.width
                 label: qsTr("Font")
@@ -121,6 +107,20 @@ Page {
                     MenuItem { text: qsTr("Top") }
                     //: Buttons below the text
                     MenuItem { text: qsTr("Bottom") }
+                }
+            }
+
+            ComboBox {
+                id: pageBox
+                width: parent.width
+                //: Colours of the reading page
+                label: qsTr("Page")
+                currentIndex: lightPage ? 0 : 1
+                menu: ContextMenu {
+                    //: Black text on white
+                    MenuItem { text: qsTr("Light") }
+                    //: White text on black
+                    MenuItem { text: qsTr("Dark") }
                 }
             }
 

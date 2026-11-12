@@ -1345,11 +1345,6 @@ WebViewPage {
                 }
             }
             MenuItem {
-                //: Opens the search in the book and its history of reading and listening
-                text: qsTr("Find & history")
-                onClicked: openFind()
-            }
-            MenuItem {
                 text: qsTr("Contents")
                 onClicked: {
                     var toc = pageStack.push(Qt.resolvedUrl("TocPage.qml"),
@@ -1359,6 +1354,11 @@ WebViewPage {
                         jumpTo(index, fragment ? { id: fragment } : { fraction: 0 })
                     })
                 }
+            }
+            MenuItem {
+                //: Opens the search in the book and its history of reading and listening
+                text: qsTr("Find & history")
+                onClicked: openFind()
             }
         }
 
