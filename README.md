@@ -40,6 +40,13 @@ Readalouds can be created from an EPUB and an audiobook with
 - **Pictures:** press and hold a picture to see it on its own page. Pinch
   or double tap to zoom; the phone may be turned. Listening goes on. Small
   pictures such as ornaments do not open.
+- **Notes and links:** links into the book are coloured. Press and hold a
+  note's mark (also just beside it) to read the note on its own page, with
+  the notes around it to scroll to; listening goes on. Press and hold any
+  other link, such as a chapter in the book's contents, to go there; the
+  history leads back. Bookfish tells notes from other links by their form,
+  as few books mark them: a short mark ("12", "*", "a") within the text,
+  leading to a place that is no chapter.
 - **Find & history** (pull-down menu) searches the book for paragraphs
   holding all words typed, in any order. A line in the hits shows where you
   are.
