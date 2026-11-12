@@ -431,65 +431,65 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
 <context>
     <name>ReaderPage</name>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="958"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="960"/>
         <source>The narration could not be played.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1275"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1284"/>
         <source>Settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1291"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1300"/>
         <source>Find &amp; history</source>
         <extracomment>Opens the search in the book and its history of reading and listening</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1205"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1214"/>
         <source>%1×</source>
         <extracomment>Playback speed on the button that opens the settings, e.g. &quot;1.25×&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1196"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1205"/>
         <source>Chapter</source>
         <extracomment>Sleep timer button while it waits for the end of the chapter</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1198"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1207"/>
         <source>%1 min</source>
         <extracomment>Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1123"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1132"/>
         <source>%1 / %2</source>
         <extracomment>Search hit shown and number of hits, e.g. &quot;3 / 39&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1145"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1154"/>
         <source>Listened to %1 %</source>
         <extracomment>Offer on opening a book whose audiobook was listened to later, e.g. &quot;Listened to 43 %&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1178"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1187"/>
         <source>%1/%2</source>
         <extracomment>Estimated page in the whole book, e.g. &quot;30/295&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1244"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1253"/>
         <source>Go there</source>
         <extracomment>Goes to the place in the book or audiobook offered</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1279"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1288"/>
         <source>Library</source>
         <translation type="unfinished"></translation>
     </message>
@@ -500,7 +500,7 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1295"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1304"/>
         <source>Contents</source>
         <translation type="unfinished"></translation>
     </message>
@@ -571,7 +571,7 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
     <message>
         <location filename="../qml/pages/SettingsPage.qml" line="121"/>
         <source>Top</source>
-        <extracomment>Buttons above the text, beside the notch</extracomment>
+        <extracomment>Buttons above the text, beside the notch if there is one</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>

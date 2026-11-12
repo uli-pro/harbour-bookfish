@@ -117,7 +117,7 @@ Page {
                 label: qsTr("Controls")
                 currentIndex: app.controlsAtBottom ? 1 : 0
                 menu: ContextMenu {
-                    //: Buttons above the text, beside the notch
+                    //: Buttons above the text, beside the notch if there is one
                     MenuItem { text: qsTr("Top") }
                     //: Buttons below the text
                     MenuItem { text: qsTr("Bottom") }

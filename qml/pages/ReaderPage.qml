@@ -841,7 +841,9 @@ WebViewPage {
         onFontFamilyChanged: settingsTimer.restart()
         onLineHeightChanged: settingsTimer.restart()
         onParagraphSpacingChanged: settingsTimer.restart()
-        onControlsAtBottomChanged: settingsTimer.restart()
+        // The text's height changes too (not beside a notch): laid out once
+        // it has settled, or pages would be counted at the old height.
+        onControlsAtBottomChanged: controlsSettled.restart()
     }
 
     onLightPageChanged: relayout()
@@ -1043,9 +1045,16 @@ WebViewPage {
         z: 1
         y: atBottom ? parent.height - height : 0
         width: parent.width
-        // As high as the notch, also below the text; without one a little
-        // lower than a small list item.
-        height: cutoutHeight > 0 ? cutoutHeight : Math.round(0.8 * Theme.itemSizeExtraSmall)
+        // As high as the notch, also below the text; without one (or with a
+        // cutout elsewhere) a little lower than a small list item.
+        height: app.middleNotch ? cutoutHeight : Math.round(0.8 * Theme.itemSizeExtraSmall)
+
+        // A swipe begun on a button's reach over the text turns the page,
+        // by the same rule as on the page (see the flickable's MouseArea).
+        function swiped(dx, dy) {
+            if (Math.abs(dx) > width / 8 && Math.abs(dx) > Math.abs(dy))
+                turn(dx < 0 ? 1 : -1)
+        }
 
         // Taps beside the buttons must not reach anything below.
         MouseArea {
@@ -1067,7 +1076,7 @@ WebViewPage {
                     width: controls.buttonWidth
                     iconName: "icon-m-search"
                     iconScale: 0.7
-                    onClicked: openFind()
+                    onActivated: openFind()
                 }
                 BarButton {
                     strip: controls
@@ -1075,7 +1084,7 @@ WebViewPage {
                     visible: hasAudio
                     iconName: "icon-m-play"
                     iconOpacity: 0.8
-                    onClicked: play()
+                    onActivated: play()
                 }
             }
 
@@ -1087,20 +1096,20 @@ WebViewPage {
                     strip: controls
                     width: controls.buttonWidth
                     iconName: "icon-m-previous"
-                    onClicked: player.previous()
+                    onActivated: player.previous()
                 }
                 BarButton {
                     strip: controls
                     width: controls.buttonWidth
                     iconName: player.playing ? "icon-m-pause" : "icon-m-play"
                     iconOpacity: 0.8
-                    onClicked: togglePlay()
+                    onActivated: togglePlay()
                 }
                 BarButton {
                     strip: controls
                     width: controls.buttonWidth
                     iconName: "icon-m-next"
-                    onClicked: player.next()
+                    onActivated: player.next()
                 }
             }
 
@@ -1113,7 +1122,7 @@ WebViewPage {
                     width: controls.buttonWidth
                     iconName: "icon-m-left"
                     available: findIndex > 0
-                    onClicked: if (available) showHit(findIndex - 1)
+                    onActivated: showHit(findIndex - 1)
                 }
                 BarButton {
                     strip: controls
@@ -1121,14 +1130,14 @@ WebViewPage {
                     // Back to the list of hits.
                     //: Search hit shown and number of hits, e.g. "3 / 39"
                     text: qsTr("%1 / %2").arg(findIndex + 1).arg(findHits.length)
-                    onClicked: openFind()
+                    onActivated: openFind()
                 }
                 BarButton {
                     strip: controls
                     width: controls.buttonWidth
                     iconName: "icon-m-right"
                     available: findIndex + 1 < findHits.length
-                    onClicked: if (available) showHit(findIndex + 1)
+                    onActivated: showHit(findIndex + 1)
                 }
             }
 
@@ -1159,7 +1168,7 @@ WebViewPage {
                 id: pageLabel
 
                 // What the buttons beside it leave, so it shrinks rather
-                // than pushes them over the notch.
+                // than pushes them over the notch or the middle.
                 readonly property real room: controls.width - controls.gap - controls.rightStart
                                              - (findButtons.visible ? findButtons.width : 0)
                 y: controls.faceTop
@@ -1196,14 +1205,14 @@ WebViewPage {
                             ? qsTr("Chapter")
                             //: Sleep timer button with the minutes left, e.g. "23 min"
                             : qsTr("%1 min").arg(Math.ceil(sleepTimer.remaining / 60000))
-                    onClicked: openSleepTimer()
+                    onActivated: openSleepTimer()
                 }
                 BarButton {
                     strip: controls
                     width: implicitWidth
                     //: Playback speed on the button that opens the settings, e.g. "1.25×"
                     text: qsTr("%1×").arg(Number(app.playbackRate).toLocaleString(Qt.locale(), "f", 2))
-                    onClicked: pageStack.push(Qt.resolvedUrl("SettingsPage.qml"))
+                    onActivated: pageStack.push(Qt.resolvedUrl("SettingsPage.qml"))
                 }
             }
 
@@ -1217,7 +1226,7 @@ WebViewPage {
                     strip: controls
                     width: controls.buttonWidth
                     iconName: "icon-m-clear"
-                    onClicked: {
+                    onActivated: {
                         findShown = false
                         unmark()
                     }
@@ -1233,7 +1242,7 @@ WebViewPage {
                     strip: controls
                     width: controls.buttonWidth
                     iconName: "icon-m-clear"
-                    onClicked: partnerShown = false
+                    onActivated: partnerShown = false
                 }
                 BarButton {
                     strip: controls
@@ -1242,7 +1251,7 @@ WebViewPage {
                     fontSize: Theme.fontSizeExtraSmall
                     //: Goes to the place in the book or audiobook offered
                     text: qsTr("Go there")
-                    onClicked: goToPartner()
+                    onActivated: goToPartner()
                 }
             }
         }
@@ -1308,6 +1317,8 @@ WebViewPage {
         onHeightChanged: {
             if (page.pendingHit >= 0 || page.pendingPlace)
                 heightSettled.restart()
+            if (controlsSettled.running)
+                controlsSettled.restart()
         }
         // WebViewFlickable assumes the page fills the screen; below the
         // header, 100vh would reach past the bottom edge.
@@ -1382,6 +1393,13 @@ WebViewPage {
     Timer {
         id: settingsTimer
         interval: 0
+        onTriggered: page.relayout()
+    }
+
+    // See onControlsAtBottomChanged; as long as heightSettled.
+    Timer {
+        id: controlsSettled
+        interval: 250
         onTriggered: page.relayout()
     }
 

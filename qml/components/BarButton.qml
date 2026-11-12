@@ -8,6 +8,10 @@ import Sailfish.Silica 1.0
 BackgroundItem {
     id: button
 
+    // A tap: the button's action. Use this, not clicked, which also comes
+    // at the end of a short swipe.
+    signal activated()
+
     property string iconName
     property alias text: label.text
     // Shown dimmed and not reacting, unlike enabled: false, which would
@@ -39,6 +43,26 @@ BackgroundItem {
     height: parent.height + reach
     opacity: available ? 1 : Theme.opacityLow
     highlighted: down && available
+
+    property real pressX
+    property real pressY
+
+    onPressed: {
+        pressX = mouse.x
+        pressY = mouse.y
+    }
+    // Over the text a swipe turns the page as it would there; the strip
+    // decides (ReaderPage, controls.swiped).
+    onReleased: {
+        var dx = mouse.x - pressX
+        var dy = mouse.y - pressY
+        if (Math.abs(dx) < Theme.startDragDistance && Math.abs(dy) < Theme.startDragDistance) {
+            if (available)
+                activated()
+        } else if (strip) {
+            strip.swiped(dx, dy)
+        }
+    }
     // Pressed, the icon or text takes the highlight colour instead; a
     // highlighted area would reach over the text.
     highlightedColor: "transparent"
