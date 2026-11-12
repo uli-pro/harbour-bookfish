@@ -45,13 +45,17 @@ addMessageListener("bookfish:layout", function (message) {
     var width = content.innerWidth
     var margin = o.margin
     var target = o.target
-    // Laid out again (new text size): replace our style and stay with the
-    // sentence at the top of the page, even if it began on the page before.
-    // The first sentence starting on the page would drift forward.
+    // Laid out again (new text size, controls moved): replace our style and
+    // show the page with the first character of the page shown now, so the
+    // line read last stays in sight. The sentence at the top led back to
+    // where it began, a page further back at each layout; the first
+    // sentence starting on the page would drift forward. Without text at
+    // the top (a picture) the sentence still counts.
     var style = current() ? state.style : null
     if (style && target.keep) {
-        var top = firstSentenceOn(currentPage())
-        target = { id: top, offset: firstOffsetOn(currentPage()), fraction: target.fraction }
+        var offset = firstOffsetOn(currentPage())
+        target = offset >= 0 ? { offset: offset, fraction: target.fraction }
+                             : { id: firstSentenceOn(currentPage()), fraction: target.fraction }
     }
     if (!style) {
         style = doc.createElement("style")
