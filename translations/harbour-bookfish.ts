@@ -40,13 +40,13 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/AudiobookPage.qml" line="542"/>
+        <location filename="../qml/pages/AudiobookPage.qml" line="546"/>
         <source>History</source>
         <extracomment>Opens the listening history of an audiobook</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/AudiobookPage.qml" line="546"/>
+        <location filename="../qml/pages/AudiobookPage.qml" line="541"/>
         <source>Contents</source>
         <translation type="unfinished"></translation>
     </message>
