@@ -1,42 +1,80 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
 
-// A button of the reader's low bars: a small icon or a short text, as tall
-// as the bar and wide, so it is easy to hit although the bar is low. The
-// icon sits above the middle, away from the rounded bottom edge of the
-// screen; the button still takes taps down to the edge. IconButton has a
-// fixed size taller than the bar.
+// A button of the reader's controls beside the notch: an icon or a short
+// text, without a background. It takes taps from the top edge of the
+// screen down to a little below its row, over the first line of text;
+// its contents sit in the row. IconButton has a fixed size taller than
+// the row.
 BackgroundItem {
     id: button
 
     property string iconName
     property alias text: label.text
-    property color textColor: palette.primaryColor
-    readonly property real iconSize: Theme.iconSizeSmallPlus
+    // Below the row, taken from the text: the row alone is low.
+    property real reach: Theme.paddingLarge
+    // Grey on the white page, so the controls do not draw the eye.
+    readonly property color restColor: palette.colorScheme === Theme.DarkOnLight
+                                       ? palette.secondaryColor : palette.primaryColor
+    property color textColor: restColor
+    // Filled symbols (Play, Pause) look heavier than outlined ones in the
+    // same colour; they are drawn paler.
+    property real iconOpacity: 1
+    readonly property real rowHeight: height - reach
+    // About what the row allows; the symbol fills only the middle of the
+    // icon (its disc is not drawn), so the icon may be a little larger.
+    readonly property real iconSize: Math.round(1.15 * Math.min(Theme.iconSizeSmallPlus,
+                                                                rowHeight - 2 * Theme.paddingSmall))
+    // Small, like the page number: the texts must not draw the eye either.
+    property real fontSize: Theme.fontSizeTiny
 
     // Only used where the button is as wide as its content.
-    implicitWidth: (iconName !== "" ? iconSize : label.implicitWidth) + 2 * Theme.paddingLarge
-    height: parent.height
+    implicitWidth: (iconName !== "" ? iconSize : label.implicitWidth) + 2 * Theme.paddingMedium
+    height: parent.height + reach
     opacity: enabled ? 1 : Theme.opacityLow
+    // Pressed, the icon or text takes the highlight colour instead; a
+    // highlighted area would reach over the text.
+    highlightedColor: "transparent"
 
-    // The part above the edge, where icon and text are centred.
+    // The part of the row where icon and text are centred.
     Item {
         id: face
 
+        y: Math.min(Theme.paddingMedium, (button.rowHeight - button.iconSize) / 2)
         width: parent.width
-        height: parent.height - Theme.paddingMedium
+        height: button.rowHeight - y
     }
 
     Image {
+        id: icon
+
         anchors.centerIn: face
-        visible: button.iconName !== ""
-        width: button.iconSize
-        height: button.iconSize
+        width: Math.min(button.iconSize, button.width)
+        height: width
         sourceSize: Qt.size(width, height)
-        source: button.iconName !== ""
-                ? "image://theme/" + button.iconName + "?"
-                  + (button.highlighted ? palette.highlightColor : palette.primaryColor)
-                : ""
+        visible: false
+        source: button.iconName !== "" ? "image://theme/" + button.iconName : ""
+    }
+
+    // Sailfish's media icons stand on a faint disc (alpha 0.2); only the
+    // symbol is drawn, in one colour.
+    ShaderEffect {
+        anchors.fill: icon
+        visible: button.iconName !== ""
+        opacity: button.highlighted ? 1 : button.iconOpacity
+
+        property variant source: icon
+        property color color: button.highlighted ? palette.highlightColor : button.restColor
+
+        fragmentShader: "
+            varying highp vec2 qt_TexCoord0;
+            uniform sampler2D source;
+            uniform lowp vec4 color;
+            uniform lowp float qt_Opacity;
+            void main() {
+                lowp float a = smoothstep(0.2, 0.6, texture2D(source, qt_TexCoord0).a);
+                gl_FragColor = vec4(color.rgb * color.a, color.a) * a * qt_Opacity;
+            }"
     }
 
     Label {
@@ -45,6 +83,6 @@ BackgroundItem {
         anchors.centerIn: face
         visible: text !== ""
         color: button.highlighted ? palette.highlightColor : button.textColor
-        font.pixelSize: Theme.fontSizeSmall
+        font.pixelSize: button.fontSize
     }
 }
