@@ -52,7 +52,7 @@ WebViewPage {
     // Listening. The bar appears with playback and goes when the reader
     // turns pages while paused.
     property bool barShown: false
-    // The sentence spoken (or paused at), marked in the chapter's layouts.
+    // The sentence spoken (or paused at), marked while listening.
     property string highlightId: ""
     // Further pages of the sentence spoken: [{page, share}], see framescript.js.
     property var splits: []
@@ -74,7 +74,6 @@ WebViewPage {
     property int pendingHit: -1
     // An entry of the history chosen, likewise; see FindPage.
     property var pendingPlace: null
-    // A bar covers the bottom of the text: the player's or the search's.
     // The audiobook of this EPUB, see bridge.partner; null if none.
     property var partner: null
     // Offering to go where the audiobook was listened to last.
@@ -84,7 +83,6 @@ WebViewPage {
     // Pages turned, a jump or listening since the place was saved: the
     // book has been used. A layout alone moves the page a little.
     property bool moved: false
-    readonly property bool lowerBar: barShown || findShown || partnerShown
     readonly property bool listening: player.active && player.chapter === chapter
     readonly property bool playing: player.playing
     readonly property bool hasAudio: book.spine.some(function (item) { return !!item.overlay })
@@ -139,7 +137,6 @@ WebViewPage {
         py.call("bookfish.bridge.load_position", [app.positionsFile, book.key], function (pos) {
             if (typeof page === "undefined" || !page)
                 return  // the page was closed meanwhile
-            // Before the first layout, which then leaves room for the bar.
             partnerShown = app.partnerOffered(pos, partner)
             if (pos && pos.spine < book.spine.length) {
                 if (pos.heard)
@@ -204,7 +201,7 @@ WebViewPage {
 
     function layoutSettings() {
         return [app.fontSize, app.fontFamily, app.lineHeight, app.paragraphSpacing,
-                lowerBar, lightPage].join("|")
+                lightPage].join("|")
     }
 
     function layout(target) {
@@ -229,8 +226,10 @@ WebViewPage {
             margin: 24,
             marginTop: 4,
             marginBottom: 12,
-            // The bar must not cover the text read along.
-            barHeight: lowerBar ? bar.height : 0,
+            // The bars' strip is kept free of text even with no bar shown:
+            // a bar coming or going would otherwise lay the chapter out
+            // again, and the page would move.
+            barHeight: bar.height,
             fontSize: app.fontSize,
             fontFamily: app.fontFamily === "serif" ? "serif" : "sans-serif",
             lineHeight: app.lineHeight,
@@ -446,8 +445,7 @@ WebViewPage {
             if (data.serial !== serial)
                 return
             // A tap in the text ends looking through the hits; in a
-            // readaloud by listening (startPlayer), in one place for both
-            // bars, so the page is laid out once.
+            // readaloud by listening (startPlayer).
             if (!hasAudio)
                 findShown = false
             if (data.id)
@@ -497,8 +495,6 @@ WebViewPage {
         })
     }
 
-    // The player first, then the bar: showing the bar lays the chapter out
-    // again, around the sentence the player has just begun.
     function stopPlayer() {
         player.stop()
         sleepTimer.cancel()
@@ -509,8 +505,6 @@ WebViewPage {
     function startPlayer(index, clips, i, offset) {
         resumeId = ""
         player.start(index, clips, i, offset)
-        // The bar first: with the find bar going at the same time the text
-        // keeps its height and is not laid out again.
         barShown = true
         unmark()
     }
@@ -549,8 +543,8 @@ WebViewPage {
     // To a place from the contents, the search or the history: reading
     // there, not listening. Like a back button, the history notes the place
     // left.
-    // Not gated on ready: showing or hiding the search bar lays the page
-    // out again just before, while the place left is still the one shown.
+    // Not gated on ready: while a layout is under way the place left is
+    // still the one shown.
     function jumpTo(index, target) {
         if (!player.playing && topChapter >= 0) {
             // Back soon after leaving the app, the session goes on: its "read"
@@ -575,7 +569,6 @@ WebViewPage {
     function showHit(index) {
         var hit = findHits[index]
         findIndex = index
-        // Before the jump: the bar changes the page layout.
         findShown = true
         jumpTo(hit.spine, { find: { offset: hit.offset, length: hit.length, text: hit.text } })
     }
@@ -809,9 +802,6 @@ WebViewPage {
         moved = true
         resumeId = ""
         jumpId = ""
-        // First the layout without the bar, then the turn from the page it
-        // keeps: the frame script takes messages in order, and its answer at
-        // the end of a chapter then carries the new serial.
         partnerShown = false
         flickable.webView.sendAsyncMessage("bookfish:turn", { delta: delta })
     }
@@ -854,8 +844,12 @@ WebViewPage {
         onParagraphSpacingChanged: settingsTimer.restart()
     }
 
-    onLowerBarChanged: relayout()
     onLightPageChanged: relayout()
+    // Listening marks the sentence spoken, reading does not, as in layout();
+    // the bar no longer lays the chapter out, so mark or unmark it here.
+    onBarShownChanged: flickable.webView.sendAsyncMessage("bookfish:highlight", {
+        id: barShown && listening && highlightId === player.currentId ? highlightId : ""
+    })
 
     // Silica items inside take their colours from this palette.
     palette.colorScheme: lightPage ? Theme.DarkOnLight : Theme.LightOnDark
@@ -1176,7 +1170,7 @@ WebViewPage {
 
         anchors.bottom: parent.bottom
         width: parent.width
-        height: Theme.itemSizeMedium
+        height: Theme.itemSizeSmall
         color: pageColor
         visible: barShown
 
