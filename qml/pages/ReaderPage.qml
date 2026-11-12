@@ -452,9 +452,13 @@ WebViewPage {
             else if (!player.playing)
                 playFromPage()
             break
-        case "bookfish:picture":
-            if (data.serial === serial && data.src && status === PageStatus.Active)
-                showPicture(data.src)
+        case "bookfish:pressed":
+            if (data.serial !== serial || status !== PageStatus.Active)
+                return
+            if (data.picture)
+                showPicture(data.picture)
+            else if (data.href)
+                followLink(data.href, data.ordinal)
             break
         case "bookfish:start":
             if (data.serial !== serial)
@@ -620,8 +624,30 @@ WebViewPage {
         flickable.webView.sendAsyncMessage("bookfish:hitTest", { x: x, y: y })
     }
 
-    function pictureAt(x, y) {
-        flickable.webView.sendAsyncMessage("bookfish:pictureAt", { x: x, y: y })
+    // A long press: a picture opens, a link is followed (see notes.py).
+    function pressAt(x, y) {
+        flickable.webView.sendAsyncMessage("bookfish:pressAt", { x: x, y: y })
+    }
+
+    function followLink(href, ordinal) {
+        var from = chapter
+        py.call("bookfish.bridge.follow_link",
+                [book.root, book.spine, book.toc, book.spine[from].path, href, ordinal],
+                function (result) {
+            if (typeof page === "undefined" || !page || closed || chapter !== from
+                    || status !== PageStatus.Active)
+                return
+            if (typeof result.jump === "number") {
+                // As from the contents.
+                findShown = false
+                jumpTo(result.jump, result.id ? { id: result.id } : { fraction: 0 })
+            } else if (result.paragraphs) {
+                pageStack.push(Qt.resolvedUrl("NotePage.qml"), {
+                    mark: result.mark, paragraphs: result.paragraphs, first: result.first, last: result.last,
+                    lightPage: lightPage
+                })
+            }
+        })
     }
 
     // The address comes from the book: only its own files are shown.
@@ -1355,7 +1381,7 @@ WebViewPage {
             webView.addMessageListener("bookfish:painted")
             webView.addMessageListener("bookfish:highlighted")
             webView.addMessageListener("bookfish:hit")
-            webView.addMessageListener("bookfish:picture")
+            webView.addMessageListener("bookfish:pressed")
             webView.addMessageListener("bookfish:start")
             webView.addMessageListener("bookfish:found")
             page.start()
@@ -1389,7 +1415,7 @@ WebViewPage {
                     return
                 held = true
                 if (ready)
-                    pictureAt(mouse.x / width, mouse.y / height)
+                    pressAt(mouse.x / width, mouse.y / height)
             }
             onPositionChanged: {
                 // Claim a clearly horizontal swipe before Silica takes it;

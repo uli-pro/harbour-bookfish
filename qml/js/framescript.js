@@ -102,12 +102,20 @@ addMessageListener("bookfish:layout", function (message) {
         "  body h|samp, body h|samp h|*, body h|tt, body h|tt h|* { font-family: monospace; }" +
         "body img, body svg { display: block; margin: 0 auto; max-width: 100%; max-height: 70vh;" +
         "  break-inside: avoid; }" +
-        // Links cannot be followed, so they look like the text around them.
         "body a, body a:link, body a:visited { color: inherit; text-decoration: none; }" +
         // Books are made for white pages: their own black text or light
         // backgrounds would be unreadable on a black one. A rule may be drawn
         // with its background.
         (o.background === "black" ? "body h|*:not(h|hr) { color: inherit; background-color: transparent; }" : "") +
+        // Links into the book can be followed by a long press: coloured, not
+        // underlined. Links out of it lead nowhere (no network) and look
+        // like the text around them.
+        "body h|a[href], body h|a[href] h|* { color: " +
+        (o.background === "black" ? "#8ab4f8" : "#0645ad") + "; }" +
+        outLinks.map(function (scheme) {
+            var a = "body h|a[href^=\"" + scheme + "\" i]"
+            return a + ", " + a + " h|*"
+        }).join(", ") + " { color: inherit; }" +
         // Our own mark for the sentence spoken, and for the one heard last
         // where listening goes on: the book's style for its active class is
         // made for white pages.
@@ -221,15 +229,73 @@ addMessageListener("bookfish:hitTest", function (message) {
     sendAsyncMessage("bookfish:hit", { serial: state.serial, id: el ? el.id : "" })
 })
 
-// A long press, given like a tap: the address of the picture there, "" if
-// none. Small ones count as none: ornaments, rules and the wide but low
-// heads of chapters (measured over the library: the shorter side of all of
-// them is below a quarter of the text's width).
-addMessageListener("bookfish:pictureAt", function (message) {
+// Links into the book have an address without a scheme ("notes.xhtml#n1",
+// "#fn:1"), as Python's paths.resolve sees them. CSS cannot test that, so
+// the colour rule leaves out the schemes books use.
+var outLinks = ["http:", "https:", "mailto:", "ftp:", "tel:", "data:", "javascript:", "file:", "urn:"]
+
+function isBookLink(element) {
+    var href = element.getAttribute("href")
+    return element.namespaceURI === xhtml && href !== null && !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href)
+}
+
+// A long press, given like a tap: a big picture there, else the link
+// nearest to the finger. Python decides what the link does (notes.py).
+addMessageListener("bookfish:pressAt", function (message) {
     if (!current())
         return
-    var el = state.doc.elementFromPoint(message.data.x * content.innerWidth,
-                                        message.data.y * content.innerHeight)
+    var x = message.data.x * content.innerWidth
+    var y = message.data.y * content.innerHeight
+    var src = pictureAt(x, y)
+    var link = src ? null : linkAt(x, y)
+    var answer = { serial: state.serial, picture: src }
+    if (link) {
+        var href = link.getAttribute("href")
+        var same = state.doc.getElementsByTagNameNS(xhtml, "a")
+        var ordinal = 0
+        for (var i = 0; i < same.length && same[i] !== link; ++i) {
+            if (same[i].getAttribute("href") === href)
+                ++ordinal
+        }
+        answer.href = href
+        answer.ordinal = ordinal
+    }
+    sendAsyncMessage("bookfish:pressed", answer)
+})
+
+// The link into the book nearest to x, y on the page shown, at most a line
+// away: a note's mark is small, a finger is not.
+function linkAt(x, y) {
+    var reach = parseFloat(content.getComputedStyle(state.scroller).lineHeight) || 40
+    var best = null
+    var bestDistance = reach
+    var links = state.doc.getElementsByTagNameNS(xhtml, "a")
+    for (var i = 0; i < links.length; ++i) {
+        if (!isBookLink(links[i]))
+            continue
+        var rects = boxes(links[i])
+        for (var j = 0; j < rects.length; ++j) {
+            var r = rects[j]
+            if (r.right < 0 || r.left > content.innerWidth)
+                continue
+            var dx = Math.max(r.left - x, 0, x - r.right)
+            var dy = Math.max(r.top - y, 0, y - r.bottom)
+            var distance = Math.sqrt(dx * dx + dy * dy)
+            if (distance <= bestDistance) {
+                best = links[i]
+                bestDistance = distance
+            }
+        }
+    }
+    return best
+}
+
+// The address of a picture at x, y, "" if none. Small ones count as none:
+// ornaments, rules and the wide but low heads of chapters (measured over
+// the library: the shorter side of all of them is below a quarter of the
+// text's width).
+function pictureAt(x, y) {
+    var el = state.doc.elementFromPoint(x, y)
     var picture = null
     for (; el; el = el.parentElement) {
         if (el.localName === "img" || el.localName === "svg")
@@ -256,8 +322,8 @@ addMessageListener("bookfish:pictureAt", function (message) {
             }
         }
     }
-    sendAsyncMessage("bookfish:picture", { serial: state.serial, src: src })
-})
+    return src
+}
 
 // Where playback starts on this page: the preferred sentence (the one
 // paused at) if it is on the page, else the topmost sentence, also one cut

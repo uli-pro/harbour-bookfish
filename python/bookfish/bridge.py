@@ -16,7 +16,7 @@ import time
 import traceback
 import unicodedata
 
-from . import audiobook, cache, history as history_store, library, positions
+from . import audiobook, cache, history as history_store, library, notes, positions
 from .errors import EpubError
 from .overlay import read_overlay
 from .package import read_package, text_length
@@ -395,6 +395,19 @@ def read_chapter(root, chapter_path, smil_path):
             seen.add(fragment.text_id)
             ids.append(fragment.text_id)
     return {"ids": ids, "sentences": sentences, "skipped": overlay.skipped}
+
+
+def follow_link(root, spine, toc, chapter, href, ordinal):
+    """What a long press on a link does, see notes.follow_link; spine and
+    toc as open_book gives them."""
+    try:
+        return notes.follow_link(root, [item["path"] for item in spine],
+                                 {(entry["path"], entry["fragment"] or "") for entry in toc},
+                                 chapter, href, int(ordinal))
+    except Exception:
+        # The reader waits for an answer.
+        traceback.print_exc()
+        return {}
 
 
 def load_position(path, key):
