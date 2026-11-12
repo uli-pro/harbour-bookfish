@@ -52,7 +52,7 @@ WebViewPage {
     // Listening. The bar appears with playback and goes when the reader
     // turns pages while paused.
     property bool barShown: false
-    // The sentence spoken (or paused at), marked in the chapter's layouts.
+    // The sentence spoken (or paused at), marked while listening.
     property string highlightId: ""
     // Further pages of the sentence spoken: [{page, share}], see framescript.js.
     property var splits: []
@@ -74,7 +74,6 @@ WebViewPage {
     property int pendingHit: -1
     // An entry of the history chosen, likewise; see FindPage.
     property var pendingPlace: null
-    // A bar covers the bottom of the text: the player's or the search's.
     // The audiobook of this EPUB, see bridge.partner; null if none.
     property var partner: null
     // Offering to go where the audiobook was listened to last.
@@ -84,7 +83,6 @@ WebViewPage {
     // Pages turned, a jump or listening since the place was saved: the
     // book has been used. A layout alone moves the page a little.
     property bool moved: false
-    readonly property bool lowerBar: barShown || findShown || partnerShown
     readonly property bool listening: player.active && player.chapter === chapter
     readonly property bool playing: player.playing
     readonly property bool hasAudio: book.spine.some(function (item) { return !!item.overlay })
@@ -139,7 +137,6 @@ WebViewPage {
         py.call("bookfish.bridge.load_position", [app.positionsFile, book.key], function (pos) {
             if (typeof page === "undefined" || !page)
                 return  // the page was closed meanwhile
-            // Before the first layout, which then leaves room for the bar.
             partnerShown = app.partnerOffered(pos, partner)
             if (pos && pos.spine < book.spine.length) {
                 if (pos.heard)
@@ -204,7 +201,7 @@ WebViewPage {
 
     function layoutSettings() {
         return [app.fontSize, app.fontFamily, app.lineHeight, app.paragraphSpacing,
-                lowerBar, lightPage].join("|")
+                lightPage].join("|")
     }
 
     function layout(target) {
@@ -229,8 +226,9 @@ WebViewPage {
             margin: 24,
             marginTop: 4,
             marginBottom: 12,
-            // The bar must not cover the text read along.
-            barHeight: lowerBar ? bar.height : 0,
+            // The controls sit above the text, beside the notch; nothing
+            // covers the text from below.
+            barHeight: 0,
             fontSize: app.fontSize,
             fontFamily: app.fontFamily === "serif" ? "serif" : "sans-serif",
             lineHeight: app.lineHeight,
@@ -446,8 +444,7 @@ WebViewPage {
             if (data.serial !== serial)
                 return
             // A tap in the text ends looking through the hits; in a
-            // readaloud by listening (startPlayer), in one place for both
-            // bars, so the page is laid out once.
+            // readaloud by listening (startPlayer).
             if (!hasAudio)
                 findShown = false
             if (data.id)
@@ -497,8 +494,6 @@ WebViewPage {
         })
     }
 
-    // The player first, then the bar: showing the bar lays the chapter out
-    // again, around the sentence the player has just begun.
     function stopPlayer() {
         player.stop()
         sleepTimer.cancel()
@@ -509,8 +504,6 @@ WebViewPage {
     function startPlayer(index, clips, i, offset) {
         resumeId = ""
         player.start(index, clips, i, offset)
-        // The bar first: with the find bar going at the same time the text
-        // keeps its height and is not laid out again.
         barShown = true
         unmark()
     }
@@ -549,8 +542,8 @@ WebViewPage {
     // To a place from the contents, the search or the history: reading
     // there, not listening. Like a back button, the history notes the place
     // left.
-    // Not gated on ready: showing or hiding the search bar lays the page
-    // out again just before, while the place left is still the one shown.
+    // Not gated on ready: while a layout is under way the place left is
+    // still the one shown.
     function jumpTo(index, target) {
         if (!player.playing && topChapter >= 0) {
             // Back soon after leaving the app, the session goes on: its "read"
@@ -575,7 +568,6 @@ WebViewPage {
     function showHit(index) {
         var hit = findHits[index]
         findIndex = index
-        // Before the jump: the bar changes the page layout.
         findShown = true
         jumpTo(hit.spine, { find: { offset: hit.offset, length: hit.length, text: hit.text } })
     }
@@ -809,9 +801,6 @@ WebViewPage {
         moved = true
         resumeId = ""
         jumpId = ""
-        // First the layout without the bar, then the turn from the page it
-        // keeps: the frame script takes messages in order, and its answer at
-        // the end of a chapter then carries the new serial.
         partnerShown = false
         flickable.webView.sendAsyncMessage("bookfish:turn", { delta: delta })
     }
@@ -854,8 +843,12 @@ WebViewPage {
         onParagraphSpacingChanged: settingsTimer.restart()
     }
 
-    onLowerBarChanged: relayout()
     onLightPageChanged: relayout()
+    // Listening marks the sentence spoken, reading does not, as in layout();
+    // the bar no longer lays the chapter out, so mark or unmark it here.
+    onBarShownChanged: flickable.webView.sendAsyncMessage("bookfish:highlight", {
+        id: barShown && listening && highlightId === player.currentId ? highlightId : ""
+    })
 
     // Silica items inside take their colours from this palette.
     palette.colorScheme: lightPage ? Theme.DarkOnLight : Theme.LightOnDark
@@ -1007,49 +1000,239 @@ WebViewPage {
         color: pageColor
     }
 
-    // Chapter and page beside the notch, so the text can use the screen
-    // down to its bottom edge.
+    // All controls in one row above the text, beside the notch: a bar
+    // coming or going never changes the height of the text, so the chapter
+    // is not laid out again and the page stays put. The left side holds the
+    // controls used most; where they need more room the right side helps,
+    // and the page number stands at the right end.
     Item {
-        id: statusLine
+        id: controls
 
+        // Above the text: the buttons take taps a little below the row.
+        z: 1
         // Only a notch in the middle leaves room on both sides.
         readonly property bool notch: Screen.hasCutouts === true && Screen.topCutout.width > 0
                                       && Screen.topCutout.x > width / 5
                                       && Screen.topCutout.x + Screen.topCutout.width < width * 4 / 5
-        readonly property real gap: Theme.paddingMedium
+        readonly property real gap: Theme.paddingSmall
+        readonly property real leftEnd: (notch ? Screen.topCutout.x : width / 2) - gap
+        readonly property real rightStart: (notch ? Screen.topCutout.x + Screen.topCutout.width
+                                                  : width / 2) + gap
+        // Taps a little below the row, over the first line of text; not
+        // while the pulley is open, whose top item is there then.
+        readonly property real reach: pulley.active ? 0 : Theme.paddingLarge
+        // Three buttons fill the left side.
+        readonly property real buttonWidth: Math.min(Theme.itemSizeExtraSmall, (leftEnd - gap) / 3)
+        readonly property string mode: barShown ? "listen" : findShown ? "find"
+                                                : partnerShown ? "partner" : "read"
+
+        // Where texts sit below the top edge, level with BarButton's icons.
+        readonly property real inset: Math.min(Theme.paddingMedium, (height - Math.round(1.15 * Math.min(
+                                           Theme.iconSizeSmallPlus, height - 2 * Theme.paddingSmall))) / 2)
 
         width: parent.width
-        height: Math.max(notch ? Screen.topCutout.y + Screen.topCutout.height : 0,
-                         Theme.fontSizeExtraSmall + 2 * Theme.paddingSmall)
-        visible: ready
+        // Only as high as the notch: the text begins right below it. Without
+        // one the row takes the height of a small list item.
+        height: notch ? Screen.topCutout.y + Screen.topCutout.height : Theme.itemSizeExtraSmall
 
-        Label {
-            x: Theme.paddingLarge
-            width: (statusLine.notch ? Screen.topCutout.x : parent.width / 2) - x - statusLine.gap
-            anchors.verticalCenter: parent.verticalCenter
-            // Beside a notch there is little room; shrink rather than cut.
-            fontSizeMode: Text.HorizontalFit
-            minimumPixelSize: Theme.fontSizeTiny / 2
-            font.pixelSize: Theme.fontSizeExtraSmall
-            color: palette.secondaryColor
-            //: Chapter in the book, e.g. "Chapter 3/12"
-            text: qsTr("Chapter %1/%2").arg(chapter + 1).arg(book.spine.length)
+        // Taps beside the buttons must not reach anything below.
+        MouseArea {
+            anchors.fill: parent
         }
 
-        Label {
-            readonly property real start: statusLine.notch ? Screen.topCutout.x + Screen.topCutout.width
-                                                      : parent.width / 2
-            x: start + statusLine.gap
-            width: parent.width - Theme.paddingLarge - x
-            anchors.verticalCenter: parent.verticalCenter
-            horizontalAlignment: Text.AlignRight
-            fontSizeMode: Text.HorizontalFit
-            minimumPixelSize: Theme.fontSizeTiny / 2
-            font.pixelSize: Theme.fontSizeExtraSmall
-            color: palette.secondaryColor
-            visible: bookPages > 0
-            //: Estimated page in the whole book, e.g. "Page 30/295"
-            text: qsTr("Page %1/%2").arg(bookPage).arg(bookPages)
+        // Left of the notch.
+        Item {
+            x: controls.gap
+            width: controls.leftEnd - x
+            height: parent.height
+
+            Row {
+                height: parent.height
+                visible: controls.mode === "read"
+
+                BarButton {
+                    reach: controls.reach
+                    width: controls.buttonWidth
+                    iconName: "icon-m-search"
+                    iconScale: 0.7
+                    onClicked: openFind()
+                }
+                BarButton {
+                    reach: controls.reach
+                    width: controls.buttonWidth
+                    visible: hasAudio
+                    iconName: "icon-m-play"
+                    iconOpacity: 0.8
+                    onClicked: play()
+                }
+            }
+
+            Row {
+                height: parent.height
+                visible: controls.mode === "listen"
+
+                BarButton {
+                    reach: controls.reach
+                    width: controls.buttonWidth
+                    iconName: "icon-m-previous"
+                    onClicked: player.previous()
+                }
+                BarButton {
+                    reach: controls.reach
+                    width: controls.buttonWidth
+                    iconName: player.playing ? "icon-m-pause" : "icon-m-play"
+                    iconOpacity: 0.8
+                    onClicked: togglePlay()
+                }
+                BarButton {
+                    reach: controls.reach
+                    width: controls.buttonWidth
+                    iconName: "icon-m-next"
+                    onClicked: player.next()
+                }
+            }
+
+            Row {
+                height: parent.height
+                visible: controls.mode === "find"
+
+                BarButton {
+                    reach: controls.reach
+                    width: controls.buttonWidth
+                    iconName: "icon-m-left"
+                    available: findIndex > 0
+                    onClicked: if (available) showHit(findIndex - 1)
+                }
+                BarButton {
+                    reach: controls.reach
+                    width: controls.buttonWidth
+                    // Back to the list of hits.
+                    //: Search hit shown and number of hits, e.g. "3 / 39"
+                    text: qsTr("%1 / %2").arg(findIndex + 1).arg(findHits.length)
+                    onClicked: openFind()
+                }
+                BarButton {
+                    reach: controls.reach
+                    width: controls.buttonWidth
+                    iconName: "icon-m-right"
+                    available: findIndex + 1 < findHits.length
+                    onClicked: if (available) showHit(findIndex + 1)
+                }
+            }
+
+            Label {
+                y: controls.inset
+                width: parent.width
+                height: parent.height - y
+                visible: controls.mode === "partner"
+                verticalAlignment: Text.AlignVCenter
+                truncationMode: TruncationMode.Fade
+                font.pixelSize: Theme.fontSizeExtraSmall
+                color: palette.secondaryHighlightColor
+                //: Offer on opening a book whose audiobook was listened to later, e.g. "Listened to 43 %"
+                text: partner ? qsTr("Listened to %1 %").arg(app.percent(partner.progress)) : ""
+            }
+        }
+
+        // Right of the notch, ending with the page number.
+        Row {
+            id: rightSide
+
+            anchors.right: parent.right
+            anchors.rightMargin: controls.gap
+            height: parent.height
+            layoutDirection: Qt.RightToLeft
+
+            Label {
+                id: pageLabel
+
+                // What the buttons beside it leave, so it shrinks rather
+                // than pushes them over the notch.
+                readonly property real room: controls.width - controls.gap - controls.rightStart
+                                             - (findButtons.visible ? findButtons.width : 0)
+                y: controls.inset
+                width: Math.min(implicitWidth, Math.max(0, room))
+                height: parent.height - y
+                // Not beside the player's buttons: there it distracts.
+                visible: bookPages > 0 && controls.mode !== "partner" && controls.mode !== "listen"
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignRight
+                fontSizeMode: Text.HorizontalFit
+                minimumPixelSize: Theme.fontSizeTiny / 2
+                // As small as the buttons' texts.
+                font.pixelSize: Math.round(0.85 * Theme.fontSizeTiny)
+                color: palette.secondaryColor
+                //: Estimated page in the whole book, e.g. "30/295"
+                text: qsTr("%1/%2").arg(bookPage).arg(bookPages)
+            }
+
+            Row {
+                id: listenButtons
+
+                height: parent.height
+                visible: controls.mode === "listen"
+                layoutDirection: Qt.RightToLeft
+
+                BarButton {
+                    reach: controls.reach
+                    width: controls.buttonWidth
+                    iconName: sleepTimer.mode === "off" ? "icon-m-timer" : ""
+                    iconScale: 0.65
+                    text: sleepTimer.mode === "off" ? ""
+                          : sleepTimer.mode === "chapter"
+                            //: Sleep timer button while it waits for the end of the chapter
+                            ? qsTr("Chapter")
+                            //: Sleep timer button with the minutes left, e.g. "23 min"
+                            : qsTr("%1 min").arg(Math.ceil(sleepTimer.remaining / 60000))
+                    onClicked: openSleepTimer()
+                }
+                BarButton {
+                    reach: controls.reach
+                    width: implicitWidth
+                    //: Playback speed on the button that opens the settings, e.g. "1.25×"
+                    text: qsTr("%1×").arg(Number(app.playbackRate).toLocaleString(Qt.locale(), "f", 2))
+                    onClicked: pageStack.push(Qt.resolvedUrl("SettingsPage.qml"))
+                }
+            }
+
+            Row {
+                id: findButtons
+
+                height: parent.height
+                visible: controls.mode === "find"
+
+                BarButton {
+                    reach: controls.reach
+                    width: controls.buttonWidth
+                    iconName: "icon-m-clear"
+                    onClicked: {
+                        findShown = false
+                        unmark()
+                    }
+                }
+            }
+
+            Row {
+                height: parent.height
+                visible: controls.mode === "partner"
+                layoutDirection: Qt.RightToLeft
+
+                BarButton {
+                    reach: controls.reach
+                    width: controls.buttonWidth
+                    iconName: "icon-m-clear"
+                    onClicked: partnerShown = false
+                }
+                BarButton {
+                    reach: controls.reach
+                    width: implicitWidth
+                    textColor: palette.highlightColor
+                    fontSize: Theme.fontSizeExtraSmall
+                    //: Goes to the place in the book or audiobook offered
+                    text: qsTr("Go there")
+                    onClicked: goToPartner()
+                }
+            }
         }
     }
 
@@ -1057,17 +1240,19 @@ WebViewPage {
         id: flickable
 
         anchors {
-            top: statusLine.bottom
+            top: controls.bottom
             left: parent.left
             right: parent.right
             bottom: parent.bottom
         }
         // The pulley sits above the flickable; unclipped it would cover the
-        // status line.
+        // controls.
         clip: true
 
         PullDownMenu {
-            // No highlight strip between the status line and the text; the
+            id: pulley
+
+            // No highlight strip between the controls and the text; the
             // chosen item is still shown by its text colour.
             highlightColor: "transparent"
             backgroundColor: pageColor
@@ -1167,176 +1352,6 @@ WebViewPage {
                     else if (ready)
                         hit(mouse.x / width, mouse.y / height)
                 }
-            }
-        }
-    }
-
-    Rectangle {
-        id: bar
-
-        anchors.bottom: parent.bottom
-        width: parent.width
-        height: Theme.itemSizeMedium
-        color: pageColor
-        visible: barShown
-
-        // Taps beside the buttons must not reach the page below.
-        MouseArea {
-            anchors.fill: parent
-        }
-
-        Row {
-            anchors.centerIn: parent
-            spacing: Theme.paddingLarge
-
-            IconButton {
-                icon.source: "image://theme/icon-m-previous"
-                onClicked: player.previous()
-            }
-            IconButton {
-                icon.source: player.playing ? "image://theme/icon-m-pause" : "image://theme/icon-m-play"
-                onClicked: togglePlay()
-            }
-            IconButton {
-                icon.source: "image://theme/icon-m-next"
-                onClicked: player.next()
-            }
-            BackgroundItem {
-                width: Theme.itemSizeMedium
-                height: Theme.itemSizeSmall
-                anchors.verticalCenter: parent.verticalCenter
-                onClicked: pageStack.push(Qt.resolvedUrl("SettingsPage.qml"))
-
-                Label {
-                    anchors.centerIn: parent
-                    color: parent.highlighted ? palette.highlightColor : palette.primaryColor
-                    //: Playback speed on the button that opens the settings, e.g. "1.25×"
-                    text: qsTr("%1×").arg(Number(app.playbackRate).toLocaleString(Qt.locale(), "f", 2))
-                }
-            }
-            BackgroundItem {
-                width: Theme.itemSizeMedium
-                height: Theme.itemSizeSmall
-                anchors.verticalCenter: parent.verticalCenter
-                onClicked: openSleepTimer()
-
-                Image {
-                    anchors.centerIn: parent
-                    visible: sleepTimer.mode === "off"
-                    source: "image://theme/icon-m-timer?" + (parent.highlighted ? palette.highlightColor
-                                                                                : palette.primaryColor)
-                }
-                Label {
-                    anchors.centerIn: parent
-                    visible: sleepTimer.mode !== "off"
-                    color: parent.highlighted ? palette.highlightColor : palette.primaryColor
-                    font.pixelSize: Theme.fontSizeSmall
-                    text: sleepTimer.mode === "chapter"
-                          //: Sleep timer button while it waits for the end of the chapter
-                          ? qsTr("Chapter")
-                          //: Sleep timer button with the minutes left, e.g. "23 min"
-                          : qsTr("%1 min").arg(Math.ceil(sleepTimer.remaining / 60000))
-                }
-            }
-        }
-    }
-
-    // Going from hit to hit of the search; the player's bar takes its place.
-    Rectangle {
-        anchors.bottom: parent.bottom
-        width: parent.width
-        height: bar.height
-        color: pageColor
-        visible: findShown && !barShown
-
-        MouseArea {
-            anchors.fill: parent
-        }
-
-        Row {
-            anchors.centerIn: parent
-            spacing: Theme.paddingLarge
-
-            IconButton {
-                icon.source: "image://theme/icon-m-left"
-                enabled: findIndex > 0
-                onClicked: showHit(findIndex - 1)
-            }
-            BackgroundItem {
-                width: Theme.itemSizeExtraLarge
-                height: Theme.itemSizeSmall
-                anchors.verticalCenter: parent.verticalCenter
-                // Back to the list of hits.
-                onClicked: openFind()
-
-                Label {
-                    anchors.centerIn: parent
-                    color: parent.highlighted ? palette.highlightColor : palette.primaryColor
-                    //: Search hit shown and number of hits, e.g. "3 / 39"
-                    text: qsTr("%1 / %2").arg(findIndex + 1).arg(findHits.length)
-                }
-            }
-            IconButton {
-                icon.source: "image://theme/icon-m-right"
-                enabled: findIndex + 1 < findHits.length
-                onClicked: showHit(findIndex + 1)
-            }
-            IconButton {
-                icon.source: "image://theme/icon-m-clear"
-                onClicked: {
-                    findShown = false
-                    unmark()
-                }
-            }
-        }
-    }
-
-    // Offered when the audiobook was listened to later, see start().
-    Rectangle {
-        anchors.bottom: parent.bottom
-        width: parent.width
-        height: bar.height
-        color: pageColor
-        visible: partnerShown && !barShown && !findShown
-
-        MouseArea {
-            anchors.fill: parent
-        }
-
-        Label {
-            anchors {
-                left: parent.left
-                leftMargin: Theme.horizontalPageMargin
-                right: partnerButtons.left
-                verticalCenter: parent.verticalCenter
-            }
-            truncationMode: TruncationMode.Fade
-            color: palette.secondaryHighlightColor
-            //: Offer on opening a book whose audiobook was listened to later, e.g. "Listened to 43 %"
-            text: partner ? qsTr("Listened to %1 %").arg(app.percent(partner.progress)) : ""
-        }
-
-        Row {
-            id: partnerButtons
-
-            anchors {
-                right: parent.right
-                rightMargin: Theme.paddingMedium
-                verticalCenter: parent.verticalCenter
-            }
-            spacing: Theme.paddingMedium
-
-            Button {
-                anchors.verticalCenter: parent.verticalCenter
-                preferredWidth: Theme.buttonWidthExtraSmall
-                //: Goes to the place in the book or audiobook offered
-                text: qsTr("Go there")
-                onClicked: goToPartner()
-            }
-            IconButton {
-                anchors.verticalCenter: parent.verticalCenter
-                icon.source: "image://theme/icon-m-clear"
-                onClicked: partnerShown = false
             }
         }
     }
