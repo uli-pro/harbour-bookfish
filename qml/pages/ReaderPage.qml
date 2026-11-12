@@ -452,6 +452,10 @@ WebViewPage {
             else if (!player.playing)
                 playFromPage()
             break
+        case "bookfish:picture":
+            if (data.serial === serial && data.src && status === PageStatus.Active)
+                showPicture(data.src)
+            break
         case "bookfish:start":
             if (data.serial !== serial)
                 return
@@ -614,6 +618,25 @@ WebViewPage {
 
     function hit(x, y) {
         flickable.webView.sendAsyncMessage("bookfish:hitTest", { x: x, y: y })
+    }
+
+    function pictureAt(x, y) {
+        flickable.webView.sendAsyncMessage("bookfish:pictureAt", { x: x, y: y })
+    }
+
+    // The address comes from the book: only its own files are shown.
+    function showPicture(src) {
+        if (src.indexOf("file:///") !== 0)
+            return
+        var path
+        try {
+            path = decodeURIComponent(src.slice(7))
+        } catch (e) {
+            return
+        }
+        if (path.indexOf(book.root.replace(/\/+$/, "") + "/") !== 0 || /\/\.\.?(\/|$)/.test(path))
+            return
+        pageStack.push(Qt.resolvedUrl("ImagePage.qml"), { source: src, pageColor: pageColor })
     }
 
     function togglePlay() {
@@ -1332,6 +1355,7 @@ WebViewPage {
             webView.addMessageListener("bookfish:painted")
             webView.addMessageListener("bookfish:highlighted")
             webView.addMessageListener("bookfish:hit")
+            webView.addMessageListener("bookfish:picture")
             webView.addMessageListener("bookfish:start")
             webView.addMessageListener("bookfish:found")
             page.start()
@@ -1348,11 +1372,24 @@ WebViewPage {
 
             property real startX
             property real startY
+            // A long press is never also a tap.
+            property bool held: false
 
             onPressed: {
                 startX = mouse.x
                 startY = mouse.y
+                held = false
                 preventStealing = false
+            }
+            // Qt reports a hold even after the finger moved: a slow swipe
+            // still turns the page.
+            onPressAndHold: {
+                if (preventStealing || Math.abs(mouse.x - startX) >= Theme.startDragDistance
+                        || Math.abs(mouse.y - startY) >= Theme.startDragDistance)
+                    return
+                held = true
+                if (ready)
+                    pictureAt(mouse.x / width, mouse.y / height)
             }
             onPositionChanged: {
                 // Claim a clearly horizontal swipe before Silica takes it;
@@ -1364,6 +1401,8 @@ WebViewPage {
                 }
             }
             onReleased: {
+                if (held)
+                    return
                 var dx = mouse.x - startX
                 var dy = mouse.y - startY
                 if (Math.abs(dx) > width / 8 && Math.abs(dx) > Math.abs(dy)) {
