@@ -21,8 +21,10 @@ from .xmlutil import parse_xml
 _XHTML = "{http://www.w3.org/1999/xhtml}"
 
 # A comma or full stop may belong to the link: "4," "5," "6" (Duhigg).
+# Roman numbers in brackets may be longer: "[xxiv]" (Foster, Watling);
+# without, longer ones would take words like "civil".
 _SHORT = re.compile(r"(?:[\[\(]?[0-9]{1,3}[a-z]?[\]\)]?|[\[\(]?[*†‡§¶]{1,3}[\]\)]?"
-                    r"|[a-zA-Z]|[ivxlcIVXLC]{1,4})[,;.]?")
+                    r"|[a-zA-Z]|[ivxlcIVXLC]{1,4}|[\[\(][ivxlcdmIVXLCDM]{1,8}[\]\)])[,;.]?")
 _HEADINGS = {"h1", "h2", "h3", "h4", "h5", "h6"}
 _BLOCKS = {"address", "article", "aside", "blockquote", "body", "dd", "div", "dl", "dt",
            "figcaption", "figure", "footer", "header", "li", "main", "nav", "ol", "p",

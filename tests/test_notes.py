@@ -14,11 +14,11 @@ def xhtml(body):
 class ShortTest(unittest.TestCase):
 
     def test_marks(self):
-        for text in ("1", "12", "123", "[3]", "(4)", "12a", "*", "**", "†", "a", "iv", " 7 ", "4,", "12.", "[3];"):
+        for text in ("1", "12", "123", "[3]", "(4)", "12a", "*", "**", "†", "a", "iv", " 7 ", "4,", "12.", "[3];", "[XXIV]", "[iv]", "(xviii)"):
             self.assertTrue(is_short(text), text)
 
     def test_words(self):
-        for text in ("1234", "Chapter 1", "see", "Contents", "", "12 13", "civil", "xxviii", "4,,", ",4"):
+        for text in ("1234", "Chapter 1", "see", "Contents", "", "12 13", "civil", "xxviii", "4,,", ",4", "[civilian]", "[XXIV"):
             self.assertFalse(is_short(text), text)
 
 
