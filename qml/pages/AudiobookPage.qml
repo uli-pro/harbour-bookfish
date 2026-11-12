@@ -538,13 +538,13 @@ Page {
                 }
             }
             MenuItem {
+                text: qsTr("Contents")
+                onClicked: openContents()
+            }
+            MenuItem {
                 //: Opens the listening history of an audiobook
                 text: qsTr("History")
                 onClicked: openHistory()
-            }
-            MenuItem {
-                text: qsTr("Contents")
-                onClicked: openContents()
             }
         }
 
