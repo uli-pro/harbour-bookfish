@@ -7,7 +7,7 @@ import Sailfish.Silica 1.0
 // indicator, at the top left of the page; Silica draws its own above.
 ShaderEffect {
     property Page owner
-    property real strength: 0.18
+    property real strength: 0.14
     // The height of Silica's indicator; its glow is centred in it.
     readonly property real indicatorHeight: !owner || owner.isPortrait ? Theme.itemSizeLarge
                                                                        : Theme.itemSizeSmall
