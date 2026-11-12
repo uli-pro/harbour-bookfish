@@ -221,6 +221,44 @@ addMessageListener("bookfish:hitTest", function (message) {
     sendAsyncMessage("bookfish:hit", { serial: state.serial, id: el ? el.id : "" })
 })
 
+// A long press, given like a tap: the address of the picture there, "" if
+// none. Small ones count as none: ornaments, rules and the wide but low
+// heads of chapters (measured over the library: the shorter side of all of
+// them is below a quarter of the text's width).
+addMessageListener("bookfish:pictureAt", function (message) {
+    if (!current())
+        return
+    var el = state.doc.elementFromPoint(message.data.x * content.innerWidth,
+                                        message.data.y * content.innerHeight)
+    var picture = null
+    for (; el; el = el.parentElement) {
+        if (el.localName === "img" || el.localName === "svg")
+            picture = el
+    }
+    var src = ""
+    if (picture) {
+        var rect = picture.getBoundingClientRect()
+        var style = content.getComputedStyle(state.scroller)
+        var textWidth = state.width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+        if (Math.min(rect.width, rect.height) >= textWidth / 4) {
+            if (picture.localName === "img") {
+                src = picture.currentSrc || picture.src || ""
+            } else {
+                var image = picture.querySelector("image")
+                var href = image ? (image.getAttribute("href")
+                                    || image.getAttributeNS("http://www.w3.org/1999/xlink", "href")) : ""
+                // A link resolves the address against the chapter's.
+                if (href) {
+                    var link = state.doc.createElementNS("http://www.w3.org/1999/xhtml", "a")
+                    link.setAttribute("href", href)
+                    src = link.href || ""
+                }
+            }
+        }
+    }
+    sendAsyncMessage("bookfish:picture", { serial: state.serial, src: src })
+})
+
 // Where playback starts on this page: the preferred sentence (the one
 // paused at) if it is on the page, else the topmost sentence, also one cut
 // off at the top, else the first one after the page. "" if there is none.

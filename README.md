@@ -37,6 +37,9 @@ Readalouds can be created from an EPUB and an audiobook with
 - **Listen** by tapping a sentence: narration starts there. Tapping where
   there is no sentence starts at the top of the page. When a book is opened
   again, the sentence heard last is marked; tap it to go on listening.
+- **Pictures:** press and hold a picture to see it on its own page. Pinch
+  or double tap to zoom; the phone may be turned. Listening goes on. Small
+  pictures such as ornaments do not open.
 - **Find & history** (pull-down menu) searches the book for paragraphs
   holding all words typed, in any order. A line in the hits shows where you
   are.
