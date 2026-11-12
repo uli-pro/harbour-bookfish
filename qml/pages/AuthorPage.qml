@@ -10,29 +10,8 @@ Page {
     property string name
     // Entries of bridge.library_view, already in this order.
     property var books: []
-    // Shown in the middle at first, e.g. the book found by a search.
-    property string focusPath
 
     readonly property bool hasSeries: books.some(function (book) { return book.series !== "" })
-
-    function detail(book) {
-        var parts = []
-        // Python's None may arrive as null or as undefined.
-        if (typeof book.index === "number")
-            //: Place of the book in its series, e.g. "Book 3"
-            parts.push(qsTr("Book %1").arg(book.index.toLocaleString(Qt.locale(), "f",
-                                                                     book.index % 1 ? 1 : 0)))
-        if (book.broken)
-            //: The book is damaged or protected by DRM
-            parts.push(qsTr("Cannot be opened"))
-        if (book.duplicate)
-            parts.push(book.removable ? qsTr("SD card") : qsTr("Device"))
-        // Last: a long list is cut off at the edge.
-        if (book.coauthors.length > 0)
-            //: Further authors of a book, e.g. "with Andrew Child"
-            parts.push(qsTr("with %1").arg(book.coauthors.join(", ")))
-        return parts.join(" · ")
-    }
 
     SilicaListView {
         id: listView
@@ -53,7 +32,6 @@ Page {
 
         delegate: BookItem {
             book: page.books[model.bookIndex]
-            detail: page.detail(book)
             onClicked: page.library.openEntry(book)
         }
 
@@ -66,13 +44,7 @@ Page {
     }
 
     Component.onCompleted: {
-        var focusIndex = -1
-        for (var i = 0; i < books.length; ++i) {
+        for (var i = 0; i < books.length; ++i)
             rows.append({ bookIndex: i, series: books[i].series })
-            if (books[i].path === focusPath)
-                focusIndex = i
-        }
-        if (focusIndex >= 0)
-            listView.positionViewAtIndex(focusIndex, ListView.Center)
     }
 }
