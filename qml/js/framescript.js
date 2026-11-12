@@ -46,16 +46,20 @@ addMessageListener("bookfish:layout", function (message) {
     var margin = o.margin
     var target = o.target
     // Laid out again (new text size, controls moved): replace our style and
-    // show the page with the first character of the page shown now, so the
-    // line read last stays in sight. The sentence at the top led back to
-    // where it began, a page further back at each layout; the first
-    // sentence starting on the page would drift forward. Without text at
-    // the top (a picture) the sentence still counts.
+    // show the page with the character in the middle of the page shown now.
+    // Wherever the reader is on the page, the text moves by half a page at
+    // most, and laying out again and again does not drift: the first
+    // character, or the sentence at the top (led back to where it began),
+    // took the place a little further back each time. Without text in the
+    // middle (a picture) the first character counts, else that sentence.
     var style = current() ? state.style : null
     if (style && target.keep) {
-        var offset = firstOffsetOn(currentPage())
+        var page = currentPage()
+        var offset = middleOffset(page)
+        if (offset < 0)
+            offset = firstOffsetOn(page)
         target = offset >= 0 ? { offset: offset, fraction: target.fraction }
-                             : { id: firstSentenceOn(currentPage()), fraction: target.fraction }
+                             : { id: firstSentenceOn(page), fraction: target.fraction }
     }
     if (!style) {
         style = doc.createElement("style")
@@ -800,6 +804,23 @@ function firstTextOn(page) {
 }
 
 // The offset of the first character on the page, -1 if it holds no text.
+// The character in the middle of the page shown, as an offset in
+// body.textContent (see findRange); -1 if there is none there.
+function middleOffset(page) {
+    var pos = state.doc.caretPositionFromPoint ? state.doc.caretPositionFromPoint(content.innerWidth / 2,
+                                                                                   content.innerHeight / 2)
+                                               : null
+    if (!pos || !pos.offsetNode || pos.offsetNode.nodeType !== 3)
+        return -1
+    var texts = textNodes()
+    var i = texts ? texts.nodes.indexOf(pos.offsetNode) : -1
+    if (i < 0)
+        return -1
+    var offset = texts.starts[i] + pos.offset
+    // Beside a picture the nearest text may lie on another page.
+    return pageOfOffset(offset) === page ? offset : -1
+}
+
 function firstOffsetOn(page) {
     var text = firstTextOn(page)
     return text.onPage ? text.offset : -1
