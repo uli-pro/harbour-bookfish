@@ -58,7 +58,8 @@ addMessageListener("bookfish:layout", function (message) {
         ;(doc.head || doc.documentElement).appendChild(style)
     }
     // QML gives the text size and the bar in screen pixels, CSS counts
-    // device-independent ones.
+    // device-independent ones. The bar is 0 while the controls sit above
+    // the text.
     var dpr = content.devicePixelRatio || 1
     var fontSize = o.fontSize / dpr
     var marginBottom = o.marginBottom + o.barHeight / dpr

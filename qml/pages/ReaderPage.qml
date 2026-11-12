@@ -1018,6 +1018,9 @@ WebViewPage {
         readonly property real leftEnd: (notch ? Screen.topCutout.x : width / 2) - gap
         readonly property real rightStart: (notch ? Screen.topCutout.x + Screen.topCutout.width
                                                   : width / 2) + gap
+        // Taps a little below the row, over the first line of text; not
+        // while the pulley is open, whose top item is there then.
+        readonly property real reach: pulley.active ? 0 : Theme.paddingLarge
         // Three buttons fill the left side.
         readonly property real buttonWidth: Math.min(Theme.itemSizeExtraSmall, (leftEnd - gap) / 3)
         readonly property string mode: barShown ? "listen" : findShown ? "find"
@@ -1048,12 +1051,14 @@ WebViewPage {
                 visible: controls.mode === "read"
 
                 BarButton {
+                    reach: controls.reach
                     width: controls.buttonWidth
                     iconName: "icon-m-search"
                     iconScale: 0.7
                     onClicked: openFind()
                 }
                 BarButton {
+                    reach: controls.reach
                     width: controls.buttonWidth
                     visible: hasAudio
                     iconName: "icon-m-play"
@@ -1067,17 +1072,20 @@ WebViewPage {
                 visible: controls.mode === "listen"
 
                 BarButton {
+                    reach: controls.reach
                     width: controls.buttonWidth
                     iconName: "icon-m-previous"
                     onClicked: player.previous()
                 }
                 BarButton {
+                    reach: controls.reach
                     width: controls.buttonWidth
                     iconName: player.playing ? "icon-m-pause" : "icon-m-play"
                     iconOpacity: 0.8
                     onClicked: togglePlay()
                 }
                 BarButton {
+                    reach: controls.reach
                     width: controls.buttonWidth
                     iconName: "icon-m-next"
                     onClicked: player.next()
@@ -1089,12 +1097,14 @@ WebViewPage {
                 visible: controls.mode === "find"
 
                 BarButton {
+                    reach: controls.reach
                     width: controls.buttonWidth
                     iconName: "icon-m-left"
-                    enabled: findIndex > 0
-                    onClicked: showHit(findIndex - 1)
+                    available: findIndex > 0
+                    onClicked: if (available) showHit(findIndex - 1)
                 }
                 BarButton {
+                    reach: controls.reach
                     width: controls.buttonWidth
                     // Back to the list of hits.
                     //: Search hit shown and number of hits, e.g. "3 / 39"
@@ -1102,10 +1112,11 @@ WebViewPage {
                     onClicked: openFind()
                 }
                 BarButton {
+                    reach: controls.reach
                     width: controls.buttonWidth
                     iconName: "icon-m-right"
-                    enabled: findIndex + 1 < findHits.length
-                    onClicked: showHit(findIndex + 1)
+                    available: findIndex + 1 < findHits.length
+                    onClicked: if (available) showHit(findIndex + 1)
                 }
             }
 
@@ -1163,6 +1174,7 @@ WebViewPage {
                 layoutDirection: Qt.RightToLeft
 
                 BarButton {
+                    reach: controls.reach
                     width: controls.buttonWidth
                     iconName: sleepTimer.mode === "off" ? "icon-m-timer" : ""
                     iconScale: 0.65
@@ -1175,6 +1187,7 @@ WebViewPage {
                     onClicked: openSleepTimer()
                 }
                 BarButton {
+                    reach: controls.reach
                     width: implicitWidth
                     //: Playback speed on the button that opens the settings, e.g. "1.25×"
                     text: qsTr("%1×").arg(Number(app.playbackRate).toLocaleString(Qt.locale(), "f", 2))
@@ -1189,6 +1202,7 @@ WebViewPage {
                 visible: controls.mode === "find"
 
                 BarButton {
+                    reach: controls.reach
                     width: controls.buttonWidth
                     iconName: "icon-m-clear"
                     onClicked: {
@@ -1204,11 +1218,13 @@ WebViewPage {
                 layoutDirection: Qt.RightToLeft
 
                 BarButton {
+                    reach: controls.reach
                     width: controls.buttonWidth
                     iconName: "icon-m-clear"
                     onClicked: partnerShown = false
                 }
                 BarButton {
+                    reach: controls.reach
                     width: implicitWidth
                     textColor: palette.highlightColor
                     fontSize: Theme.fontSizeExtraSmall
@@ -1234,7 +1250,9 @@ WebViewPage {
         clip: true
 
         PullDownMenu {
-            // No highlight strip between the status line and the text; the
+            id: pulley
+
+            // No highlight strip between the controls and the text; the
             // chosen item is still shown by its text colour.
             highlightColor: "transparent"
             backgroundColor: pageColor

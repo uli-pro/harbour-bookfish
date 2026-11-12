@@ -11,6 +11,9 @@ BackgroundItem {
 
     property string iconName
     property alias text: label.text
+    // Shown dimmed and not reacting, unlike enabled: false, which would
+    // let a tap fall through to the page below the reach.
+    property bool available: true
     // Below the row, taken from the text: the row alone is low.
     property real reach: Theme.paddingLarge
     // Grey on the white page, so the controls do not draw the eye.
@@ -34,7 +37,8 @@ BackgroundItem {
     // Only used where the button is as wide as its content.
     implicitWidth: (iconName !== "" ? iconSize : label.implicitWidth) + 2 * Theme.paddingMedium
     height: parent.height + reach
-    opacity: enabled ? 1 : Theme.opacityLow
+    opacity: available ? 1 : Theme.opacityLow
+    highlighted: down && available
     // Pressed, the icon or text takes the highlight colour instead; a
     // highlighted area would reach over the text.
     highlightedColor: "transparent"
@@ -89,7 +93,8 @@ BackgroundItem {
                 a = max(a, max(alphaAt(d), alphaAt(-d)));
                 a = max(a, max(alphaAt(vec2(d.x, -d.y)), alphaAt(vec2(-d.x, d.y))));
                 a = smoothstep(0.2, 0.6, a);
-                gl_FragColor = vec4(color.rgb * color.a, color.a) * a * qt_Opacity;
+                // Qt hands colours over premultiplied.
+                gl_FragColor = color * a * qt_Opacity;
             }"
     }
 
@@ -97,6 +102,10 @@ BackgroundItem {
         id: label
 
         anchors.centerIn: face
+        // A long translation fades out rather than run onto its neighbours.
+        width: Math.min(implicitWidth, button.width - 2 * Theme.paddingSmall)
+        truncationMode: TruncationMode.Fade
+        horizontalAlignment: Text.AlignHCenter
         visible: text !== ""
         color: button.highlighted ? palette.highlightColor : button.textColor
         font.pixelSize: button.fontSize
