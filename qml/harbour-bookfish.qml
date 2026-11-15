@@ -14,6 +14,7 @@ ApplicationWindow {
     readonly property string cacheFolder: StandardPaths.cache + "/books"
     readonly property string positionsFile: StandardPaths.data + "/positions.json"
     readonly property string historyFile: StandardPaths.data + "/history.json"
+    readonly property string bookmarksFile: StandardPaths.data + "/bookmarks.json"
     readonly property string libraryCache: StandardPaths.cache + "/library.json"
     readonly property string coversFolder: StandardPaths.cache + "/covers"
     readonly property string audiobooksFolder: StandardPaths.cache + "/audiobooks"
