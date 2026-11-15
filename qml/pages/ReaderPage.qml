@@ -74,6 +74,15 @@ WebViewPage {
     property int pendingHit: -1
     // An entry of the history chosen, likewise; see FindPage.
     property var pendingPlace: null
+    // Text selected by a long press (see framescript.js selectionAnswer):
+    // where its ends are on the view, as shares of it, and its text; null
+    // if none. Its actions replace the other controls while it lasts.
+    property var selection: null
+    readonly property bool selecting: selection !== null
+    // Dragging a handle: the latest point not yet sent, and whether an
+    // answer is awaited; one move at a time, the latest wins.
+    property var pendingMove: null
+    property bool moveAsked: false
     // The audiobook of this EPUB, see bridge.partner; null if none.
     property var partner: null
     // Offering to go where the audiobook was listened to last.
@@ -149,6 +158,8 @@ WebViewPage {
 
     // target: { id, fraction } or { end: true }, see framescript.js
     function loadChapter(index, target) {
+        // The frame script drops it with the jump or the new chapter.
+        selection = null
         if (index === chapter && ready) {
             flickable.webView.sendAsyncMessage("bookfish:goto", { target: target })
             return
@@ -243,6 +254,8 @@ WebViewPage {
     function relayout() {
         if (!ready || closed)
             return
+        // The frame script drops it with the layout.
+        selection = null
         serial++
         ready = false
         covered = true
@@ -440,6 +453,22 @@ WebViewPage {
             if (data.serial === serial)
                 jumpId = data.id
             break
+        case "bookfish:selected":
+            moveAsked = false
+            if (data.error)
+                console.warn("Cannot move the selection", data.error)
+            if (data.serial !== serial || !selection)
+                return
+            // Dragged past the other end: the finger now moves that one.
+            var dragged = handleA.dragging ? handleA : handleB.dragging ? handleB : null
+            if (dragged && dragged.role !== data.moving) {
+                var other = dragged === handleA ? handleB : handleA
+                dragged.role = data.moving
+                other.role = data.moving === "start" ? "end" : "start"
+            }
+            selection = data
+            sendMove()
+            break
         case "bookfish:hit":
             if (data.serial !== serial)
                 return
@@ -453,9 +482,15 @@ WebViewPage {
                 playFromPage()
             break
         case "bookfish:pressed":
-            if (data.serial !== serial || status !== PageStatus.Active)
+            if (data.serial !== serial || status !== PageStatus.Active) {
+                // The frame script has selected the word already.
+                if (data.selection)
+                    flickable.webView.sendAsyncMessage("bookfish:selectClear", {})
                 return
-            if (data.picture)
+            }
+            if (data.selection)
+                startSelection(data.selection)
+            else if (data.picture)
                 showPicture(data.picture)
             else if (data.href)
                 followLink(data.href, data.ordinal)
@@ -544,6 +579,7 @@ WebViewPage {
     function unmark() {
         jumpId = ""
         findShown = false
+        selection = null
         flickable.webView.sendAsyncMessage("bookfish:unmark", {})
     }
 
@@ -564,6 +600,7 @@ WebViewPage {
             turnedSinceJump = false
         }
         partnerShown = false
+        selection = null
         moved = true
         resumeId = ""
         jumpId = ""
@@ -627,6 +664,56 @@ WebViewPage {
     // A long press: a picture opens, a link is followed (see notes.py).
     function pressAt(x, y) {
         flickable.webView.sendAsyncMessage("bookfish:pressAt", { x: x, y: y })
+    }
+
+    function startSelection(data) {
+        handleA.role = "start"
+        handleB.role = "end"
+        pendingMove = null
+        moveAsked = false
+        selection = data
+    }
+
+    // By the reader (a tap, ✕, Copy, leaving the page); turning pages,
+    // jumps and layouts drop it in the frame script themselves. Sent also
+    // without one here: an answer dropped on the way may have left one there.
+    function endSelection() {
+        var had = selection !== null
+        selection = null
+        pendingMove = null
+        flickable.webView.sendAsyncMessage("bookfish:selectClear", {})
+        // The page stood still while the narration went on, also if it was
+        // paused meanwhile (as in layout()).
+        if (had && listening && barShown && highlightId)
+            flickable.webView.sendAsyncMessage("bookfish:highlight", { id: highlightId })
+    }
+
+    function copySelection() {
+        if (!selection)
+            return
+        Clipboard.text = selection.text
+        endSelection()
+        copiedNotice.show()
+    }
+
+    // x, y in the view; the frame script takes shares of it, inside it.
+    function moveEdge(handle, x, y) {
+        var view = flickable.webView
+        pendingMove = { handle: handle,
+                        x: Math.max(0, Math.min(view.width - 1, x)) / view.width,
+                        y: Math.max(0, Math.min(view.height - 1, y)) / view.height }
+        if (!moveAsked)
+            sendMove()
+    }
+
+    function sendMove() {
+        if (!pendingMove || !selection)
+            return
+        moveAsked = true
+        flickable.webView.sendAsyncMessage("bookfish:moveEdge", {
+            edge: pendingMove.handle.role, x: pendingMove.x, y: pendingMove.y
+        })
+        pendingMove = null
     }
 
     function followLink(href, ordinal) {
@@ -835,6 +922,8 @@ WebViewPage {
     function turn(delta) {
         if (!ready)
             return
+        // The frame script drops it on turning.
+        selection = null
         // Paused and turning pages: reading, not listening; also after an
         // alarm or a call, so it does not play on by itself.
         if (player.active && !player.playing) {
@@ -918,6 +1007,8 @@ WebViewPage {
 
     // Back from the search page: see showPending().
     onStatusChanged: {
+        if (status === PageStatus.Deactivating)
+            endSelection()
         if (status !== PageStatus.Active)
             return
         if (pendingHit >= 0 || pendingPlace || pendingPartner) {
@@ -1074,7 +1165,9 @@ WebViewPage {
         // on a screen of pixel ratio 1.5): a sentence there can still be
         // tapped on its other lines or the next page. At the top not while
         // the pulley is open, whose top item is there then.
-        readonly property real reach: atBottom || !pulley.active ? Math.round(53 * Theme.pixelRatio) : 0
+        // Not while text is selected: the handles in those lines come first.
+        readonly property real reach: !selecting && (atBottom || !pulley.active)
+                                      ? Math.round(53 * Theme.pixelRatio) : 0
         // Three buttons fill the left side; below the text it is wider.
         readonly property real buttonWidth: atBottom ? (leftEnd - gap) / 3
                                                      : Math.min(Theme.itemSizeExtraSmall, (leftEnd - gap) / 3)
@@ -1085,8 +1178,8 @@ WebViewPage {
         readonly property real timerWidth: Math.max(buttonWidth, Math.min(
             timerTexts.implicitWidth + 2 * Theme.paddingMedium,
             width - gap - rightStart - speedButton.width))
-        readonly property string mode: barShown ? "listen" : findShown ? "find"
-                                                : partnerShown ? "partner" : "read"
+        readonly property string mode: selecting ? "select" : barShown ? "listen"
+                                                : findShown ? "find" : partnerShown ? "partner" : "read"
         // The same size in both places; the symbol fills only the middle of
         // the icon (its disc is not drawn), so the icon is a little larger
         // than a small one.
@@ -1210,6 +1303,19 @@ WebViewPage {
                 }
             }
 
+            Row {
+                height: parent.height
+                visible: controls.mode === "select"
+
+                BarButton {
+                    strip: controls
+                    width: controls.buttonWidth
+                    iconName: "icon-m-clipboard"
+                    iconScale: 0.8
+                    onActivated: copySelection()
+                }
+            }
+
             Label {
                 y: controls.faceTop
                 width: parent.width
@@ -1240,11 +1346,13 @@ WebViewPage {
                 // than pushes them over the notch or the middle.
                 readonly property real room: controls.width - controls.gap - controls.rightStart
                                              - (findButtons.visible ? findButtons.width : 0)
+                                             - (selectButtons.visible ? selectButtons.width : 0)
                 y: controls.faceTop
                 width: Math.min(implicitWidth, Math.max(0, room))
                 height: controls.faceHeight
                 // Not beside the player's buttons: there it distracts.
                 visible: bookPages > 0 && controls.mode !== "partner" && controls.mode !== "listen"
+                         && controls.mode !== "select"
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignRight
                 fontSizeMode: Text.HorizontalFit
@@ -1301,6 +1409,20 @@ WebViewPage {
                         findShown = false
                         unmark()
                     }
+                }
+            }
+
+            Row {
+                id: selectButtons
+
+                height: parent.height
+                visible: controls.mode === "select"
+
+                BarButton {
+                    strip: controls
+                    width: controls.buttonWidth
+                    iconName: "icon-m-clear"
+                    onActivated: endSelection()
                 }
             }
 
@@ -1406,6 +1528,7 @@ WebViewPage {
             webView.addMessageListener("bookfish:pressed")
             webView.addMessageListener("bookfish:start")
             webView.addMessageListener("bookfish:found")
+            webView.addMessageListener("bookfish:selected")
             page.start()
         }
 
@@ -1457,7 +1580,10 @@ WebViewPage {
                     turn(dx < 0 ? 1 : -1)
                 } else if (Math.abs(dx) < Theme.startDragDistance
                            && Math.abs(dy) < Theme.startDragDistance) {
-                    if (mouse.x < width / 4)
+                    // With text selected a tap only ends the selection.
+                    if (selecting)
+                        endSelection()
+                    else if (mouse.x < width / 4)
                         turn(-1)
                     else if (mouse.x > width * 3 / 4)
                         turn(1)
@@ -1466,6 +1592,46 @@ WebViewPage {
                 }
             }
         }
+    }
+
+    // The handles of a selection, over the view and above the controls: a
+    // handle hanging below the last line reaches into the controls when they
+    // sit below the text. Moves with the view (the pulley).
+    Item {
+        x: flickable.x + flickable.contentItem.x + flickable.webView.x
+        y: flickable.y + flickable.contentItem.y + flickable.webView.y
+        z: 2
+        width: flickable.webView.width
+        height: flickable.webView.height
+        visible: selecting && !pulley.active
+
+        SelectionHandle {
+            id: handleA
+
+            color: palette.highlightColor
+            edgeX: !selecting ? 0 : (role === "start" ? selection.startX : selection.endX) * width
+            lineTop: !selecting ? 0 : (role === "start" ? selection.startTop : selection.endTop) * height
+            lineBottom: !selecting ? 0 : (role === "start" ? selection.startBottom : selection.endBottom) * height
+            onMoved: page.moveEdge(handleA, x, y)
+        }
+        SelectionHandle {
+            id: handleB
+
+            role: "end"
+            color: palette.highlightColor
+            edgeX: !selecting ? 0 : (role === "start" ? selection.startX : selection.endX) * width
+            lineTop: !selecting ? 0 : (role === "start" ? selection.startTop : selection.endTop) * height
+            lineBottom: !selecting ? 0 : (role === "start" ? selection.startBottom : selection.endBottom) * height
+            onMoved: page.moveEdge(handleB, x, y)
+        }
+    }
+
+    Notice {
+        id: copiedNotice
+
+        duration: 2000
+        //: Shown briefly after the selected text was copied
+        text: qsTr("Copied")
     }
 
     // Until a chapter is laid out and painted the WebView shows the book's
