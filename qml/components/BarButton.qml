@@ -2,9 +2,10 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 
 // A button of the reader's controls (ReaderPage, controls): an icon or a
-// short text, without a background. It takes taps from the screen's edge
-// to a little beyond its row, over the first or last line of text; its
-// contents sit in the row. IconButton has a fixed size taller than the row.
+// short text, without a background. It stands in one of the row's places
+// (slot) and takes taps over span places, from the screen's edge to a
+// little beyond the row, over the first or last line of text; its contents
+// sit in its first place. IconButton has a fixed size taller than the row.
 BackgroundItem {
     id: button
 
@@ -14,12 +15,17 @@ BackgroundItem {
 
     property string iconName
     property alias text: label.text
+    // Shown in the preview while pressed.
+    property string name
     // Shown dimmed and not reacting, unlike enabled: false, which would
     // let a tap fall through to the page below the reach.
     property bool available: true
-    // The row it sits in, with reach, atBottom, iconSize, faceTop and
-    // faceHeight (where icon and text are centred).
+    // The row it sits in, with its places (placeX, placeWidth), reach,
+    // atBottom, iconSize, fontScale, faceTop, faceHeight (where icon and
+    // text are centred) and the preview.
     property Item strip
+    property int slot
+    property int span: 1
     // Beyond the row, taken from the text: the row alone is low.
     readonly property real reach: strip ? strip.reach : 0
     readonly property bool reachUp: strip ? strip.atBottom : false
@@ -35,101 +41,113 @@ BackgroundItem {
     // smaller, their symbol is as large as those standing on a disc.
     property real iconScale: 1
     // Small, like the page number: the texts must not draw the eye either.
-    // ReaderPage measures the sleep timer's texts with the same size.
-    property real fontSize: Math.round(0.85 * Theme.fontSizeTiny)
+    property real baseFontSize: Math.round(0.85 * Theme.fontSizeTiny)
+    readonly property real fontSize: Math.round(baseFontSize * (strip ? strip.fontScale : 1))
 
-    // Only used where the button is as wide as its content.
-    implicitWidth: (iconName !== "" ? iconSize : label.implicitWidth) + 2 * Theme.paddingMedium
+    x: strip ? strip.placeX(slot) : 0
+    width: strip ? strip.placeX(slot + span - 1) + strip.placeWidth(slot + span - 1) - x
+                 : implicitWidth
     y: reachUp ? -reach : 0
     height: parent.height + reach
     opacity: available ? 1 : Theme.opacityLow
-    highlighted: down && available
+    highlighted: down && available && !dragged
 
     property real pressX
     property real pressY
+    // Moved off the button or swiped: no action, no preview. Only where the
+    // finger ends counts, not how far it moved: lifting it, the point
+    // reported jumps.
+    property bool dragged
+
+    function inside(mouse) {
+        return mouse.x >= 0 && mouse.x <= width && mouse.y >= 0 && mouse.y <= height
+    }
+
+    // Over the text only the first place takes taps: the empty places
+    // beside it belong to the button in the row alone, or they would take
+    // taps meant for the last line (a sentence, turning the page).
+    function overText(mouse) {
+        return reachUp ? mouse.y < reach : mouse.y > height - reach
+    }
 
     onPressed: {
+        if (mouse.x > face.width && overText(mouse)) {
+            mouse.accepted = false
+            return
+        }
         pressX = mouse.x
         pressY = mouse.y
+        dragged = false
+        if (strip) {
+            if (available)
+                strip.showPreview(button)
+            else
+                strip.clearPreview()
+        }
+    }
+    onPositionChanged: {
+        if (!dragged && strip && (!inside(mouse) || strip.isSwipe(mouse.x - pressX, mouse.y - pressY))) {
+            dragged = true
+            strip.endPreview(button, true)
+        }
     }
     // Over the text a swipe turns the page as it would there; the strip
     // decides (ReaderPage, controls.swiped).
     onReleased: {
         var dx = mouse.x - pressX
         var dy = mouse.y - pressY
-        if (Math.abs(dx) < Theme.startDragDistance && Math.abs(dy) < Theme.startDragDistance) {
-            if (available)
-                activated()
-        } else if (strip) {
+        if (!strip)
+            return
+        if (strip.isSwipe(dx, dy)) {
+            strip.endPreview(button, true)
             strip.swiped(dx, dy)
+        } else if (!dragged && inside(mouse) && available) {
+            strip.endPreview(button, false)
+            activated()
+        } else {
+            strip.endPreview(button, true)
         }
+    }
+    onCanceled: {
+        if (strip)
+            strip.endPreview(button, true)
+    }
+    onVisibleChanged: {
+        if (!visible && pressed && strip)
+            strip.endPreview(button, true)
     }
     // Pressed, the icon or text takes the highlight colour instead; a
     // highlighted area would reach over the text.
     highlightedColor: "transparent"
 
-    // The part of the row where icon and text are centred.
+    // The part of the first place where icon and text are centred.
     Item {
         id: face
 
         y: (button.reachUp ? button.reach : 0) + (button.strip ? button.strip.faceTop : 0)
-        width: parent.width
+        width: button.strip ? button.strip.placeWidth(button.slot) : button.width
         height: button.strip ? button.strip.faceHeight : button.height - button.reach
     }
 
-    Image {
-        id: icon
-
+    BarIcon {
         anchors.centerIn: face
-        width: Math.min(Math.round(button.iconScale * button.iconSize), button.width)
+        width: Math.min(Math.round(button.iconScale * button.iconSize), face.width)
         height: width
-        // Twice the size shown, so the strokes can be widened finely.
-        sourceSize: Qt.size(2 * width, 2 * height)
-        visible: false
-        source: button.iconName !== "" ? "image://theme/" + button.iconName : ""
-    }
-
-    // Sailfish's media icons stand on a faint disc (alpha 0.2); only the
-    // symbol is drawn, in one colour. Its strokes, thin once the icon is
-    // small, are widened by some 0.6 px: the brightest pixel nearby counts.
-    ShaderEffect {
-        anchors.fill: icon
         visible: button.iconName !== ""
         opacity: button.highlighted ? 1 : button.iconOpacity
-
-        property variant source: icon
-        property color color: button.highlighted ? palette.highlightColor : button.restColor
-        property point spread: Qt.point(0.6 / Math.max(1, width), 0.6 / Math.max(1, height))
-
-        fragmentShader: "
-            varying highp vec2 qt_TexCoord0;
-            uniform sampler2D source;
-            uniform lowp vec4 color;
-            uniform highp vec2 spread;
-            uniform lowp float qt_Opacity;
-            lowp float alphaAt(highp vec2 offset) {
-                return texture2D(source, qt_TexCoord0 + offset).a;
-            }
-            void main() {
-                highp vec2 d = spread * 0.7071;
-                lowp float a = alphaAt(vec2(0.0));
-                a = max(a, max(alphaAt(vec2(spread.x, 0.0)), alphaAt(vec2(-spread.x, 0.0))));
-                a = max(a, max(alphaAt(vec2(0.0, spread.y)), alphaAt(vec2(0.0, -spread.y))));
-                a = max(a, max(alphaAt(d), alphaAt(-d)));
-                a = max(a, max(alphaAt(vec2(d.x, -d.y)), alphaAt(vec2(-d.x, d.y))));
-                a = smoothstep(0.2, 0.6, a);
-                // Qt hands colours over premultiplied.
-                gl_FragColor = color * a * qt_Opacity;
-            }"
+        name: button.iconName
+        color: button.highlighted ? palette.highlightColor : button.restColor
     }
 
     Label {
         id: label
 
         anchors.centerIn: face
-        // A long translation fades out rather than run onto its neighbours.
-        width: Math.min(implicitWidth, button.width - 2 * Theme.paddingSmall)
-        truncationMode: TruncationMode.Fade
+        // A long text, or a long translation, shrinks rather than run onto
+        // its neighbours.
+        width: Math.min(implicitWidth, face.width - 2 * Theme.paddingSmall)
+        fontSizeMode: Text.HorizontalFit
+        minimumPixelSize: Theme.fontSizeTiny / 2
         horizontalAlignment: Text.AlignHCenter
         visible: text !== ""
         color: button.highlighted ? palette.highlightColor : button.textColor

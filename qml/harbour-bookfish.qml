@@ -68,6 +68,12 @@ ApplicationWindow {
     // then beside a notch, below the text on a screen without one.
     readonly property bool controlsAtBottom: controlsSetting.value === "bottom"
                                              || (controlsSetting.value !== "top" && !middleNotch)
+    // Size of the reading page's controls: their row, icons and texts;
+    // 1 is the smallest, beside a notch as high as the notch.
+    readonly property real minControlsScale: 1.0
+    readonly property real maxControlsScale: 2.0
+    readonly property real controlsScale: settingValue(controlsScaleSetting.value, 1,
+                                                       minControlsScale, maxControlsScale)
     // A cover taken out of a book by Python's cover thread; file is "" if
     // the book has none that can be shown.
     signal coverReady(string key, string file)
@@ -99,6 +105,11 @@ ApplicationWindow {
 
     function setControls(where) {
         controlsSetting.value = where
+    }
+
+    function setControlsScale(scale) {
+        // Slider steps of 0.1 are not exact in binary.
+        controlsScaleSetting.value = Math.round(scale * 10) / 10
     }
 
     function setFontSize(size) {
@@ -270,6 +281,12 @@ ApplicationWindow {
         id: controlsSetting
         key: "/apps/harbour-bookfish/controls"
         defaultValue: ""
+    }
+
+    ConfigurationValue {
+        id: controlsScaleSetting
+        key: "/apps/harbour-bookfish/controlsScale"
+        defaultValue: 1
     }
 
     ConfigurationValue {
