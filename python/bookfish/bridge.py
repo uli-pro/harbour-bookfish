@@ -16,7 +16,7 @@ import time
 import traceback
 import unicodedata
 
-from . import audiobook, cache, history as history_store, library, notes, positions
+from . import audiobook, bookmarks, cache, history as history_store, library, notes, positions
 from .errors import EpubError
 from .overlay import read_overlay
 from .package import read_package, text_length
@@ -418,6 +418,45 @@ def save_position(path, key, position, moved=False):
     """moved: the reader moved the place, see positions.save."""
     try:
         positions.save(path, key, position, time.time() if moved else None)
+    except OSError as e:
+        return _error("io", str(e))
+    return True
+
+
+def load_bookmarks(path, key):
+    """The bookmarks of the book key in the order of the book, see
+    bookmarks.load."""
+    try:
+        return bookmarks.load(path, key)
+    except OSError as e:
+        return _error("io", str(e))
+
+
+def add_bookmark(path, key, mark):
+    """Store mark ({spine, offset, length, raw, quote, note}) and return it
+    with its id."""
+    try:
+        return bookmarks.add(path, key, mark, int(time.time()))
+    except ValueError as e:
+        return _error("invalid", str(e))
+    except OSError as e:
+        return _error("io", str(e))
+
+
+def set_bookmark_note(path, key, ident, note):
+    """The bookmark with its new note; {error: "missing"} if it is gone."""
+    try:
+        mark = bookmarks.set_note(path, key, int(ident), note, int(time.time()))
+    except ValueError as e:
+        return _error("invalid", str(e))
+    except OSError as e:
+        return _error("io", str(e))
+    return mark if mark is not None else _error("missing", str(ident))
+
+
+def delete_bookmark(path, key, ident):
+    try:
+        bookmarks.delete(path, key, int(ident))
     except OSError as e:
         return _error("io", str(e))
     return True

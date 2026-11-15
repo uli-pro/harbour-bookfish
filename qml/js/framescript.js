@@ -119,7 +119,10 @@ addMessageListener("bookfish:layout", function (message) {
         // Our own mark for the sentence spoken, and for the one heard last
         // where listening goes on: the book's style for its active class is
         // made for white pages.
-        "body .bookfish-active, body .bookfish-resume { background-color: " + o.markColor + "; }")
+        "body .bookfish-active, body .bookfish-resume { background-color: " + o.markColor + "; }" +
+        // Bookmarks and notes: a dotted line, which changes no line's height.
+        "body .bookfish-mark { text-decoration: underline dotted " + o.underlineColor + ";" +
+        "  text-decoration-thickness: 0.1em; text-underline-offset: 0.2em; }")
     normalize(doc, o)
 
     var sentences = []
@@ -162,13 +165,18 @@ addMessageListener("bookfish:layout", function (message) {
         isSentence: isSentence,
         active: active,
         resume: resume,
-        // The text found, kept to select it again (see remark).
+        // The text found, kept to select it again (see remark): offsets in
+        // body.textContent, which stay when bookmarks' spans move text nodes
+        // around (a Range would not).
         found: found,
         // See select().
         selection: null,
+        // See applyMarks().
+        marks: [],
         // See textNodes().
         texts: null
     }
+    applyMarks(o.marks || [])
     go(target)
     remark()
     if (o.highlight) {
@@ -498,6 +506,7 @@ function selectionAnswer(moving) {
         moving: moving,
         start: sel.start,
         end: sel.end,
+        mark: markAt(sel),
         text: selectionText(texts, sel),
         startX: a.left / w, startTop: a.top / h, startBottom: a.bottom / h,
         endX: b.right / w, endTop: b.top / h, endBottom: b.bottom / h
@@ -590,12 +599,246 @@ addMessageListener("bookfish:moveEdge", function (message) {
     }
     var d = message.data
     try {
+        var before = state.selection
+        var start = before.start
+        var end = before.end
         var moving = moveEdge(d.edge, d.x * content.innerWidth, d.y * content.innerHeight)
+        // Moved by the reader: a bookmark takes the selection, not the
+        // sentence around the word pressed (see takeSelection).
+        state.selection.moved = !!before.moved || state.selection.start !== start
+                                || state.selection.end !== end
         remark()
         sendAsyncMessage("bookfish:selected", selectionAnswer(moving))
     } catch (e) {
         sendAsyncMessage("bookfish:selected", { serial: -1, error: String(e) })
     }
+})
+
+// A sentence ends after one of these, closing quotes or brackets after it,
+// before a space, unless a lower-case letter follows ("“Oh!” he said").
+var sentenceEnd = /[.!?…]/
+var closer = /["'”’“‘»«)\]]/
+var lowerCase = /\p{Ll}/u
+// Words before a point that does not end the sentence; single letters
+// (initials, "z. B.", "e.g.") and numbers of one or two digits ("am 3. Mai")
+// count too.
+var abbreviations = {
+    mr: true, mrs: true, ms: true, dr: true, prof: true, st: true, sr: true, jr: true, vs: true,
+    fig: true, cf: true, gen: true, col: true, capt: true, lt: true, rev: true,
+    bzw: true, ca: true, vgl: true, usw: true, evtl: true, ggf: true, nr: true, hr: true, fr: true,
+    sog: true, bspw: true, inkl: true, zzgl: true, geb: true, gest: true, jh: true, dt: true, ev: true
+}
+
+// Where a sentence ending at the character p ends (after closing quotes
+// and a note's number), or -1 if it does not end there; limit is the end of
+// the paragraph.
+function endAfter(texts, p, limit) {
+    var all = texts.all
+    if (!sentenceEnd.test(all[p]))
+        return -1
+    var q = p + 1
+    while (q < limit && (sentenceEnd.test(all[q]) || closer.test(all[q])))
+        ++q
+    // "the end.<a>12</a> Next": the number belongs to this sentence.
+    while (q < limit && !/\s/.test(all[q])) {
+        var i = nodeIndex(texts, q)
+        if (!isNoteMark(texts.nodes[i]) || texts.starts[i] !== q)
+            break
+        q = texts.starts[i] + texts.nodes[i].length
+    }
+    if (q < limit && !/\s/.test(all[q]))
+        return -1
+    var r = q
+    while (r < limit && /\s/.test(all[r]))
+        ++r
+    if (r < limit && lowerCase.test(all[r]))
+        return -1
+    if (all[p] === ".") {
+        var w = p
+        while (w > 0 && wordLetter.test(all[w - 1]))
+            --w
+        var word = all.substring(w, p)
+        if (word.length === 1 || abbreviations[word.toLowerCase()] || /^\p{N}{1,2}$/u.test(word)
+                || (word.toLowerCase() === "no" && r < limit && digit.test(all[r])))
+            return -1
+    }
+    return q
+}
+
+// The sentence around a word: in a readaloud the sentence its narration
+// marks; else from the end of the sentence before to the end of this one,
+// in its paragraph, some thousand characters each way at most.
+function sentenceRange(texts, sel) {
+    var i = nodeIndex(texts, sel.start)
+    var nodes = texts.nodes
+    var first = i
+    var last = i
+    var reach = 3000
+    var el
+    for (el = nodes[i].parentElement; el; el = el.parentElement) {
+        if (el.id && state.isSentence[el.id])
+            break
+    }
+    var inside = el ? function (node) { return el.contains(node) }
+                    : function (node) { return blockOf(node) === blockOf(nodes[i]) }
+    while (first > 0 && sel.start - texts.starts[first - 1] < reach && inside(nodes[first - 1]))
+        --first
+    while (last + 1 < nodes.length && texts.starts[last + 1] - sel.end < reach && inside(nodes[last + 1]))
+        ++last
+    var all = texts.all
+    var start = texts.starts[first]
+    var end = texts.starts[last] + nodes[last].length
+    if (!el) {
+        var limit = end
+        for (var p = sel.start - 1; p >= start; --p) {
+            var q = endAfter(texts, p, limit)
+            if (q >= 0 && q <= sel.start) {
+                start = q
+                break
+            }
+        }
+        for (p = sel.end; p < limit; ++p) {
+            q = endAfter(texts, p, limit)
+            if (q >= 0) {
+                end = q
+                break
+            }
+        }
+    }
+    while (start < end && /\s/.test(all[start]))
+        ++start
+    while (end > start && /\s/.test(all[end - 1]))
+        --end
+    if (end - start > maxMarkLength || start > sel.start || end < sel.end)
+        return sel
+    return { start: start, end: end }
+}
+
+// As bookmarks.MAX_TEXT.
+var maxMarkLength = 10000
+
+// For a bookmark: the place selected, or the sentence around the word if
+// the reader did not move the ends. raw is the text exactly as it stands,
+// to find the place again; quote as it reads (see selectionText).
+addMessageListener("bookfish:takeSelection", function (message) {
+    if (!current() || !state.selection) {
+        sendAsyncMessage("bookfish:selectionTaken", { serial: -1 })
+        return
+    }
+    var texts = textNodes()
+    var sel = state.selection.moved ? state.selection : sentenceRange(texts, state.selection)
+    var end = Math.min(sel.end, sel.start + maxMarkLength)
+    sendAsyncMessage("bookfish:selectionTaken", {
+        serial: state.serial,
+        action: message.data.action,
+        offset: sel.start,
+        length: end - sel.start,
+        raw: texts.all.substring(sel.start, end),
+        quote: selectionText(texts, { start: sel.start, end: end })
+    })
+})
+
+// Bookmarks of the chapter, underlined: <span>s around their text, which
+// leave body.textContent and so every offset as it was. Each comes as
+// { id, offset, length, raw } and is found like a search hit; state.marks
+// keeps those found as { id, start, end }.
+function applyMarks(marks) {
+    unwrapMarks()
+    var found = []
+    for (var i = 0; i < marks.length; ++i) {
+        var at = findOffsets({ offset: marks[i].offset, length: marks[i].length, text: marks[i].raw })
+        if (at)
+            found.push({ id: marks[i].id, start: at.start, end: at.end })
+    }
+    wrapMarks(found)
+    state.marks = found
+    remark()
+}
+
+function unwrapMarks() {
+    var spans = state.doc.querySelectorAll("span.bookfish-mark")
+    for (var i = 0; i < spans.length; ++i) {
+        var span = spans[i]
+        var parent = span.parentNode
+        while (span.firstChild)
+            parent.insertBefore(span.firstChild, span)
+        parent.removeChild(span)
+        parent.normalize()
+    }
+    state.texts = null
+}
+
+// Text that is no running text: a span there would change the book.
+var unmarkable = { style: true, script: true, textarea: true, title: true, option: true }
+
+// All marks in one pass over the text nodes, each cut once at every mark's
+// edge: a long chapter with many bookmarks is not walked once per mark.
+// Overlapping marks nest. Only around text with something to see, and in
+// XHTML: a span between paragraphs or inside a formula has no business
+// there.
+function wrapMarks(marks) {
+    var texts = textNodes()
+    var cuts = new Map()
+    marks.forEach(function (mark) {
+        for (var i = nodeIndex(texts, mark.start); i < texts.nodes.length && texts.starts[i] < mark.end; ++i) {
+            var node = texts.nodes[i]
+            var from = Math.max(0, mark.start - texts.starts[i])
+            var to = Math.min(node.length, mark.end - texts.starts[i])
+            var parent = node.parentNode
+            if (to <= from || !/\S/.test(node.data.substring(from, to)) || !parent
+                    || parent.namespaceURI !== xhtml || unmarkable[parent.localName])
+                continue
+            if (!cuts.has(node))
+                cuts.set(node, [])
+            cuts.get(node).push({ from: from, to: to, id: mark.id })
+        }
+    })
+    cuts.forEach(function (pieces, node) {
+        var bounds = [0, node.length]
+        pieces.forEach(function (piece) { bounds.push(piece.from, piece.to) })
+        bounds = bounds.sort(function (a, b) { return a - b }).filter(function (b, i, all) {
+            return i === 0 || b !== all[i - 1]
+        })
+        var rest = node
+        for (var k = 0; k + 1 < bounds.length; ++k) {
+            var segment = rest
+            if (k + 2 < bounds.length)
+                rest = rest.splitText(bounds[k + 1] - bounds[k])
+            var from = bounds[k]
+            var to = bounds[k + 1]
+            if (!/\S/.test(segment.data))
+                continue
+            pieces.forEach(function (piece) {
+                if (piece.from <= from && to <= piece.to) {
+                    var span = state.doc.createElementNS(xhtml, "span")
+                    span.setAttribute("class", "bookfish-mark")
+                    span.setAttribute("data-mark", String(piece.id))
+                    segment.parentNode.insertBefore(span, segment)
+                    span.appendChild(segment)
+                }
+            })
+        }
+    })
+    state.texts = null
+}
+
+// The bookmark the selection starts in, else one it overlaps; 0 if none.
+function markAt(sel) {
+    var marks = state.marks || []
+    for (var i = 0; i < marks.length; ++i) {
+        if (marks[i].start <= sel.start && sel.start < marks[i].end)
+            return marks[i].id
+    }
+    for (i = 0; i < marks.length; ++i) {
+        if (marks[i].start < sel.end && sel.start < marks[i].end)
+            return marks[i].id
+    }
+    return 0
+}
+
+addMessageListener("bookfish:marks", function (message) {
+    if (current())
+        applyMarks(message.data.marks || [])
 })
 
 // The text found, if any, is marked again.
@@ -1120,9 +1363,10 @@ addMessageListener("bookfish:unmark", function (message) {
 // one (the search) or laid out again; select the text found once more.
 // The reader's own selection comes first: Gecko shows only one.
 function remark() {
-    var range = state.selection ? rangeAt(state.selection.start, state.selection.end) : state.found
-    if (!range)
+    var at = state.selection || state.found
+    if (!at)
         return
+    var range = rangeAt(at.start, at.end)
     var selection = content.getSelection()
     selection.removeAllRanges()
     selection.addRange(range)
@@ -1138,11 +1382,15 @@ addMessageListener("bookfish:remark", function (message) {
 // text differ, the occurrence nearest to offset is taken: the HTML parser
 // may read a page slightly differently. null if it is not in the chapter.
 function findRange(find) {
+    var at = findOffsets(find)
+    return at ? rangeAt(at.start, at.end) : null
+}
+
+// The same as offsets in body.textContent: { start, end }, or null.
+function findOffsets(find) {
     var texts = textNodes()
-    if (!texts)
+    if (!texts || !find.text)
         return null
-    var nodes = texts.nodes
-    var starts = texts.starts
     var all = texts.all
     var at = find.offset
     if (all.substr(at, find.length) !== find.text) {
@@ -1152,18 +1400,7 @@ function findRange(find) {
             return null
         at = after < 0 ? before : before < 0 ? after : (after - at <= at - before ? after : before)
     }
-    var end = at + find.text.length
-    var range = state.doc.createRange()
-    for (var i = 0; i < nodes.length; ++i) {
-        var nodeEnd = starts[i] + nodes[i].length
-        if (at >= starts[i] && at < nodeEnd)
-            range.setStart(nodes[i], at - starts[i])
-        if (end > starts[i] && end <= nodeEnd) {
-            range.setEnd(nodes[i], end - starts[i])
-            break
-        }
-    }
-    return range
+    return { start: at, end: at + find.text.length }
 }
 
 // The text nodes of the body (text and CDATA), where each starts in
@@ -1339,7 +1576,8 @@ function sentenceAt(range) {
 // The found text is selected, which Gecko shows marked; the WebView gets
 // no touches, so the reader cannot change the selection.
 function goFound(find) {
-    var range = findRange(find)
+    var at = findOffsets(find)
+    var range = at ? rangeAt(at.start, at.end) : null
     var id = ""
     if (state.resume) {
         state.resume.classList.remove("bookfish-resume")
@@ -1350,7 +1588,7 @@ function goFound(find) {
             return r.width >= 1 && r.height >= 1
         })
         showPage(rects.length ? pageOfBox(rects[0]) : 0)
-        state.found = range
+        state.found = at
         remark()
         id = sentenceAt(range)
     } else {

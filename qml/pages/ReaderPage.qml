@@ -83,6 +83,11 @@ WebViewPage {
     // answer is awaited; one move at a time, the latest wins.
     property var pendingMove: null
     property bool moveAsked: false
+    // Making a bookmark from the selection, until it is stored: a second tap
+    // must not make another.
+    property bool taking: false
+    // The bookmarks and notes of the book, in its order (see bookmarks.py).
+    property var bookmarks: []
     // The audiobook of this EPUB, see bridge.partner; null if none.
     property var partner: null
     // Offering to go where the audiobook was listened to last.
@@ -129,6 +134,7 @@ WebViewPage {
 
     // A readaloud is its own audiobook.
     function start() {
+        loadBookmarks()
         if (hasAudio) {
             resume()
             return
@@ -234,6 +240,8 @@ WebViewPage {
             // Highlighter yellow: the ambience's colour may be too dark to
             // see on a black page. Dimmed there, so white text stays legible.
             markColor: light ? "rgba(255,225,0,0.55)" : "rgba(230,190,0,0.45)",
+            marks: chapterMarks(chapter),
+            underlineColor: light ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.55)",
             margin: 24,
             marginTop: 4,
             // Below the text the controls' row is margin enough; above it
@@ -453,6 +461,26 @@ WebViewPage {
             if (data.serial === serial)
                 jumpId = data.id
             break
+        case "bookfish:selectionTaken":
+            if (data.serial !== serial || !selection) {
+                taking = false
+                return
+            }
+            var mark = { spine: chapter, offset: data.offset, length: data.length, raw: data.raw,
+                         quote: data.quote, note: "" }
+            if (data.action === "note") {
+                taking = false
+                openNoteDialog(mark, null)
+            } else {
+                addBookmark(mark, function (ok) {
+                    taking = false
+                    if (ok) {
+                        endSelection()
+                        bookmarkNotice.show()
+                    }
+                })
+            }
+            break
         case "bookfish:selected":
             moveAsked = false
             if (data.error)
@@ -667,6 +695,7 @@ WebViewPage {
     }
 
     function startSelection(data) {
+        taking = false
         handleA.role = "start"
         handleB.role = "end"
         pendingMove = null
@@ -686,6 +715,138 @@ WebViewPage {
         // paused meanwhile (as in layout()).
         if (had && listening && barShown && highlightId)
             flickable.webView.sendAsyncMessage("bookfish:highlight", { id: highlightId })
+    }
+
+    function loadBookmarks() {
+        py.call("bookfish.bridge.load_bookmarks", [app.bookmarksFile, book.key], function (list) {
+            if (typeof page === "undefined" || !page)
+                return
+            if (list.error) {
+                console.warn("Cannot load bookmarks", list.error, list.detail)
+                return
+            }
+            bookmarks = list
+            // Also during a layout: the frame script takes messages in order.
+            // A chapter still loading brings them with its layout.
+            if (chapter >= 0 && loadingUrl === "")
+                flickable.webView.sendAsyncMessage("bookfish:marks", { marks: chapterMarks(chapter) })
+        })
+    }
+
+    // The bookmarks of chapter index, for the frame script to underline.
+    function chapterMarks(index) {
+        return bookmarks.filter(function (mark) { return mark.spine === index }).map(function (mark) {
+            return { id: mark.id, offset: mark.offset, length: mark.length, raw: mark.raw }
+        })
+    }
+
+    function bookmark(ident) {
+        for (var i = 0; i < bookmarks.length; ++i) {
+            if (bookmarks[i].id === ident)
+                return bookmarks[i]
+        }
+        return null
+    }
+
+    // action "bookmark" or "note"; the frame script answers with the place
+    // (selectionTaken).
+    function takeSelection(action) {
+        if (!selection || taking)
+            return
+        taking = true
+        flickable.webView.sendAsyncMessage("bookfish:takeSelection", { action: action })
+    }
+
+    // done(ok), if given, once it is stored or has failed. A note that
+    // could not be stored comes back on its page, so nothing typed is lost.
+    function addBookmark(mark, done) {
+        py.call("bookfish.bridge.add_bookmark", [app.bookmarksFile, book.key, mark], function (result) {
+            if (typeof page === "undefined" || !page)
+                return
+            var ok = !result.error
+            if (!ok) {
+                console.warn("Cannot add bookmark", result.error, result.detail)
+                app.showError(mark.note !== "" ? qsTr("The note could not be saved.")
+                                               : qsTr("The bookmark could not be saved."))
+                if (mark.note !== "")
+                    openNoteDialog(mark, null, mark.note)
+            }
+            loadBookmarks()
+            if (done)
+                done(ok)
+        })
+    }
+
+    function setNote(existing, note) {
+        py.call("bookfish.bridge.set_bookmark_note", [app.bookmarksFile, book.key, existing.id, note],
+                function (result) {
+            if (typeof page === "undefined" || !page)
+                return
+            if (result.error) {
+                console.warn("Cannot change note", result.error, result.detail)
+                app.showError(qsTr("The note could not be saved."))
+                // Gone meanwhile: kept as a new one.
+                openNoteDialog(existing, result.error === "missing" ? null : existing, note)
+            }
+            loadBookmarks()
+        })
+    }
+
+    function deleteBookmarkNow(ident) {
+        py.call("bookfish.bridge.delete_bookmark", [app.bookmarksFile, book.key, ident], function (result) {
+            if (typeof page === "undefined" || !page)
+                return
+            if (result !== true)
+                console.warn("Cannot delete bookmark", result.error, result.detail)
+            loadBookmarks()
+        })
+    }
+
+    // mark: a new place ({spine, offset, length, raw, quote}), existing null;
+    // or an existing bookmark as both. note, if given, is shown instead of
+    // the stored one (typed before, not stored).
+    function openNoteDialog(mark, existing, note) {
+        var dialog = pageStack.push(Qt.resolvedUrl("BookmarkDialog.qml"), {
+            quote: mark.quote || mark.raw, chapterTitle: tocTitle(mark.spine),
+            note: note !== undefined ? note : existing ? existing.note : "", existing: !!existing,
+            hasNote: !!existing && existing.note !== ""
+        })
+        dialog.accepted.connect(function () {
+            if (existing)
+                setNote(existing, dialog.note)
+            else
+                addBookmark({ spine: mark.spine, offset: mark.offset, length: mark.length, raw: mark.raw,
+                              quote: mark.quote, note: dialog.note })
+        })
+        dialog.deleteRequested.connect(function () {
+            if (existing)
+                deleteBookmarkNow(existing.id)
+        })
+    }
+
+    // From the list of bookmarks.
+    function editNote(mark) {
+        openNoteDialog(mark, mark)
+    }
+
+    // The bookmark the selection lies in (Delete in the controls).
+    function deleteMarked() {
+        var mark = selection ? bookmark(selection.mark) : null
+        endSelection()
+        if (mark) {
+            // A delete still waiting would be dropped by a second execute.
+            if (remorse.active)
+                remorse.trigger()
+            // A note is what the reader sees in it.
+            remorse.execute(mark.note !== "" ? qsTr("Deleting note") : qsTr("Deleting bookmark"),
+                            function () { deleteBookmarkNow(mark.id) })
+        }
+    }
+
+    function openMarked() {
+        var mark = selection ? bookmark(selection.mark) : null
+        if (mark)
+            openNoteDialog(mark, mark)
     }
 
     function copySelection() {
@@ -1314,6 +1475,19 @@ WebViewPage {
                     iconScale: 0.8
                     onActivated: copySelection()
                 }
+                // In a bookmark: delete it; else make one.
+                BarButton {
+                    strip: controls
+                    width: controls.buttonWidth
+                    iconName: selecting && selection.mark ? "icon-m-delete" : "icon-m-favorite"
+                    iconScale: 0.8
+                    onActivated: {
+                        if (selection && selection.mark)
+                            deleteMarked()
+                        else
+                            takeSelection("bookmark")
+                    }
+                }
             }
 
             Label {
@@ -1418,6 +1592,19 @@ WebViewPage {
                 height: parent.height
                 visible: controls.mode === "select"
 
+                // In a bookmark: its note; else a new note.
+                BarButton {
+                    strip: controls
+                    width: controls.buttonWidth
+                    iconName: "icon-m-note"
+                    iconScale: 0.8
+                    onActivated: {
+                        if (selection && selection.mark)
+                            openMarked()
+                        else
+                            takeSelection("note")
+                    }
+                }
                 BarButton {
                     strip: controls
                     width: controls.buttonWidth
@@ -1500,6 +1687,11 @@ WebViewPage {
                 }
             }
             MenuItem {
+                //: Opens the list of bookmarks and notes
+                text: qsTr("Bookmarks")
+                onClicked: pageStack.push(Qt.resolvedUrl("BookmarksPage.qml"), { reader: page })
+            }
+            MenuItem {
                 //: Opens the search in the book and its history of reading and listening
                 text: qsTr("Find & history")
                 onClicked: openFind()
@@ -1529,6 +1721,7 @@ WebViewPage {
             webView.addMessageListener("bookfish:start")
             webView.addMessageListener("bookfish:found")
             webView.addMessageListener("bookfish:selected")
+            webView.addMessageListener("bookfish:selectionTaken")
             page.start()
         }
 
@@ -1624,6 +1817,21 @@ WebViewPage {
             lineBottom: !selecting ? 0 : (role === "start" ? selection.startBottom : selection.endBottom) * height
             onMoved: page.moveEdge(handleB, x, y)
         }
+    }
+
+    Notice {
+        id: bookmarkNotice
+
+        duration: 2000
+        //: Shown briefly after a bookmark was made
+        text: qsTr("Bookmark added")
+    }
+
+    RemorsePopup {
+        id: remorse
+
+        // Above the controls and the handles.
+        z: 3
     }
 
     Notice {
