@@ -47,6 +47,17 @@ Readalouds can be created from an EPUB and an audiobook with
   history leads back. Bookfish tells notes from other links by their form,
   as few books mark them: a short mark ("12", "*", "a") within the text,
   leading to a place that is no chapter.
+- **Select text:** press and hold a word, drag the handles to select more.
+  The buttons copy the text, make a bookmark or a note, or look it up.
+- **Dictionary:** a selected word or phrase is looked up in a word list of
+  [dict.cc](https://www.dict.cc/) on the phone, without network. Bookfish
+  brings no word list: request the one of your languages from
+  [dict.cc](https://www1.dict.cc/translation_file_request.php) (free for
+  personal use), put the file you get into Documents and import it in the
+  settings. The file may be deleted afterwards. The book's language chooses
+  the word list, the settings the language to translate into (the phone's,
+  unless chosen). Inflected English words and phrases find their base form
+  ("went", "kicked the bucket", "gave him the cold shoulder").
 - **Find & history** (pull-down menu) searches the book for paragraphs
   holding all words typed, in any order. A line in the hits shows where you
   are.
@@ -107,4 +118,9 @@ Bookfish is made by one person working with an AI assistant (Claude by Anthropic
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+GPL-3.0-or-later, see [LICENSE](LICENSE).
+
+The dictionary uses word lists of dict.cc, whose terms require programs
+using them to be under the GPL; so Bookfish went back from MIT to the GPL.
+Bookfish contains no data of dict.cc, not even for its tests: each user
+requests the word list from dict.cc.

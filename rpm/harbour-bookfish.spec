@@ -2,7 +2,7 @@ Name:       harbour-bookfish
 Summary:    Read e-books and listen to audiobooks and readalouds
 Version:    0.0.1
 Release:    1
-License:    MIT
+License:    GPL-3.0-or-later
 BuildArch:  noarch
 URL:        https://github.com/uli-pro/harbour-bookfish
 Source0:    %{name}-%{version}.tar.bz2
@@ -12,6 +12,7 @@ Requires:   pyotherside-qml-plugin-python3-qt5 >= 1.5
 Requires:   sailfish-components-webview-qt5
 Requires:   qt5-qtdeclarative-import-multimedia
 Requires:   amber-qml-plugin-mpris
+Requires:   python3-sqlite
 BuildRequires:  pkgconfig(sailfishapp) >= 1.0.3
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5Qml)

@@ -86,6 +86,9 @@ WebViewPage {
     // Making a bookmark from the selection, until it is stored: a second tap
     // must not make another.
     property bool taking: false
+    // Looking up the selection: it stays while the dictionary is shown, so
+    // that a handle can be moved and the words looked up again.
+    property bool lookingUp: false
     // The bookmarks and notes of the book, in its order (see bookmarks.py).
     property var bookmarks: []
     // The audiobook of this EPUB, see bridge.partner; null if none.
@@ -849,6 +852,15 @@ WebViewPage {
             openNoteDialog(mark, mark)
     }
 
+    function lookUp() {
+        if (!selection)
+            return
+        lookingUp = true
+        pageStack.push(Qt.resolvedUrl("DictionaryPage.qml"), {
+            query: selection.text, language: book.language || "", lightPage: lightPage
+        })
+    }
+
     function copySelection() {
         if (!selection)
             return
@@ -1168,10 +1180,11 @@ WebViewPage {
 
     // Back from the search page: see showPending().
     onStatusChanged: {
-        if (status === PageStatus.Deactivating)
+        if (status === PageStatus.Deactivating && !lookingUp)
             endSelection()
         if (status !== PageStatus.Active)
             return
+        lookingUp = false
         if (pendingHit >= 0 || pendingPlace || pendingPartner) {
             keyboardGone.restart()
             heightSettled.restart()
@@ -1487,6 +1500,13 @@ WebViewPage {
                         else
                             takeSelection("bookmark")
                     }
+                }
+                BarButton {
+                    strip: controls
+                    width: controls.buttonWidth
+                    iconName: "icon-m-question"
+                    iconScale: 0.8
+                    onActivated: lookUp()
                 }
             }
 
