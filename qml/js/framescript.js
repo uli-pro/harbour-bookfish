@@ -132,6 +132,12 @@ addMessageListener("bookfish:layout", function (message) {
             isSentence[o.ids[i]] = true
         }
     }
+    // Not kept: the reader's selection ends with a new layout.
+    if (current() && state.selection) {
+        try {
+            content.getSelection().removeAllRanges()
+        } catch (e) { }
+    }
     var active = current() ? state.active : null
     var resume = current() ? state.resume : null
     var found = current() ? state.found : null
@@ -158,6 +164,8 @@ addMessageListener("bookfish:layout", function (message) {
         resume: resume,
         // The text found, kept to select it again (see remark).
         found: found,
+        // See select().
+        selection: null,
         // See textNodes().
         texts: null
     }
@@ -199,7 +207,8 @@ function highlight(id) {
             }
             before += rects[j].width
         }
-        if (first !== currentPage())
+        // The page stays while the reader has text selected.
+        if (first !== currentPage() && !state.selection)
             showPage(first)
     }
     sendAsyncMessage("bookfish:highlighted", { serial: state.serial, id: id, splits: splits })
@@ -211,7 +220,7 @@ addMessageListener("bookfish:highlight", function (message) {
 })
 
 addMessageListener("bookfish:show", function (message) {
-    if (current() && message.data.page !== currentPage())
+    if (current() && !state.selection && message.data.page !== currentPage())
         showPage(message.data.page)
 })
 
@@ -239,16 +248,33 @@ function isBookLink(element) {
     return element.namespaceURI === xhtml && href !== null && !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href)
 }
 
-// A long press, given like a tap: a big picture there, else the link
-// nearest to the finger. Python decides what the link does (notes.py).
+// A long press, given like a tap: a big picture there; else a link right
+// under the finger; else the word there, selected; else, between words or
+// beside the text, the link nearest to the finger: notes' numbers are
+// small, the finger often lands beside them. Python decides what a link
+// does (notes.py).
 addMessageListener("bookfish:pressAt", function (message) {
     if (!current())
         return
     var x = message.data.x * content.innerWidth
     var y = message.data.y * content.innerHeight
     var src = pictureAt(x, y)
-    var link = src ? null : linkAt(x, y)
+    var link = null
     var answer = { serial: state.serial, picture: src }
+    if (!src) {
+        link = linkUnder(x, y)
+        var c = link ? -1 : charAtPoint(x, y)
+        var texts = textNodes()
+        if (c >= 0) {
+            var under = linkOf(texts.nodes[nodeIndex(texts, c)])
+            if (under && isBookLink(under))
+                link = under
+            else if (isWordChar(texts.all, c))
+                answer.selection = select(wordStart(texts, c), wordEnd(texts, c))
+        }
+        if (!link && !answer.selection)
+            link = linkAt(x, y)
+    }
     if (link) {
         var href = link.getAttribute("href")
         var same = state.doc.getElementsByTagNameNS(xhtml, "a")
@@ -261,6 +287,326 @@ addMessageListener("bookfish:pressAt", function (message) {
         answer.ordinal = ordinal
     }
     sendAsyncMessage("bookfish:pressed", answer)
+})
+
+function linkUnder(x, y) {
+    var el = state.doc.elementFromPoint(x, y)
+    var link = el && el.closest ? el.closest("a[href]") : null
+    return link && isBookLink(link) ? link : null
+}
+
+// The link a text node is in, null if none.
+function linkOf(node) {
+    return node.parentElement ? node.parentElement.closest("a[href]") : null
+}
+
+// Text selected by a long press: offsets in body.textContent (see
+// findRange), start included, end not; null if none. The reader moves its
+// ends by whole words, on the page shown only.
+
+// Letters, digits and their marks make words; an apostrophe or a hyphen
+// between two of them belongs to the word ("don't", "Know-how"), and so
+// does a soft hyphen; a point, comma or colon between digits too ("3,6",
+// "1.000", "12:30").
+var wordLetter = /[\p{L}\p{N}\p{M}]/u
+var wordJoiner = /['\u2019\u2010\u2011\u00ad-]/
+var digit = /\p{N}/u
+var numberJoiner = /[.,:]/
+
+function isWordChar(all, i) {
+    if (i < 0 || i >= all.length)
+        return false
+    if (wordLetter.test(all[i]))
+        return true
+    if (i === 0 || i + 1 >= all.length)
+        return false
+    if (wordJoiner.test(all[i]))
+        return wordLetter.test(all[i - 1]) && wordLetter.test(all[i + 1])
+    return numberJoiner.test(all[i]) && digit.test(all[i - 1]) && digit.test(all[i + 1])
+}
+
+// The index of the text node holding offset: the last one starting at or
+// before it.
+function nodeIndex(texts, offset) {
+    var lo = 0
+    var hi = texts.starts.length
+    while (hi - lo > 1) {
+        var mid = (lo + hi) >> 1
+        if (texts.starts[mid] <= offset)
+            lo = mid
+        else
+            hi = mid
+    }
+    return lo
+}
+
+// The paragraph or other block a node is in. Floated elements count as
+// inline: drop capitals float ("<span>T</span>he").
+function blockOf(node) {
+    for (var el = node.parentElement; el; el = el.parentElement) {
+        var style = content.getComputedStyle(el)
+        if (!style)
+            continue
+        if (!/^inline|^contents$|^ruby/.test(style.display) && style.cssFloat === "none")
+            return el
+    }
+    return null
+}
+
+// Whether the characters at i and i + 1 may belong to one word, as far as
+// their nodes go: within one node, or in neighbours of the same paragraph
+// and the same link. A note's number after a word ("king<a>12</a>") is no
+// part of it, nor is the first word of a paragraph that follows a heading
+// without a space between them in the book.
+function sameWord(texts, i) {
+    var a = nodeIndex(texts, i)
+    var b = nodeIndex(texts, i + 1)
+    if (a === b)
+        return true
+    // A line break or a picture between them ("blue<br/>Sugar").
+    for (var k = a + 1; k <= b; ++k) {
+        if (texts.breaks[k])
+            return false
+    }
+    return blockOf(texts.nodes[a]) === blockOf(texts.nodes[b])
+           && linkOf(texts.nodes[a]) === linkOf(texts.nodes[b])
+}
+
+// Where the word holding the character at c begins and ends.
+function wordStart(texts, c) {
+    var s = c
+    while (s > 0 && isWordChar(texts.all, s - 1) && sameWord(texts, s - 1))
+        --s
+    return s
+}
+
+function wordEnd(texts, c) {
+    var e = c + 1
+    while (e < texts.all.length && isWordChar(texts.all, e) && sameWord(texts, e - 1))
+        ++e
+    return e
+}
+
+function inWord(texts, o) {
+    return isWordChar(texts.all, o - 1) && isWordChar(texts.all, o) && sameWord(texts, o - 1)
+}
+
+// An end dragged to the caret at o: the end of the word there, else of the
+// last word before it; -1 if there is none.
+function snapEnd(texts, o) {
+    if (inWord(texts, o))
+        return wordEnd(texts, o)
+    var i = o - 1
+    while (i >= 0 && !isWordChar(texts.all, i))
+        --i
+    return i < 0 ? -1 : i + 1
+}
+
+// A start dragged there: the start of the word there, else of the next one.
+function snapStart(texts, o) {
+    if (inWord(texts, o))
+        return wordStart(texts, o)
+    var i = Math.max(0, o)
+    while (i < texts.all.length && !isWordChar(texts.all, i))
+        ++i
+    return i < texts.all.length ? i : -1
+}
+
+function lineHeight() {
+    return parseFloat(content.getComputedStyle(state.scroller).lineHeight) || 40
+}
+
+// The character under x, y as an offset in body.textContent; -1 if the
+// point is not on text. The caret may lie on either side of it; a little
+// above and below the letters still counts, up to the line's height.
+function charAtPoint(x, y) {
+    var pos = state.doc.caretPositionFromPoint ? state.doc.caretPositionFromPoint(x, y) : null
+    if (!pos || !pos.offsetNode || (pos.offsetNode.nodeType !== 3 && pos.offsetNode.nodeType !== 4))
+        return -1
+    var texts = textNodes()
+    var i = texts ? texts.nodes.indexOf(pos.offsetNode) : -1
+    if (i < 0)
+        return -1
+    var node = texts.nodes[i]
+    var line = lineHeight()
+    var candidates = [pos.offset, pos.offset - 1]
+    for (var n = 0; n < candidates.length; ++n) {
+        var k = candidates[n]
+        if (k < 0 || k >= node.length)
+            continue
+        var rects = textBoxes(node, k, k + 1)
+        for (var j = 0; j < rects.length; ++j) {
+            var r = rects[j]
+            var pad = Math.max(0, (line - r.height) / 2)
+            if (x >= r.left - 1 && x <= r.right + 1 && y >= r.top - pad && y <= r.bottom + pad)
+                return texts.starts[i] + k
+        }
+    }
+    return -1
+}
+
+// The caret nearest to x, y as an offset in body.textContent; -1 if none.
+function caretOffset(x, y) {
+    var pos = state.doc.caretPositionFromPoint ? state.doc.caretPositionFromPoint(x, y) : null
+    if (!pos || !pos.offsetNode || (pos.offsetNode.nodeType !== 3 && pos.offsetNode.nodeType !== 4))
+        return -1
+    var texts = textNodes()
+    var i = texts ? texts.nodes.indexOf(pos.offsetNode) : -1
+    return i < 0 ? -1 : texts.starts[i] + pos.offset
+}
+
+// A range over offsets in body.textContent.
+function rangeAt(start, end) {
+    var texts = textNodes()
+    var range = state.doc.createRange()
+    var a = nodeIndex(texts, start)
+    var b = nodeIndex(texts, Math.max(start, end - 1))
+    range.setStart(texts.nodes[a], start - texts.starts[a])
+    range.setEnd(texts.nodes[b], end - texts.starts[b])
+    return range
+}
+
+function charBox(texts, offset) {
+    var i = nodeIndex(texts, offset)
+    var at = offset - texts.starts[i]
+    return textBoxes(texts.nodes[i], at, Math.min(at + 1, texts.nodes[i].length))[0] || null
+}
+
+function select(start, end) {
+    state.selection = { start: start, end: end }
+    remark()
+    return selectionAnswer("")
+}
+
+// For QML: where the ends are on the view, as shares of it, the start's
+// left edge and the end's right edge with the top and bottom of their
+// lines; the text; and which end the finger now moves (see moveEdge).
+function selectionAnswer(moving) {
+    var texts = textNodes()
+    var sel = state.selection
+    var a = charBox(texts, sel.start)
+    var b = charBox(texts, sel.end - 1)
+    if (!a || !b) {
+        var whole = rangeAt(sel.start, sel.end).getBoundingClientRect()
+        a = a || whole
+        b = b || whole
+    }
+    var w = content.innerWidth
+    var h = content.innerHeight
+    return {
+        serial: state.serial,
+        moving: moving,
+        start: sel.start,
+        end: sel.end,
+        text: selectionText(texts, sel),
+        startX: a.left / w, startTop: a.top / h, startBottom: a.bottom / h,
+        endX: b.right / w, endTop: b.top / h, endBottom: b.bottom / h
+    }
+}
+
+// Like the marks notes.py takes for notes: "12", "[3]", "*", "a", "iv".
+var noteMark = /^(?:[\[\(]?[0-9]{1,3}[a-z]?[\]\)]?|[\[\(]?[*†‡§¶]{1,3}[\]\)]?|[a-zA-Z]|[ivxlcIVXLC]{1,4}|[\[\(][ivxlcdmIVXLCDM]{1,8}[\]\)])[,;.]?$/
+
+function isNoteMark(node) {
+    var link = linkOf(node)
+    return !!link && isBookLink(link) && noteMark.test(link.textContent.trim())
+}
+
+// The text as it reads: spaces of the source folded, a line break between
+// paragraphs and at <br/>, without soft hyphens, hidden text and notes'
+// numbers; with them if the selection holds nothing else.
+function selectionText(texts, sel, keepMarks) {
+    var parts = []
+    var lastBlock
+    for (var i = nodeIndex(texts, sel.start); i < texts.nodes.length && texts.starts[i] < sel.end; ++i) {
+        var node = texts.nodes[i]
+        var from = Math.max(0, sel.start - texts.starts[i])
+        var to = Math.min(node.length, sel.end - texts.starts[i])
+        if (to <= from || (!keepMarks && isNoteMark(node)))
+            continue
+        var piece = node.data.substring(from, to)
+        // Not shown: display: none, or not rendered at all (style, script).
+        if (/\S/.test(piece) && textBoxes(node, from, to).length === 0)
+            continue
+        var block = blockOf(node)
+        if (lastBlock !== undefined) {
+            if (block !== lastBlock || texts.breaks[i] === "line")
+                parts.push("\u2029")
+            else if (texts.breaks[i] === "gap")
+                parts.push(" ")
+        }
+        lastBlock = block
+        parts.push(piece)
+    }
+    var text = parts.join("").replace(/\u00ad/g, "").split("\u2029").map(function (line) {
+        return line.replace(/\s+/g, " ").trim()
+    }).filter(function (line) { return line !== "" }).join("\n")
+    return text || keepMarks ? text : selectionText(texts, sel, true)
+}
+
+// An end of the selection dragged to x, y: it goes to the word there, on
+// the page shown only. Dragged past the other end, the ends swap: the word
+// at the end left behind stays selected, and the finger moves the other
+// end. Returns the end the finger moves now.
+function moveEdge(edge, x, y) {
+    var texts = textNodes()
+    var sel = state.selection
+    var o = caretOffset(x, y)
+    if (o < 0)
+        return edge
+    var page = currentPage()
+    var s, e
+    if (edge === "end") {
+        e = snapEnd(texts, o)
+        if (e > sel.start) {
+            if (pageOfOffset(e - 1) === page)
+                sel.end = e
+            return "end"
+        }
+        s = snapStart(texts, o)
+        if (s < 0 || pageOfOffset(s) !== page)
+            return "end"
+        state.selection = { start: s, end: wordEnd(texts, sel.start) }
+        return "start"
+    }
+    s = snapStart(texts, o)
+    if (s >= 0 && s < sel.end) {
+        if (pageOfOffset(s) === page)
+            sel.start = s
+        return "start"
+    }
+    e = snapEnd(texts, o)
+    if (e < 0 || pageOfOffset(e - 1) !== page)
+        return "start"
+    state.selection = { start: wordStart(texts, sel.end - 1), end: e }
+    return "end"
+}
+
+// Always answered: QML sends the next move only after the answer.
+addMessageListener("bookfish:moveEdge", function (message) {
+    if (!current() || !state.selection) {
+        sendAsyncMessage("bookfish:selected", { serial: -1 })
+        return
+    }
+    var d = message.data
+    try {
+        var moving = moveEdge(d.edge, d.x * content.innerWidth, d.y * content.innerHeight)
+        remark()
+        sendAsyncMessage("bookfish:selected", selectionAnswer(moving))
+    } catch (e) {
+        sendAsyncMessage("bookfish:selected", { serial: -1, error: String(e) })
+    }
+})
+
+// The text found, if any, is marked again.
+addMessageListener("bookfish:selectClear", function (message) {
+    if (!current())
+        return
+    state.selection = null
+    try {
+        content.getSelection().removeAllRanges()
+    } catch (e) { }
+    remark()
 })
 
 // The link into the book nearest to x, y on the page shown, at most a line
@@ -725,6 +1071,7 @@ function awaitPaint(serial) {
 addMessageListener("bookfish:goto", function (message) {
     if (!current())
         return
+    state.selection = null
     if (!message.data.target.find)
         unmark()
     go(message.data.target)
@@ -754,6 +1101,7 @@ function currentPage() {
 // are no longer what the reader looks at.
 function unmark() {
     state.found = null
+    state.selection = null
     try {
         content.getSelection().removeAllRanges()
     } catch (e) { }
@@ -770,12 +1118,14 @@ addMessageListener("bookfish:unmark", function (message) {
 
 // Gecko drops the selection when the page is shown again after another
 // one (the search) or laid out again; select the text found once more.
+// The reader's own selection comes first: Gecko shows only one.
 function remark() {
-    if (!state.found)
+    var range = state.selection ? rangeAt(state.selection.start, state.selection.end) : state.found
+    if (!range)
         return
     var selection = content.getSelection()
     selection.removeAllRanges()
-    selection.addRange(state.found)
+    selection.addRange(range)
 }
 
 addMessageListener("bookfish:remark", function (message) {
@@ -828,16 +1178,32 @@ function textNodes() {
     var nodes = []
     var starts = []
     var all = ""
-    // In the order textContent joins them.
-    var walker = state.doc.createTreeWalker(body, 4 | 8)
+    // What stands between a node and the one before, seen by a selection:
+    // "line" for a line break, "gap" for a picture or formula, else "".
+    var breaks = []
+    var pending = ""
+    // In the order textContent joins them; elements only for breaks.
+    var walker = state.doc.createTreeWalker(body, 1 | 4 | 8)
     for (var n = walker.nextNode(); n; n = walker.nextNode()) {
+        if (n.nodeType === 1) {
+            if (n.localName === "br")
+                pending = "line"
+            else if (!pending && gapTags[n.localName])
+                pending = "gap"
+            continue
+        }
         nodes.push(n)
         starts.push(all.length)
+        breaks.push(pending)
+        pending = ""
         all += n.data
     }
-    state.texts = { nodes: nodes, starts: starts, all: all }
+    state.texts = { nodes: nodes, starts: starts, all: all, breaks: breaks }
     return state.texts
 }
+
+var gapTags = { img: true, svg: true, math: true, video: true, audio: true, object: true, iframe: true,
+                input: true, hr: true }
 
 // The boxes of characters from to to of a text node, or of all of it.
 function textBoxes(node, from, to) {
