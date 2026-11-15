@@ -103,6 +103,16 @@ WebViewPage {
     // book has been used. A layout alone moves the page a little.
     property bool moved: false
     readonly property bool listening: player.active && player.chapter === chapter
+    // The sentence spoken and the one before it, with the time until which
+    // a tap on that one still pauses (see isSpoken()). Until startedUntil a
+    // tap does not pause: it repeats one that seemed to do nothing while the
+    // sentence it started was being loaded.
+    property real startedUntil
+    property string spokenId
+    property int spokenChapter: -1
+    property string previousId
+    property int previousChapter: -1
+    property real previousUntil
     readonly property bool playing: player.playing
     readonly property bool hasAudio: book.spine.some(function (item) { return !!item.overlay })
     // For the lock screen and headphone controls.
@@ -516,7 +526,9 @@ WebViewPage {
             // readaloud by listening (startPlayer).
             if (!hasAudio)
                 findShown = false
-            if (data.id)
+            if (data.id && isSpoken(data.id))
+                pause()
+            else if (data.id)
                 playSentence(data.id)
             else if (!player.playing)
                 playFromPage()
@@ -586,14 +598,25 @@ WebViewPage {
 
     function startPlayer(index, clips, i, offset) {
         resumeId = ""
+        startedUntil = Date.now() + 1000
         player.start(index, clips, i, offset)
         barShown = true
         unmark()
     }
 
+    // A tap on the sentence spoken pauses. The narration may have moved on
+    // between the touch and the frame script's answer: the sentence just
+    // before counts as spoken for a moment.
+    function isSpoken(id) {
+        return listening && player.playing && Date.now() >= startedUntil
+                && (id === player.currentId
+                    || (id === previousId && chapter === previousChapter && Date.now() < previousUntil))
+    }
+
     function playSentence(id) {
         if (listening && player.currentId === id && !player.playing) {
             // The sentence paused at: on from where it stopped.
+            startedUntil = Date.now() + 1000
             player.resume()
             barShown = true
             unmark()
@@ -1056,6 +1079,13 @@ WebViewPage {
     }
 
     function followSentence(index, i) {
+        // Here, not on currentId: that one passes through a wrong sentence
+        // while the player takes a new chapter (clips before index).
+        previousId = spokenId
+        previousChapter = spokenChapter
+        previousUntil = Date.now() + 600
+        spokenId = player.clips[i].id
+        spokenChapter = index
         highlightId = player.clips[i].id
         splits = []
         if (index !== chapter && index !== requested)
