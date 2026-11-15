@@ -24,6 +24,8 @@ WebViewPage {
     // The settings of the last layout; another layout follows if they
     // changed while one was under way.
     property string laidOut: ""
+    // A relayout asked for while a layout was under way, see relayout().
+    property bool relayoutWanted: false
     property int pageIndex: 0
     property int pageCount: 0
     property string firstId: ""
@@ -221,11 +223,12 @@ WebViewPage {
 
     function layoutSettings() {
         return [app.fontSize, app.fontFamily, app.lineHeight, app.paragraphSpacing,
-                lightPage, app.controlsAtBottom].join("|")
+                lightPage, app.controlsAtBottom, app.controlsScale].join("|")
     }
 
     function layout(target) {
         laidOut = layoutSettings()
+        relayoutWanted = false
         // From lightPage itself: the palette and pageColor may still hold
         // the old colours while lightPage changes (seen on the device).
         var light = lightPage
@@ -263,8 +266,14 @@ WebViewPage {
     // Same chapter and sentence, new text size. While a layout is under way
     // the "page" message calls this again if the size has changed meanwhile.
     function relayout() {
-        if (!ready || closed)
+        if (closed)
             return
+        // Under way: done after it ("page"); it may have begun before the
+        // view took a new height.
+        if (!ready) {
+            relayoutWanted = true
+            return
+        }
         // The frame script drops it with the layout.
         selection = null
         serial++
@@ -432,7 +441,7 @@ WebViewPage {
             fraction = data.fraction
             updateBookPages()
             savePosition()
-            if (laidOut !== layoutSettings())
+            if (laidOut !== layoutSettings() || relayoutWanted)
                 relayout()
             break
         case "bookfish:painted":
@@ -1155,6 +1164,7 @@ WebViewPage {
         // The text's height changes too (not beside a notch): laid out once
         // it has settled, or pages would be counted at the old height.
         onControlsAtBottomChanged: controlsSettled.restart()
+        onControlsScaleChanged: controlsSettled.restart()
     }
 
     onLightPageChanged: relayout()
@@ -1320,9 +1330,9 @@ WebViewPage {
     // All controls in one row, above the text beside the notch or below the
     // text (app.controlsAtBottom): a bar coming or going never changes the
     // height of the text, so the chapter is not laid out again and the page
-    // stays put. The left side holds the controls used most; where they need
-    // more room the right side helps, and the page number stands at the
-    // right end.
+    // stays put. Five places of equal width hold the buttons, the same in
+    // every mode, so Play and Pause share a place; beside a notch three are
+    // left of it and two right. The page number stands in the last place.
     Item {
         id: controls
 
@@ -1331,10 +1341,8 @@ WebViewPage {
         // Room for a notch above the text, also with the controls below.
         readonly property real cutoutHeight: Screen.hasCutouts === true && Screen.topCutout.height > 0
                                              ? Screen.topCutout.y + Screen.topCutout.height : 0
-        readonly property real gap: Theme.paddingSmall
-        readonly property real leftEnd: (besideNotch ? Screen.topCutout.x : width / 2) - gap
-        readonly property real rightStart: (besideNotch ? Screen.topCutout.x + Screen.topCutout.width
-                                                        : width / 2) + gap
+        readonly property real notchLeft: besideNotch ? Screen.topCutout.x : 0
+        readonly property real notchRight: besideNotch ? Screen.topCutout.x + Screen.topCutout.width : 0
         // Taps beyond the row, over the first or last line of text (80 px
         // on a screen of pixel ratio 1.5): a sentence there can still be
         // tapped on its other lines or the next page. At the top not while
@@ -1342,22 +1350,15 @@ WebViewPage {
         // Not while text is selected: the handles in those lines come first.
         readonly property real reach: !selecting && (atBottom || !pulley.active)
                                       ? Math.round(53 * Theme.pixelRatio) : 0
-        // Three buttons fill the left side; below the text it is wider.
-        readonly property real buttonWidth: atBottom ? (leftEnd - gap) / 3
-                                                     : Math.min(Theme.itemSizeExtraSmall, (leftEnd - gap) / 3)
-        // Wide enough for the sleep timer's longest text, whatever it shows:
-        // beside the notch a button is too narrow for "15 min", and the speed
-        // button beside it stays put. A long translation must not push the
-        // speed button over the notch or the middle; its text fades instead.
-        readonly property real timerWidth: Math.max(buttonWidth, Math.min(
-            timerTexts.implicitWidth + 2 * Theme.paddingMedium,
-            width - gap - rightStart - speedButton.width))
         readonly property string mode: selecting ? "select" : barShown ? "listen"
                                                 : findShown ? "find" : partnerShown ? "partner" : "read"
+        // The size chosen in the settings scales the row, icons and texts.
+        readonly property real fontScale: app.controlsScale
         // The same size in both places; the symbol fills only the middle of
         // the icon (its disc is not drawn), so the icon is a little larger
-        // than a small one.
-        readonly property real iconSize: Math.round(1.15 * Theme.iconSizeSmall)
+        // than a small one. Never wider than the narrowest place.
+        readonly property real iconSize: Math.min(Math.round(app.controlsScale * 1.15 * Theme.iconSizeSmall),
+                                                  Math.floor(placeWidth(0) - 2 * Theme.paddingSmall))
         // Where icons and texts are centred: a little away from the screen's
         // edge, as far as the row allows.
         readonly property real edge: Math.max(0, Math.min(Theme.paddingMedium, (height - iconSize) / 2))
@@ -1369,14 +1370,81 @@ WebViewPage {
         y: atBottom ? parent.height - height : 0
         width: parent.width
         // As high as the notch, also below the text; without one (or with a
-        // cutout elsewhere) a little lower than a small list item.
-        height: app.middleNotch ? cutoutHeight : Math.round(0.8 * Theme.itemSizeExtraSmall)
+        // cutout elsewhere) a little lower than a small list item. Larger
+        // as chosen in the settings.
+        height: Math.round(app.controlsScale * (app.middleNotch ? cutoutHeight
+                                                                : Math.round(0.8 * Theme.itemSizeExtraSmall)))
+
+        function placeX(i) {
+            if (besideNotch)
+                return i < 3 ? i * notchLeft / 3 : notchRight + (i - 3) * (width - notchRight) / 2
+            return i * width / 5
+        }
+
+        function placeWidth(i) {
+            if (besideNotch)
+                return i < 3 ? notchLeft / 3 : (width - notchRight) / 2
+            return width / 5
+        }
+
+        // The number of places from first to last, but not across the notch:
+        // a button takes the empty places right of it.
+        function spanTo(first, last) {
+            if (besideNotch && first < 3)
+                last = Math.min(last, 2)
+            return last - first + 1
+        }
 
         // A swipe begun on a button's reach over the text turns the page,
         // by the same rule as on the page (see the flickable's MouseArea).
+        function isSwipe(dx, dy) {
+            return Math.abs(dx) > width / 8 && Math.abs(dx) > Math.abs(dy)
+        }
+
         function swiped(dx, dy) {
-            if (Math.abs(dx) > width / 8 && Math.abs(dx) > Math.abs(dy))
+            if (isSwipe(dx, dy))
                 turn(dx < 0 ? 1 : -1)
+        }
+
+        // What it shows is taken when pressed: Play turns into Pause.
+        function showPreview(button) {
+            previewTimer.stop()
+            preview.button = button
+            preview.slot = button.slot
+            preview.iconName = button.iconName
+            preview.iconScale = button.iconScale
+            preview.text = button.text
+            preview.textSize = Math.max(2 * button.baseFontSize, Math.round(1.5 * button.fontSize))
+            preview.name = button.name
+            preview.shownAt = Date.now()
+            preview.visible = true
+        }
+
+        // A tap shows it for a moment at least, or a quick one would show
+        // nothing; moving away hides it at once.
+        function endPreview(button, cancelled) {
+            if (preview.button !== button)
+                return
+            preview.button = null
+            var left = 400 - (Date.now() - preview.shownAt)
+            if (cancelled || left <= 0) {
+                preview.visible = false
+            } else {
+                previewTimer.interval = left
+                previewTimer.restart()
+            }
+        }
+
+        // Another button pressed while one is still shown.
+        function clearPreview() {
+            previewTimer.stop()
+            preview.button = null
+            preview.visible = false
+        }
+
+        Timer {
+            id: previewTimer
+            onTriggered: preview.visible = false
         }
 
         // Taps beside the buttons must not reach anything below.
@@ -1384,275 +1452,318 @@ WebViewPage {
             anchors.fill: parent
         }
 
-        // Measures the sleep timer's texts (one per line) for timerWidth, in
-        // the font and padding of BarButton (fontSize, implicitWidth); the
-        // timer offers at most 60 minutes.
+        // Reading.
+        BarButton {
+            strip: controls
+            slot: 0
+            span: hasAudio ? 1 : controls.spanTo(0, 3)
+            visible: controls.mode === "read"
+            iconName: "icon-m-search"
+            iconScale: 0.7
+            //: Name of a button of the reading page, shown while it is pressed
+            name: qsTr("Find")
+            onActivated: openFind()
+        }
+        BarButton {
+            strip: controls
+            slot: 1
+            span: controls.spanTo(1, 3)
+            visible: controls.mode === "read" && hasAudio
+            iconName: "icon-m-play"
+            iconOpacity: 0.8
+            //: Name of a button of the reading page, shown while it is pressed
+            name: qsTr("Play")
+            onActivated: play()
+        }
+
+        // Listening.
+        BarButton {
+            strip: controls
+            slot: 0
+            visible: controls.mode === "listen"
+            iconName: "icon-m-previous"
+            //: Name of a button of the reading page, shown while it is pressed
+            name: qsTr("Previous sentence")
+            onActivated: player.previous()
+        }
+        BarButton {
+            strip: controls
+            slot: 1
+            visible: controls.mode === "listen"
+            iconName: player.playing ? "icon-m-pause" : "icon-m-play"
+            iconOpacity: 0.8
+            //: Name of a button of the reading page, shown while it is pressed
+            name: player.playing ? qsTr("Pause") : qsTr("Play")
+            onActivated: togglePlay()
+        }
+        BarButton {
+            strip: controls
+            slot: 2
+            visible: controls.mode === "listen"
+            iconName: "icon-m-next"
+            //: Name of a button of the reading page, shown while it is pressed
+            name: qsTr("Next sentence")
+            onActivated: player.next()
+        }
+        BarButton {
+            strip: controls
+            slot: 3
+            visible: controls.mode === "listen"
+            //: Playback speed on the button that opens the settings, e.g. "1.25×"
+            text: qsTr("%1×").arg(Number(app.playbackRate).toLocaleString(Qt.locale(), "f", 2))
+            //: Name of a button of the reading page, shown while it is pressed
+            name: qsTr("Speed")
+            onActivated: pageStack.push(Qt.resolvedUrl("SettingsPage.qml"))
+        }
+        BarButton {
+            strip: controls
+            slot: 4
+            visible: controls.mode === "listen"
+            iconName: sleepTimer.mode === "off" ? "icon-m-timer" : ""
+            iconScale: 0.65
+            text: sleepTimer.mode === "off" ? ""
+                  : sleepTimer.mode === "chapter"
+                    //: Sleep timer button while it waits for the end of the chapter
+                    ? qsTr("Chapter")
+                    //: Sleep timer button with the minutes left, e.g. "23 min"
+                    : qsTr("%1 min").arg(Math.ceil(sleepTimer.remaining / 60000))
+            //: Name of a button of the reading page, shown while it is pressed
+            name: qsTr("Sleep timer")
+            onActivated: openSleepTimer()
+        }
+
+        // A search's hits.
+        BarButton {
+            strip: controls
+            slot: 0
+            visible: controls.mode === "find"
+            iconName: "icon-m-left"
+            available: findIndex > 0
+            //: Name of a button of the reading page, shown while it is pressed
+            name: qsTr("Previous hit")
+            onActivated: showHit(findIndex - 1)
+        }
+        BarButton {
+            strip: controls
+            slot: 1
+            visible: controls.mode === "find"
+            // Back to the list of hits.
+            //: Search hit shown and number of hits, e.g. "3 / 39"
+            text: qsTr("%1 / %2").arg(findIndex + 1).arg(findHits.length)
+            //: Name of a button of the reading page, shown while it is pressed
+            name: qsTr("All hits")
+            onActivated: openFind()
+        }
+        BarButton {
+            strip: controls
+            slot: 2
+            visible: controls.mode === "find"
+            iconName: "icon-m-right"
+            available: findIndex + 1 < findHits.length
+            //: Name of a button of the reading page, shown while it is pressed
+            name: qsTr("Next hit")
+            onActivated: showHit(findIndex + 1)
+        }
+        BarButton {
+            strip: controls
+            slot: 3
+            visible: controls.mode === "find"
+            iconName: "icon-m-clear"
+            //: Name of a button of the reading page, shown while it is pressed
+            name: qsTr("Close search")
+            onActivated: {
+                findShown = false
+                unmark()
+            }
+        }
+
+        // Text selected.
+        BarButton {
+            strip: controls
+            slot: 0
+            visible: controls.mode === "select"
+            iconName: "icon-m-clipboard"
+            iconScale: 0.8
+            //: Name of a button of the reading page, shown while it is pressed
+            name: qsTr("Copy")
+            onActivated: copySelection()
+        }
+        // In a bookmark: delete it; else make one.
+        BarButton {
+            strip: controls
+            slot: 1
+            visible: controls.mode === "select"
+            iconName: selecting && selection.mark ? "icon-m-delete" : "icon-m-favorite"
+            iconScale: 0.8
+            name: selecting && selection.mark
+                  //: Name of a button of the reading page, shown while it is pressed
+                  ? qsTr("Delete bookmark")
+                  //: Name of a button of the reading page, shown while it is pressed
+                  : qsTr("Bookmark")
+            onActivated: {
+                if (selection && selection.mark)
+                    deleteMarked()
+                else
+                    takeSelection("bookmark")
+            }
+        }
+        BarButton {
+            strip: controls
+            slot: 2
+            visible: controls.mode === "select"
+            iconName: "icon-m-question"
+            iconScale: 0.8
+            //: Name of a button of the reading page, shown while it is pressed
+            name: qsTr("Dictionary")
+            onActivated: lookUp()
+        }
+        // In a bookmark: its note; else a new note.
+        BarButton {
+            strip: controls
+            slot: 3
+            visible: controls.mode === "select"
+            iconName: "icon-m-note"
+            iconScale: 0.8
+            //: Name of a button of the reading page, shown while it is pressed
+            name: qsTr("Note")
+            onActivated: {
+                if (selection && selection.mark)
+                    openMarked()
+                else
+                    takeSelection("note")
+            }
+        }
+        BarButton {
+            strip: controls
+            slot: 4
+            visible: controls.mode === "select"
+            iconName: "icon-m-clear"
+            //: Name of a button of the reading page, shown while it is pressed
+            name: qsTr("Cancel")
+            onActivated: endSelection()
+        }
+
+        // The offer to go where the audiobook (or book) was left.
         Label {
-            id: timerTexts
-            visible: false
-            font.pixelSize: Math.round(0.85 * Theme.fontSizeTiny)
-            //: Sleep timer button while it waits for the end of the chapter
-            text: qsTr("Chapter") + "\n"
-                  //: Sleep timer button with the minutes left, e.g. "23 min"
-                  + qsTr("%1 min").arg(88)
+            x: controls.placeX(0) + Theme.paddingMedium
+            y: controls.faceTop
+            width: controls.placeX(2) + controls.placeWidth(2) - x
+            height: controls.faceHeight
+            visible: controls.mode === "partner"
+            verticalAlignment: Text.AlignVCenter
+            // Larger controls: it shrinks rather than lose the figure.
+            fontSizeMode: Text.HorizontalFit
+            minimumPixelSize: Theme.fontSizeTiny / 2
+            font.pixelSize: Math.round(controls.fontScale * Theme.fontSizeExtraSmall)
+            color: palette.secondaryHighlightColor
+            //: Offer on opening a book whose audiobook was listened to later, e.g. "Listened to 43 %"
+            text: partner ? qsTr("Listened to %1 %").arg(app.percent(partner.progress)) : ""
+        }
+        BarButton {
+            strip: controls
+            slot: 3
+            visible: controls.mode === "partner"
+            textColor: palette.highlightColor
+            baseFontSize: Theme.fontSizeExtraSmall
+            //: Goes to the place in the book or audiobook offered
+            text: qsTr("Go there")
+            name: qsTr("Go there")
+            onActivated: goToPartner()
+        }
+        BarButton {
+            strip: controls
+            slot: 4
+            visible: controls.mode === "partner"
+            iconName: "icon-m-clear"
+            //: Name of a button of the reading page, shown while it is pressed
+            name: qsTr("Dismiss")
+            onActivated: partnerShown = false
         }
 
-        // Left of the notch or the middle.
-        Item {
-            x: controls.gap
-            width: controls.leftEnd - x
-            height: parent.height
-
-            Row {
-                height: parent.height
-                visible: controls.mode === "read"
-
-                BarButton {
-                    strip: controls
-                    width: controls.buttonWidth
-                    iconName: "icon-m-search"
-                    iconScale: 0.7
-                    onActivated: openFind()
-                }
-                BarButton {
-                    strip: controls
-                    width: controls.buttonWidth
-                    visible: hasAudio
-                    iconName: "icon-m-play"
-                    iconOpacity: 0.8
-                    onActivated: play()
-                }
-            }
-
-            Row {
-                height: parent.height
-                visible: controls.mode === "listen"
-
-                BarButton {
-                    strip: controls
-                    width: controls.buttonWidth
-                    iconName: "icon-m-previous"
-                    onActivated: player.previous()
-                }
-                BarButton {
-                    strip: controls
-                    width: controls.buttonWidth
-                    iconName: player.playing ? "icon-m-pause" : "icon-m-play"
-                    iconOpacity: 0.8
-                    onActivated: togglePlay()
-                }
-                BarButton {
-                    strip: controls
-                    width: controls.buttonWidth
-                    iconName: "icon-m-next"
-                    onActivated: player.next()
-                }
-            }
-
-            Row {
-                height: parent.height
-                visible: controls.mode === "find"
-
-                BarButton {
-                    strip: controls
-                    width: controls.buttonWidth
-                    iconName: "icon-m-left"
-                    available: findIndex > 0
-                    onActivated: showHit(findIndex - 1)
-                }
-                BarButton {
-                    strip: controls
-                    width: controls.buttonWidth
-                    // Back to the list of hits.
-                    //: Search hit shown and number of hits, e.g. "3 / 39"
-                    text: qsTr("%1 / %2").arg(findIndex + 1).arg(findHits.length)
-                    onActivated: openFind()
-                }
-                BarButton {
-                    strip: controls
-                    width: controls.buttonWidth
-                    iconName: "icon-m-right"
-                    available: findIndex + 1 < findHits.length
-                    onActivated: showHit(findIndex + 1)
-                }
-            }
-
-            Row {
-                height: parent.height
-                visible: controls.mode === "select"
-
-                BarButton {
-                    strip: controls
-                    width: controls.buttonWidth
-                    iconName: "icon-m-clipboard"
-                    iconScale: 0.8
-                    onActivated: copySelection()
-                }
-                // In a bookmark: delete it; else make one.
-                BarButton {
-                    strip: controls
-                    width: controls.buttonWidth
-                    iconName: selecting && selection.mark ? "icon-m-delete" : "icon-m-favorite"
-                    iconScale: 0.8
-                    onActivated: {
-                        if (selection && selection.mark)
-                            deleteMarked()
-                        else
-                            takeSelection("bookmark")
-                    }
-                }
-                BarButton {
-                    strip: controls
-                    width: controls.buttonWidth
-                    iconName: "icon-m-question"
-                    iconScale: 0.8
-                    onActivated: lookUp()
-                }
-            }
-
-            Label {
-                y: controls.faceTop
-                width: parent.width
-                height: controls.faceHeight
-                visible: controls.mode === "partner"
-                verticalAlignment: Text.AlignVCenter
-                truncationMode: TruncationMode.Fade
-                font.pixelSize: Theme.fontSizeExtraSmall
-                color: palette.secondaryHighlightColor
-                //: Offer on opening a book whose audiobook was listened to later, e.g. "Listened to 43 %"
-                text: partner ? qsTr("Listened to %1 %").arg(app.percent(partner.progress)) : ""
-            }
+        Label {
+            x: controls.placeX(4) + Theme.paddingSmall
+            y: controls.faceTop
+            width: controls.placeWidth(4) - 2 * Theme.paddingSmall
+            height: controls.faceHeight
+            // Not beside the player's buttons: there it distracts.
+            visible: bookPages > 0 && (controls.mode === "read" || controls.mode === "find")
+            verticalAlignment: Text.AlignVCenter
+            horizontalAlignment: Text.AlignHCenter
+            fontSizeMode: Text.HorizontalFit
+            minimumPixelSize: Theme.fontSizeTiny / 2
+            // As small as the buttons' texts.
+            font.pixelSize: Math.round(controls.fontScale * Math.round(0.85 * Theme.fontSizeTiny))
+            color: palette.secondaryColor
+            //: Estimated page in the whole book, e.g. "30/295"
+            text: qsTr("%1/%2").arg(bookPage).arg(bookPages)
         }
+    }
 
-        // Right of the notch or the middle, ending with the page number.
-        Row {
-            id: rightSide
+    // The button pressed, large and with its name, beside it over the text:
+    // above the controls at the bottom, past the reach; well below them at
+    // the top, where the finger reaching up covers less.
+    Rectangle {
+        id: preview
 
-            anchors.right: parent.right
-            anchors.rightMargin: controls.gap
-            height: parent.height
-            layoutDirection: Qt.RightToLeft
+        // The button still pressed; null once released.
+        property Item button: null
+        property int slot
+        property string iconName
+        property real iconScale: 1
+        property string text
+        property real textSize: Theme.fontSizeMedium
+        property string name
+        property real shownAt
+        readonly property real iconSize: Math.max(2 * Math.round(1.15 * Theme.iconSizeSmall),
+                                                  Math.round(1.5 * controls.iconSize))
+        readonly property real centerX: controls.placeX(slot) + controls.placeWidth(slot) / 2
 
+        // Above the controls and the handles.
+        z: 3
+        visible: false
+        width: Math.max(previewContent.width, iconSize) + 2 * Theme.paddingLarge
+        height: previewContent.height + 2 * Theme.paddingMedium
+        x: Math.max(Theme.paddingSmall, Math.min(parent.width - width - Theme.paddingSmall,
+                                                 centerX - width / 2))
+        y: controls.atBottom ? controls.y - controls.reach - Theme.paddingMedium - height
+                             : controls.y + controls.height + 3 * Math.round(53 * Theme.pixelRatio)
+        radius: Theme.paddingMedium
+        color: pageColor
+        border.width: Math.max(1, Math.round(Theme.pixelRatio))
+        border.color: palette.secondaryColor
+
+        Column {
+            id: previewContent
+
+            anchors.centerIn: parent
+            spacing: Theme.paddingSmall
+
+            Item {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: preview.iconSize
+                height: preview.iconSize
+                visible: preview.iconName !== ""
+
+                BarIcon {
+                    anchors.centerIn: parent
+                    width: Math.round(preview.iconScale * preview.iconSize)
+                    height: width
+                    name: preview.iconName
+                    color: palette.highlightColor
+                }
+            }
             Label {
-                id: pageLabel
-
-                // What the buttons beside it leave, so it shrinks rather
-                // than pushes them over the notch or the middle.
-                readonly property real room: controls.width - controls.gap - controls.rightStart
-                                             - (findButtons.visible ? findButtons.width : 0)
-                                             - (selectButtons.visible ? selectButtons.width : 0)
-                y: controls.faceTop
-                width: Math.min(implicitWidth, Math.max(0, room))
-                height: controls.faceHeight
-                // Not beside the player's buttons: there it distracts.
-                visible: bookPages > 0 && controls.mode !== "partner" && controls.mode !== "listen"
-                         && controls.mode !== "select"
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignRight
-                fontSizeMode: Text.HorizontalFit
-                minimumPixelSize: Theme.fontSizeTiny / 2
-                // As small as the buttons' texts.
-                font.pixelSize: Math.round(0.85 * Theme.fontSizeTiny)
-                color: palette.secondaryColor
-                //: Estimated page in the whole book, e.g. "30/295"
-                text: qsTr("%1/%2").arg(bookPage).arg(bookPages)
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: preview.iconName === ""
+                color: palette.highlightColor
+                font.pixelSize: preview.textSize
+                text: preview.text
             }
-
-            Row {
-                id: listenButtons
-
-                height: parent.height
-                visible: controls.mode === "listen"
-                layoutDirection: Qt.RightToLeft
-
-                BarButton {
-                    strip: controls
-                    width: controls.timerWidth
-                    iconName: sleepTimer.mode === "off" ? "icon-m-timer" : ""
-                    iconScale: 0.65
-                    text: sleepTimer.mode === "off" ? ""
-                          : sleepTimer.mode === "chapter"
-                            //: Sleep timer button while it waits for the end of the chapter
-                            ? qsTr("Chapter")
-                            //: Sleep timer button with the minutes left, e.g. "23 min"
-                            : qsTr("%1 min").arg(Math.ceil(sleepTimer.remaining / 60000))
-                    onActivated: openSleepTimer()
-                }
-                BarButton {
-                    id: speedButton
-
-                    strip: controls
-                    width: implicitWidth
-                    //: Playback speed on the button that opens the settings, e.g. "1.25×"
-                    text: qsTr("%1×").arg(Number(app.playbackRate).toLocaleString(Qt.locale(), "f", 2))
-                    onActivated: pageStack.push(Qt.resolvedUrl("SettingsPage.qml"))
-                }
-            }
-
-            Row {
-                id: findButtons
-
-                height: parent.height
-                visible: controls.mode === "find"
-
-                BarButton {
-                    strip: controls
-                    width: controls.buttonWidth
-                    iconName: "icon-m-clear"
-                    onActivated: {
-                        findShown = false
-                        unmark()
-                    }
-                }
-            }
-
-            Row {
-                id: selectButtons
-
-                height: parent.height
-                visible: controls.mode === "select"
-
-                // In a bookmark: its note; else a new note.
-                BarButton {
-                    strip: controls
-                    width: controls.buttonWidth
-                    iconName: "icon-m-note"
-                    iconScale: 0.8
-                    onActivated: {
-                        if (selection && selection.mark)
-                            openMarked()
-                        else
-                            takeSelection("note")
-                    }
-                }
-                BarButton {
-                    strip: controls
-                    width: controls.buttonWidth
-                    iconName: "icon-m-clear"
-                    onActivated: endSelection()
-                }
-            }
-
-            Row {
-                height: parent.height
-                visible: controls.mode === "partner"
-                layoutDirection: Qt.RightToLeft
-
-                BarButton {
-                    strip: controls
-                    width: controls.buttonWidth
-                    iconName: "icon-m-clear"
-                    onActivated: partnerShown = false
-                }
-                BarButton {
-                    strip: controls
-                    width: implicitWidth
-                    textColor: palette.highlightColor
-                    fontSize: Theme.fontSizeExtraSmall
-                    //: Goes to the place in the book or audiobook offered
-                    text: qsTr("Go there")
-                    onActivated: goToPartner()
-                }
+            Label {
+                anchors.horizontalCenter: parent.horizontalCenter
+                color: palette.highlightColor
+                font.pixelSize: Theme.fontSizeSmall
+                text: preview.name
             }
         }
     }
@@ -1877,7 +1988,8 @@ WebViewPage {
         onTriggered: page.relayout()
     }
 
-    // See onControlsAtBottomChanged; as long as heightSettled.
+    // See onControlsAtBottomChanged and onControlsScaleChanged; as long as
+    // heightSettled.
     Timer {
         id: controlsSettled
         interval: 250

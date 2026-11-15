@@ -86,6 +86,7 @@ Page {
             loadDictionaries()
         if (status === PageStatus.Deactivating) {
             app.setFontSize(fontSlider.value)
+            app.setControlsScale(controlsSlider.value)
             app.setPlaybackRate(rateSlider.value)
             app.setFontFamily(fontBox.currentIndex === 1 ? "serif" : "sans")
             app.setLineHeight(lineSlider.value)
@@ -183,6 +184,17 @@ Page {
                     //: Buttons below the text
                     MenuItem { text: qsTr("Bottom") }
                 }
+            }
+
+            Slider {
+                id: controlsSlider
+                width: parent.width
+                minimumValue: app.minControlsScale
+                maximumValue: app.maxControlsScale
+                stepSize: 0.1
+                value: app.controlsScale
+                //: Size of the reading page's buttons, with its value, e.g. "Controls size 130 %"
+                label: qsTr("Controls size %1 %").arg(Math.round(value * 100))
             }
 
             ComboBox {
