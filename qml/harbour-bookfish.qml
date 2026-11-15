@@ -60,6 +60,9 @@ ApplicationWindow {
     readonly property string fontFamily: fontFamilySetting.value === "serif" ? "serif" : "sans"
     // "light" or "dark" once chosen; "" follows the ambience.
     readonly property string pageColors: pageColorsSetting.value || ""
+    // Until chosen the reading page follows the ambience.
+    readonly property bool lightPage: pageColors === "light"
+                                      || (pageColors === "" && Theme.colorScheme === Theme.DarkOnLight)
     // Only a notch in the middle of the top edge leaves room on both sides.
     readonly property bool middleNotch: Screen.hasCutouts === true && Screen.topCutout.width > 0
                                         && Screen.topCutout.x > Screen.width / 5
