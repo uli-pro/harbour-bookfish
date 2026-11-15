@@ -18,6 +18,13 @@ ApplicationWindow {
     readonly property string libraryCache: StandardPaths.cache + "/library.json"
     readonly property string coversFolder: StandardPaths.cache + "/covers"
     readonly property string audiobooksFolder: StandardPaths.cache + "/audiobooks"
+    // Word lists of dict.cc are imported from Documents into databases here.
+    readonly property string dictionaryFolder: StandardPaths.data + "/dictionaries"
+    // The language words are looked up in; until chosen the phone's.
+    readonly property string dictionaryLanguage: dictionaryLanguageSetting.value
+                                                 || Qt.locale().name.split("_")[0]
+    // The import running: {path, share}; null if none.
+    property var dictionaryImport: null
     // Text size in screen pixels, like FBReader; the frame script converts
     // it to CSS pixels.
     readonly property int minFontSize: 20
@@ -70,6 +77,8 @@ ApplicationWindow {
     signal historyFinished(int serial, var result)
     // The files of an audiobook folder read, see AudiobookPage.
     signal audiobookRead(string path, var result)
+    // An import of a word list has ended, see bridge.import_dictionary.
+    signal dictionaryImported(var result)
     property int searchSerial: 0
 
     // The open ReaderPage or AudiobookPage, for the cover's play button and
@@ -94,6 +103,72 @@ ApplicationWindow {
 
     function setFontSize(size) {
         fontSizeSetting.value = size
+    }
+
+    function setDictionaryLanguage(code) {
+        dictionaryLanguageSetting.value = code
+    }
+
+    // In Python's thread; it goes on while the settings are closed.
+    function importDictionary(path) {
+        if (dictionaryImport)
+            return
+        dictionaryImport = { path: path, share: 0 }
+        py.call("bookfish.bridge.import_dictionary", [path, dictionaryFolder])
+    }
+
+    function dictionaryEvent(event) {
+        if (event.state === "progress") {
+            if (dictionaryImport && dictionaryImport.path === event.path)
+                dictionaryImport = { path: event.path, share: event.share }
+            return
+        }
+        dictionaryImport = null
+        if (event.state === "error") {
+            console.warn("Cannot import dictionary", event.error, event.detail)
+            showError(event.error === "no_space" ? qsTr("Not enough free space for the dictionary.")
+                                                 : qsTr("The dictionary could not be imported."))
+        }
+        dictionaryImported(event)
+    }
+
+    // The languages of dict.cc.
+    function languageName(code) {
+        switch (code) {
+        case "bg": return qsTr("Bulgarian")
+        case "bs": return qsTr("Bosnian")
+        case "cs": return qsTr("Czech")
+        case "da": return qsTr("Danish")
+        case "de": return qsTr("German")
+        case "el": return qsTr("Greek")
+        case "en": return qsTr("English")
+        case "eo": return qsTr("Esperanto")
+        case "es": return qsTr("Spanish")
+        case "fi": return qsTr("Finnish")
+        case "fr": return qsTr("French")
+        case "hr": return qsTr("Croatian")
+        case "hu": return qsTr("Hungarian")
+        case "is": return qsTr("Icelandic")
+        case "it": return qsTr("Italian")
+        case "la": return qsTr("Latin")
+        case "nl": return qsTr("Dutch")
+        case "no": return qsTr("Norwegian")
+        case "pl": return qsTr("Polish")
+        case "pt": return qsTr("Portuguese")
+        case "ro": return qsTr("Romanian")
+        case "ru": return qsTr("Russian")
+        case "sk": return qsTr("Slovak")
+        case "sq": return qsTr("Albanian")
+        case "sr": return qsTr("Serbian")
+        case "sv": return qsTr("Swedish")
+        case "tr": return qsTr("Turkish")
+        default: return code.toUpperCase()
+        }
+    }
+
+    function pairName(languages) {
+        //: Two languages of a dictionary, e.g. "English–German"
+        return qsTr("%1–%2").arg(languageName(languages[0])).arg(languageName(languages[1]))
     }
 
     // A stored number within [min, max]; 0 is a valid value.
@@ -216,6 +291,12 @@ ApplicationWindow {
     }
 
     ConfigurationValue {
+        id: dictionaryLanguageSetting
+        key: "/apps/harbour-bookfish/dictionaryLanguage"
+        defaultValue: ""
+    }
+
+    ConfigurationValue {
         id: playbackRateSetting
         key: "/apps/harbour-bookfish/playbackRate"
         defaultValue: 1
@@ -233,6 +314,7 @@ ApplicationWindow {
                 setHandler("search", app.searchFinished)
                 setHandler("history", app.historyFinished)
                 setHandler("audiobook", app.audiobookRead)
+                setHandler("dictionary", app.dictionaryEvent)
                 app.pythonReady = true
             })
         }

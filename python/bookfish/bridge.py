@@ -11,12 +11,14 @@ import getpass
 import hashlib
 import math
 import os
+import sqlite3
 import threading
 import time
 import traceback
 import unicodedata
 
-from . import audiobook, bookmarks, cache, history as history_store, library, notes, positions
+from . import (audiobook, bookmarks, cache, dictionary, history as history_store, library,
+               notes, positions)
 from .errors import EpubError
 from .overlay import read_overlay
 from .package import read_package, text_length
@@ -619,6 +621,69 @@ def _history(index, path, key):
     return {"sessions": sessions}
 
 
+def dictionaries(documents, folder):
+    """{files, installed}: the dict.cc lists in documents and the
+    databases imported in folder, see dictionary.find_files and
+    dictionary.installed."""
+    return {"files": dictionary.find_files(documents),
+            "installed": [{key: info[key] for key in ("pair", "languages", "date", "size", "outdated")}
+                          for info in dictionary.installed(folder)]}
+
+
+_import_cancel = threading.Event()
+
+
+def import_dictionary(path, folder):
+    """Import the list at path into folder in a thread; its progress comes
+    as the events ("dictionary", {state: "progress", path, share}), the
+    end as ("dictionary", {state, path, ...}): state "done" with pair,
+    "cancelled", or "error" with error and detail. One at a time."""
+    _import_cancel.clear()
+    _importer.submit("import", path, folder)
+
+
+def cancel_import():
+    _import_cancel.set()
+
+
+def _import(key, path, folder):
+    def progress(share):
+        _send("dictionary", {"state": "progress", "path": path, "share": share})
+
+    try:
+        info = dictionary.import_file(path, folder, progress, _import_cancel.is_set)
+        result = {"state": "done", "pair": info["pair"]}
+    except dictionary.Cancelled:
+        result = {"state": "cancelled"}
+    except dictionary.DictionaryError as e:
+        result = {"state": "error", "error": e.code, "detail": e.detail}
+    except (OSError, sqlite3.Error) as e:
+        full = "full" in str(e) or getattr(e, "errno", None) == 28
+        result = {"state": "error", "error": "no_space" if full else "io", "detail": str(e)}
+    except Exception as e:
+        traceback.print_exc()
+        result = {"state": "error", "error": "internal", "detail": repr(e)}
+    result["path"] = path
+    _send("dictionary", result)
+
+
+def delete_dictionary(folder, pair):
+    try:
+        dictionary.remove(folder, pair)
+    except (OSError, ValueError) as e:
+        return _error("io", str(e))
+    return True
+
+
+def look_up(folder, text, language, target):
+    """The entries for text, selected in a book in language, to be read in
+    target; see dictionary.lookup."""
+    try:
+        return dictionary.lookup(folder, text, language, target)
+    except sqlite3.Error as e:
+        return _error("io", str(e))
+
+
 def _error(code, detail):
     return {"error": code, "detail": detail}
 
@@ -627,3 +692,4 @@ _scanner = Worker(_scan)
 _covers = Worker(_extract, _MAX_WAITING_COVERS)
 _searcher = Worker(_search)
 _audiobooks = Worker(_read_audiobook)
+_importer = Worker(_import)

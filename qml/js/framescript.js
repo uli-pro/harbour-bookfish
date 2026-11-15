@@ -310,7 +310,8 @@ function linkOf(node) {
 
 // Text selected by a long press: offsets in body.textContent (see
 // findRange), start included, end not; null if none. The reader moves its
-// ends by whole words, on the page shown only.
+// ends by whole words, or by letters back into the word an end lies in, on
+// the page shown only.
 
 // Letters, digits and their marks make words; an apostrophe or a hyphen
 // between two of them belongs to the word ("don't", "Know-how"), and so
@@ -554,9 +555,10 @@ function selectionText(texts, sel, keepMarks) {
 }
 
 // An end of the selection dragged to x, y: it goes to the word there, on
-// the page shown only. Dragged past the other end, the ends swap: the word
-// at the end left behind stays selected, and the finger moves the other
-// end. Returns the end the finger moves now.
+// the page shown only; back into the word it lies in, letter by letter
+// ("s'" off "s'intéressèrent"). Dragged past the other end, the ends swap:
+// the word at the end left behind stays selected, and the finger moves the
+// other end. Returns the end the finger moves now.
 function moveEdge(edge, x, y) {
     var texts = textNodes()
     var sel = state.selection
@@ -565,6 +567,20 @@ function moveEdge(edge, x, y) {
         return edge
     var page = currentPage()
     var s, e
+    // Moves come for every bit the finger moves; where the end is already,
+    // it stays (snapping would undo a letter taken off).
+    if ((edge === "end" && o === sel.end) || (edge === "start" && o === sel.start))
+        return edge
+    if (edge === "end" && o > sel.start && o < sel.end && isWordChar(texts.all, sel.end - 1)
+            && o > wordStart(texts, sel.end - 1)) {
+        sel.end = o
+        return "end"
+    }
+    if (edge === "start" && o > sel.start && o < sel.end && isWordChar(texts.all, sel.start)
+            && o < wordEnd(texts, sel.start)) {
+        sel.start = o
+        return "start"
+    }
     if (edge === "end") {
         e = snapEnd(texts, o)
         if (e > sel.start) {
