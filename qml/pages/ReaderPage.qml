@@ -1078,6 +1078,13 @@ WebViewPage {
         // Three buttons fill the left side; below the text it is wider.
         readonly property real buttonWidth: atBottom ? (leftEnd - gap) / 3
                                                      : Math.min(Theme.itemSizeExtraSmall, (leftEnd - gap) / 3)
+        // Wide enough for the sleep timer's longest text, whatever it shows:
+        // beside the notch a button is too narrow for "15 min", and the speed
+        // button beside it stays put. A long translation must not push the
+        // speed button over the notch or the middle; its text fades instead.
+        readonly property real timerWidth: Math.max(buttonWidth, Math.min(
+            timerTexts.implicitWidth + 2 * Theme.paddingMedium,
+            width - gap - rightStart - speedButton.width))
         readonly property string mode: barShown ? "listen" : findShown ? "find"
                                                 : partnerShown ? "partner" : "read"
         // The same size in both places; the symbol fills only the middle of
@@ -1108,6 +1115,19 @@ WebViewPage {
         // Taps beside the buttons must not reach anything below.
         MouseArea {
             anchors.fill: parent
+        }
+
+        // Measures the sleep timer's texts (one per line) for timerWidth, in
+        // the font and padding of BarButton (fontSize, implicitWidth); the
+        // timer offers at most 60 minutes.
+        Label {
+            id: timerTexts
+            visible: false
+            font.pixelSize: Math.round(0.85 * Theme.fontSizeTiny)
+            //: Sleep timer button while it waits for the end of the chapter
+            text: qsTr("Chapter") + "\n"
+                  //: Sleep timer button with the minutes left, e.g. "23 min"
+                  + qsTr("%1 min").arg(88)
         }
 
         // Left of the notch or the middle.
@@ -1245,7 +1265,7 @@ WebViewPage {
 
                 BarButton {
                     strip: controls
-                    width: controls.buttonWidth
+                    width: controls.timerWidth
                     iconName: sleepTimer.mode === "off" ? "icon-m-timer" : ""
                     iconScale: 0.65
                     text: sleepTimer.mode === "off" ? ""
@@ -1257,6 +1277,8 @@ WebViewPage {
                     onActivated: openSleepTimer()
                 }
                 BarButton {
+                    id: speedButton
+
                     strip: controls
                     width: implicitWidth
                     //: Playback speed on the button that opens the settings, e.g. "1.25×"

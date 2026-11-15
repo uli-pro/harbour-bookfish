@@ -35,6 +35,7 @@ BackgroundItem {
     // smaller, their symbol is as large as those standing on a disc.
     property real iconScale: 1
     // Small, like the page number: the texts must not draw the eye either.
+    // ReaderPage measures the sleep timer's texts with the same size.
     property real fontSize: Math.round(0.85 * Theme.fontSizeTiny)
 
     // Only used where the button is as wide as its content.
