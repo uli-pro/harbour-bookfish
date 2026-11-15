@@ -401,10 +401,18 @@ Page {
         })
     }
 
-    function openSleepTimer() {
+    // For PlaybackPage: the sleep timer can be set before playing, as the
+    // timer button is always shown here.
+    readonly property bool timerAvailable: true
+    readonly property var playbackTimer: sleepTimer
+
+    function chapterTimeLeft() {
         var left = chapters[current].length - place()
-        pageStack.push(Qt.resolvedUrl("SleepTimerPage.qml"),
-                       { timer: sleepTimer, chapterLeft: left > 0 ? left / app.playbackRate : -1 })
+        return left > 0 ? left / app.playbackRate : -1
+    }
+
+    function openPlayback() {
+        pageStack.push(Qt.resolvedUrl("PlaybackPage.qml"))
     }
 
     Component.onCompleted: {
@@ -716,19 +724,19 @@ Page {
                 BackgroundItem {
                     width: Theme.itemSizeLarge
                     height: Theme.itemSizeSmall
-                    onClicked: pageStack.push(Qt.resolvedUrl("SettingsPage.qml"))
+                    onClicked: page.openPlayback()
 
                     Label {
                         anchors.centerIn: parent
                         color: parent.highlighted ? Theme.highlightColor : Theme.primaryColor
-                        //: Playback speed on the button that opens the settings, e.g. "1.25×"
+                        //: Playback speed on the button that opens the page for speed and sleep timer, e.g. "1.25×"
                         text: qsTr("%1×").arg(Number(app.playbackRate).toLocaleString(Qt.locale(), "f", 2))
                     }
                 }
                 BackgroundItem {
                     width: Theme.itemSizeLarge
                     height: Theme.itemSizeSmall
-                    onClicked: page.openSleepTimer()
+                    onClicked: page.openPlayback()
 
                     Image {
                         anchors.centerIn: parent

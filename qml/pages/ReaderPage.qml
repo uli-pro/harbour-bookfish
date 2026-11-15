@@ -1030,9 +1030,16 @@ WebViewPage {
             awayAt = Date.now()
     }
 
-    function openSleepTimer() {
-        pageStack.push(Qt.resolvedUrl("SleepTimerPage.qml"),
-                       { timer: sleepTimer, chapterLeft: player.chapterLeft() })
+    // For PlaybackPage: its sleep timer works while a book plays.
+    readonly property bool timerAvailable: player.active
+    readonly property var playbackTimer: sleepTimer
+
+    function chapterTimeLeft() {
+        return player.chapterLeft()
+    }
+
+    function openPlayback() {
+        pageStack.push(Qt.resolvedUrl("PlaybackPage.qml"))
     }
 
     // Next and previous sentence, from the lock screen and the headphones.
@@ -1509,11 +1516,11 @@ WebViewPage {
             strip: controls
             slot: 3
             visible: controls.mode === "listen"
-            //: Playback speed on the button that opens the settings, e.g. "1.25×"
+            //: Playback speed on the button that opens the page for speed and sleep timer, e.g. "1.25×"
             text: qsTr("%1×").arg(Number(app.playbackRate).toLocaleString(Qt.locale(), "f", 2))
             //: Name of a button of the reading page, shown while it is pressed
             name: qsTr("Speed")
-            onActivated: pageStack.push(Qt.resolvedUrl("SettingsPage.qml"))
+            onActivated: openPlayback()
         }
         BarButton {
             strip: controls
@@ -1529,7 +1536,7 @@ WebViewPage {
                     : qsTr("%1 min").arg(Math.ceil(sleepTimer.remaining / 60000))
             //: Name of a button of the reading page, shown while it is pressed
             name: qsTr("Sleep timer")
-            onActivated: openSleepTimer()
+            onActivated: openPlayback()
         }
 
         // A search's hits.

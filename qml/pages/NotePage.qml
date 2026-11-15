@@ -20,7 +20,7 @@ Page {
     // A little greyer than the book's text; the neighbours paler still.
     readonly property color noteColor: lightPage ? Qt.rgba(0, 0, 0, 0.75) : Qt.rgba(1, 1, 1, 0.75)
     readonly property color neighbourColor: lightPage ? Qt.rgba(0, 0, 0, 0.45) : Qt.rgba(1, 1, 1, 0.45)
-    // A little smaller than the book on the reader (see SettingsPage): notes
+    // A little smaller than the book on the reader (see TextSettingsPage): notes
     // are set smaller, and it shows where one is.
     readonly property real textSize: Math.max(app.minFontSize, app.fontSize - 6) * app.textScale
 
