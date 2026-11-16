@@ -3,6 +3,7 @@ import stat
 import struct
 import warnings
 import zipfile
+from unittest import mock
 
 from bookfish.archive import extract
 from bookfish.errors import EpubError
@@ -71,6 +72,11 @@ class ExtractTest(TempDirTestCase):
     def test_too_many_files(self):
         self.assertFails("too_many_files", self.epub(mini_entries()),
                          max_entries=3)
+
+    def test_too_many_files_refused_before_reading(self):
+        epub = self.epub(mini_entries())
+        with mock.patch("zipfile.ZipFile", side_effect=AssertionError("read")):
+            self.assertFails("too_many_files", epub, max_entries=3)
 
     def test_zip_bomb(self):
         # 10 MB of zeros compress to about 10 KB.

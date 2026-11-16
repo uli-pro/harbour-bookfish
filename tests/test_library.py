@@ -4,7 +4,7 @@ import struct
 import unittest
 from unittest import mock
 
-from bookfish import library
+from bookfish import archive, library
 from bookfish.errors import EpubError
 from bookfish.library import (BookFile, book_info, broken_info, card_folders, extract_cover,
                                list_books, load_cached, normal_identifier,
@@ -153,6 +153,17 @@ class BookInfoTest(TempDirTestCase):
         with self.assertRaises(EpubError) as cm:
             book_info(path)
         self.assertEqual(cm.exception.code, "too_large")
+
+
+    def test_huge_central_directory_refused_before_reading(self):
+        # zipfile would build an object per entry first (1 million: 550 MB).
+        path = os.path.join(self.tmp, "b.epub")
+        write_book(path)
+        with mock.patch.object(archive, "MAX_DIRECTORY", 100), \
+                mock.patch("zipfile.ZipFile", side_effect=AssertionError("read")):
+            with self.assertRaises(EpubError) as cm:
+                book_info(path)
+        self.assertEqual(cm.exception.code, "too_many_files")
 
 
 class ScanTest(TempDirTestCase):

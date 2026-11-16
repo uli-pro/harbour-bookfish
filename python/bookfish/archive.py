@@ -15,6 +15,10 @@ from .errors import EpubError
 # well. Long audiobooks are large but legitimate (51 h at 64 kbit/s = 1.5 GB),
 # so the real risk is filling the phone: keep MIN_FREE_SPACE free afterwards.
 MAX_ENTRIES = 10000
+# zipfile turns the whole central directory into objects before anything can
+# be checked: 1 million entries took 550 MB. 10000 entries with long names
+# need about 1 MB.
+MAX_DIRECTORY = 16 * 1024 * 1024
 MAX_RATIO = 2
 HEADROOM = 100 * 1024 * 1024
 MIN_FREE_SPACE = 500 * 1024 * 1024
@@ -50,10 +54,7 @@ def extract(epub_path, dest_dir, max_entries=MAX_ENTRIES, max_ratio=MAX_RATIO,
         raise ValueError("destination exists: " + dest_dir)
     with open(epub_path, "rb") as f:
         epub_size = os.fstat(f.fileno()).st_size
-        try:
-            archive = zipfile.ZipFile(f)
-        except _CORRUPT as e:
-            raise EpubError("not_zip", str(e))
+        archive = open_zip(f, max_entries)
         with archive:
             infos = archive.infolist()
             if len(infos) > max_entries:
@@ -80,6 +81,23 @@ def extract(epub_path, dest_dir, max_entries=MAX_ENTRIES, max_ratio=MAX_RATIO,
             except BaseException:
                 _remove(tmp_dir)
                 raise
+
+
+def open_zip(f, max_entries=MAX_ENTRIES):
+    """zipfile.ZipFile for the open binary file f, after checking the size
+    of its central directory in the end record. Raises EpubError."""
+    try:
+        end = zipfile._EndRecData(f)
+    except _CORRUPT:
+        end = None
+    # Entries total and size of the central directory, see zipfile._ECD_*.
+    if end is not None and (end[4] > max_entries or end[5] > MAX_DIRECTORY):
+        raise EpubError("too_many_files", str(end[4]))
+    try:
+        f.seek(0)
+        return zipfile.ZipFile(f)
+    except _CORRUPT as e:
+        raise EpubError("not_zip", str(e))
 
 
 def _check_mimetype(archive):

@@ -144,6 +144,21 @@ class DictionaryTest(TempDirTestCase):
                 dictionary.import_file(path, self.folder)
         self.assertEqual(dictionary.installed(self.folder), [])
 
+    def test_long_lines_skipped(self):
+        long = "x" * (3 * dictionary.MAX_LINE) + "\tlang\tnoun\t"
+        text = list_text(broken=BROKEN + [long, "after\tdanach\tadv\t"])
+        info = dictionary.import_file(self.write("en-de.zip", text), self.folder)
+        self.assertEqual(info["entries"], len(ROWS) + 1)
+        self.assertEqual(self.first("after")["translations"], ["danach"])
+
+    def test_other_compression_refused(self):
+        # zipfile does not bound the memory of these decoders.
+        path = os.path.join(self.documents, "en-de.zip")
+        with zipfile.ZipFile(path, "w", zipfile.ZIP_BZIP2) as archive:
+            archive.writestr("abc-123.txt", list_text().encode("utf-8"))
+        with self.assertRaises(dictionary.DictionaryError):
+            dictionary.import_file(path, self.folder)
+
     def test_find_files(self):
         self.write("fr-de.txt", list_text(head=["# FR-DE vocabulary database\tcompiled by dict.cc"]),
                    False)

@@ -19,6 +19,7 @@ import struct
 import zipfile
 
 from . import mp3, mp4
+from .archive import open_zip
 from .audioutil import natural_key, picture_type
 from .errors import EpubError
 from .package import check_encryption, package_path, read_info
@@ -138,7 +139,7 @@ def book_info(path):
     Raises EpubError, OSError or zipfile errors if the book is unusable. A
     book with DRM is listed, marked broken: opening it says why.
     """
-    with _open_regular(path) as f, zipfile.ZipFile(f) as archive:
+    with _open_regular(path) as f, open_zip(f) as archive:
         container = parse_xml_data(_member(archive, "META-INF/container.xml"),
                                    "META-INF/container.xml")
         opf_path = package_path(container)
@@ -368,7 +369,7 @@ def extract_cover(epub_path, cover, target):
     Returns False if there is no usable image; the library then shows none.
     """
     try:
-        with _open_regular(epub_path) as f, zipfile.ZipFile(f) as archive:
+        with _open_regular(epub_path) as f, open_zip(f) as archive:
             data = _member(archive, cover, MAX_COVER_SIZE)
     except Exception:
         return False
