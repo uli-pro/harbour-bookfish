@@ -141,9 +141,61 @@ WebViewPage {
     // The place of the last reading entry, "spine:offset".
     property string notedPlace: ""
 
+    // Turning the phone. Where the notch is on this page: "top", "bottom"
+    // (upside down), "left", "right"; "" without one in the middle of an edge.
+    readonly property string notchSide: !app.middleNotch ? ""
+                                        : orientation === Orientation.Landscape ? "left"
+                                        : orientation === Orientation.LandscapeInverted ? "right"
+                                        : orientation === Orientation.PortraitInverted ? "bottom" : "top"
+    // As deep as the notch reaches into the screen.
+    readonly property real notchDepth: Screen.hasCutouts === true && Screen.topCutout.height > 0
+                                       ? Screen.topCutout.y + Screen.topCutout.height : 0
+    // In landscape the text takes two columns, if so chosen.
+    readonly property int columns: isLandscape ? app.landscapeColumns : 1
+    // CSS pixels to screen pixels in the view, as the frame script reports.
+    property real pixelRatio: 1
+    // The view's size the chapter was laid out for, and the one Gecko has
+    // now; both in CSS pixels. Gecko gets a new size up to a second after
+    // Qt (measured on turning the phone), see geckoSettled.
+    property real laidWidth: 0
+    property real laidHeight: 0
+    property real geckoWidth: 0
+    property real geckoHeight: 0
+    // The place held when the page is laid out for another size: the start
+    // of the middle line of the page shown (two columns: the left one),
+    // measured while it was shown, as the screen still matched the layout.
+    property int anchorChapter: -1
+    property int anchorOffset: -1
+    // Covered for turning the phone: taps would act on a page not shown.
+    property bool turning: false
+    onCoveredChanged: {
+        if (!covered)
+            turning = false
+    }
+
     // Turning pages needs the horizontal swipe; the library is in the pulley.
     backNavigation: false
-    allowedOrientations: Orientation.Portrait
+    allowedOrientations: app.pageOrientations
+    // In landscape the notch is beside the text; the page keeps the strip
+    // there free itself and shows the page number in it.
+    cutoutMode: isLandscape && app.middleNotch ? CutoutMode.FullScreen : CutoutMode.AvoidLandscapeCutout
+
+    // While the screen turns, the old page would show stretched; it stays
+    // covered until laid out for the new size and painted. Turning between
+    // the two landscape sides keeps the size: then it shows again at once.
+    onOrientationTransitionRunningChanged: {
+        if (orientationTransitionRunning) {
+            turning = true
+            covered = true
+            uncoverTimer.stop()
+            paintedTimer.stop()
+            turnedTimer.stop()
+        } else if (ready && geckoSettled.sizeMatches(laidWidth, laidHeight)) {
+            covered = false
+        } else {
+            turnedTimer.restart()
+        }
+    }
 
     function fileUrl(path) {
         return "file://" + path.split("/").map(encodeURIComponent).join("/")
@@ -195,6 +247,7 @@ WebViewPage {
         // Timers of the layout before must not uncover the new chapter.
         uncoverTimer.stop()
         paintedTimer.stop()
+        turnedTimer.stop()
         if (!item.overlay) {
             show(index, [], [], target)
             return
@@ -263,9 +316,10 @@ WebViewPage {
             margin: 24,
             marginTop: 4,
             // Below the text the controls' row is margin enough; above it
-            // they cover nothing.
-            marginBottom: app.controlsAtBottom ? 0 : 12,
-            barHeight: app.controlsAtBottom ? controls.height : 0,
+            // they cover nothing. In landscape there are none.
+            marginBottom: isPortrait && app.controlsAtBottom ? 0 : 12,
+            barHeight: isPortrait && app.controlsAtBottom ? controls.height : 0,
+            columns: columns,
             fontSize: app.fontSize,
             fontFamily: app.fontFamily === "serif" ? "serif" : "sans-serif",
             lineHeight: app.lineHeight,
@@ -299,7 +353,16 @@ WebViewPage {
         splits = []
         if (listening)
             player.setMarks([])
-        layout({ keep: true, id: firstId, fraction: fraction })
+        turnedTimer.stop()
+        // The place measured while it was shown; the frame script could
+        // measure it now only if the view still had the size it was laid
+        // out for (not after turning the phone).
+        if (anchorChapter === chapter && anchorOffset >= 0)
+            layout({ offset: anchorOffset, fraction: fraction })
+        else if (geckoWidth > 0 && (geckoWidth !== laidWidth || geckoHeight !== laidHeight))
+            layout({ id: firstId, fraction: fraction })
+        else
+            layout({ keep: true, id: firstId, fraction: fraction })
     }
 
     function estimatedPages(index) {
@@ -451,10 +514,25 @@ WebViewPage {
             topChapter = chapter
             topOffsetOnPage = data.offsetOnPage
             fraction = data.fraction
+            pixelRatio = data.pixelRatio
+            laidWidth = data.viewWidth
+            laidHeight = data.viewHeight
+            if (!data.stale) {
+                anchorChapter = chapter
+                anchorOffset = data.middle >= 0 ? data.middle : data.offsetOnPage ? data.offset : -1
+            }
+            // Laid out while the phone was turning: again for the new size.
+            if (laidWidth !== geckoWidth || laidHeight !== geckoHeight)
+                geckoSettled.restart()
             updateBookPages()
             savePosition()
             if (laidOut !== layoutSettings() || relayoutWanted)
                 relayout()
+            break
+        case "bookfish:resized":
+            geckoWidth = data.width
+            geckoHeight = data.height
+            geckoSettled.restart()
             break
         case "bookfish:painted":
             if (data.serial !== serial || !covered)
@@ -546,6 +624,8 @@ WebViewPage {
                 showTable(data.tableImage)
             else if (data.tableError)
                 console.warn("Cannot draw the table", data.tableError)
+            else if (data.selection && isLandscape)
+                lookUpWord(data.selection.text)
             else if (data.selection)
                 startSelection(data.selection)
             else if (data.picture)
@@ -727,6 +807,8 @@ WebViewPage {
     }
 
     function hit(x, y) {
+        if (turning)
+            return
         flickable.webView.sendAsyncMessage("bookfish:hitTest", { x: x, y: y })
     }
 
@@ -888,6 +970,15 @@ WebViewPage {
         var mark = selection ? bookmark(selection.mark) : null
         if (mark)
             openNoteDialog(mark, mark)
+    }
+
+    // In landscape there is no bar to act on a selection: a word pressed is
+    // looked up at once.
+    function lookUpWord(text) {
+        flickable.webView.sendAsyncMessage("bookfish:selectClear", {})
+        pageStack.push(Qt.resolvedUrl("DictionaryPage.qml"), {
+            query: text, language: book.language || "", lightPage: lightPage
+        })
     }
 
     function lookUp() {
@@ -1170,7 +1261,7 @@ WebViewPage {
     }
 
     function turn(delta) {
-        if (!ready)
+        if (!ready || turning)
             return
         // The frame script drops it on turning.
         selection = null
@@ -1232,6 +1323,11 @@ WebViewPage {
         // The text's height changes too (not beside a notch): laid out once
         // it has settled, or pages would be counted at the old height.
         onControlsAtBottomChanged: controlsSettled.restart()
+        // Turning the phone lays out anew for its size (geckoSettled).
+        onLandscapeColumnsChanged: {
+            if (isLandscape)
+                settingsTimer.restart()
+        }
         onControlsScaleChanged: controlsSettled.restart()
     }
 
@@ -1260,9 +1356,19 @@ WebViewPage {
     onStatusChanged: {
         if (status === PageStatus.Deactivating && !lookingUp)
             endSelection()
+        // Turned while another page was on top: the old layout would show
+        // in the new size until laid out again.
+        if (status === PageStatus.Activating && ready && laidWidth > 0
+                && !geckoSettled.sizeMatches(laidWidth, laidHeight)) {
+            turning = true
+            covered = true
+            turnedTimer.restart()
+        }
         if (status !== PageStatus.Active)
             return
         lookingUp = false
+        // Turned while another page was on top: laid out now.
+        geckoSettled.restart()
         if (pendingHit >= 0 || pendingPlace || pendingPartner) {
             keyboardGone.restart()
             heightSettled.restart()
@@ -1309,7 +1415,10 @@ WebViewPage {
     Timer {
         id: heightSettled
         interval: 250
-        onTriggered: page.showPending()
+        onTriggered: {
+            page.showPending()
+            geckoSettled.restart()
+        }
     }
 
     Timer {
@@ -1405,10 +1514,9 @@ WebViewPage {
         id: controls
 
         readonly property bool atBottom: app.controlsAtBottom
-        readonly property bool besideNotch: app.middleNotch && !atBottom
+        readonly property bool besideNotch: notchSide === "top" && !atBottom
         // Room for a notch above the text, also with the controls below.
-        readonly property real cutoutHeight: Screen.hasCutouts === true && Screen.topCutout.height > 0
-                                             ? Screen.topCutout.y + Screen.topCutout.height : 0
+        readonly property real cutoutHeight: page.notchDepth
         readonly property real notchLeft: besideNotch ? Screen.topCutout.x : 0
         readonly property real notchRight: besideNotch ? Screen.topCutout.x + Screen.topCutout.width : 0
         // Taps beyond the row, over the first or last line of text (80 px
@@ -1435,7 +1543,10 @@ WebViewPage {
 
         // Above the text: its buttons take taps beyond the row.
         z: 1
-        y: atBottom ? parent.height - height : 0
+        // In landscape the page is for reading alone (lernen/29).
+        visible: page.isPortrait
+        // Upside down, the notch is below: the controls stay above it.
+        y: atBottom ? parent.height - height - (notchSide === "bottom" ? cutoutHeight : 0) : 0
         width: parent.width
         // As high as the notch, also below the text; without one (or with a
         // cutout elsewhere) a little lower than a small list item. Larger
@@ -1841,11 +1952,15 @@ WebViewPage {
 
         anchors {
             top: parent.top
-            topMargin: controls.atBottom ? Math.max(controls.cutoutHeight, Theme.paddingSmall)
-                                         : controls.height
+            topMargin: !isPortrait ? 0
+                       : controls.atBottom ? Math.max(notchSide === "top" ? notchDepth : 0, Theme.paddingSmall)
+                       : controls.height
             left: parent.left
+            leftMargin: notchSide === "left" ? notchDepth : 0
             right: parent.right
+            rightMargin: notchSide === "right" ? notchDepth : 0
             bottom: parent.bottom
+            bottomMargin: notchSide === "bottom" ? notchDepth : 0
         }
         // The pulley sits above the flickable; unclipped it would cover the
         // controls.
@@ -1898,7 +2013,9 @@ WebViewPage {
         }
 
         webView.active: true
+        onWidthChanged: geckoSettled.restart()
         onHeightChanged: {
+            geckoSettled.restart()
             if (page.pendingHit >= 0 || page.pendingPlace)
                 heightSettled.restart()
             if (controlsSettled.running)
@@ -1914,6 +2031,7 @@ WebViewPage {
             webView.addMessageListener("bookfish:page")
             webView.addMessageListener("bookfish:edge")
             webView.addMessageListener("bookfish:painted")
+            webView.addMessageListener("bookfish:resized")
             webView.addMessageListener("bookfish:highlighted")
             webView.addMessageListener("bookfish:hit")
             webView.addMessageListener("bookfish:pressed")
@@ -1975,9 +2093,11 @@ WebViewPage {
                     // With text selected a tap only ends the selection.
                     if (selecting)
                         endSelection()
-                    else if (mouse.x < width / 4)
+                    // Two columns: only the outer eighths, or each would
+                    // be half a column.
+                    else if (mouse.x < width / (columns > 1 ? 8 : 4))
                         turn(-1)
-                    else if (mouse.x > width * 3 / 4)
+                    else if (mouse.x > width * (columns > 1 ? 7 / 8 : 3 / 4))
                         turn(1)
                     else if (ready)
                         hit(mouse.x / width, mouse.y / height)
@@ -2061,7 +2181,89 @@ WebViewPage {
     Timer {
         id: controlsSettled
         interval: 250
-        onTriggered: page.relayout()
+        // Not if laid out meanwhile for the new size (geckoSettled).
+        onTriggered: {
+            if (laidOut !== layoutSettings())
+                page.relayout()
+        }
+    }
+
+    // Laid out for a new size once Gecko has it (see laidWidth): up to a
+    // second after Qt, passing other sizes on the way (516 × 1070 between
+    // portrait and landscape); laid out before, the page was a different
+    // one (lernen/29).
+    Timer {
+        id: geckoSettled
+
+        function sizeMatches(width, height) {
+            return Math.abs(flickable.width / pixelRatio - width) <= 1
+                    && Math.abs(flickable.height / pixelRatio - height) <= 1
+        }
+
+        interval: 150
+        onTriggered: {
+            if (geckoWidth <= 0 || !sizeMatches(geckoWidth, geckoHeight)
+                    || (geckoWidth === laidWidth && geckoHeight === laidHeight))
+                return
+            // Again when back (onStatusChanged); with the keyboard of
+            // another page the view is lower only for a while, and grows
+            // back after it has gone (heightSettled).
+            if (status !== PageStatus.Active || keyboardShown() || heightSettled.running)
+                return
+            relayout()
+        }
+    }
+
+    // Should Gecko not report the new size: uncovered after a while, laid
+    // out first if the view no longer fits the layout.
+    Timer {
+        id: turnedTimer
+        interval: 1500
+        onTriggered: {
+            if (!ready || status !== PageStatus.Active || keyboardShown())
+                return
+            if (!geckoSettled.sizeMatches(laidWidth, laidHeight))
+                relayout()
+            else
+                covered = false
+        }
+    }
+
+    // The page number in landscape, upright as on a book's spine: beside
+    // the notch above it, without one in the right margin near the top.
+    Item {
+        id: spine
+
+        readonly property bool inStrip: notchSide === "left" || notchSide === "right"
+
+        visible: isLandscape && bookPages > 0
+        z: 1
+        x: notchSide === "left" ? 0 : page.width - width
+        width: inStrip ? notchDepth : Math.round(24 * pixelRatio)
+        // In landscape the notch's left end is at the bottom on the left side.
+        height: notchSide === "left" ? page.height - Screen.topCutout.x - Screen.topCutout.width
+              : notchSide === "right" ? Screen.topCutout.x
+              : Math.round(page.height * 0.3)
+
+        Label {
+            anchors.centerIn: parent
+            rotation: -90
+            font.pixelSize: Math.round(0.85 * Theme.fontSizeTiny)
+            // As the hints elsewhere: secondaryColor hardly shows on white.
+            color: lightPage ? "#8c8c8c" : "#808080"
+            //: Estimated page in the whole book in landscape, written upright beside the text, e.g. "30 / 295"
+            text: qsTr("%1 / %2").arg(bookPage).arg(bookPages)
+        }
+    }
+
+    // The strip beside the notch turns pages, as the edge of the text there.
+    MouseArea {
+        visible: isLandscape && spine.inStrip
+        z: 1
+        x: notchSide === "left" ? 0 : page.width - width
+        width: notchDepth
+        height: page.height
+        onClicked: turn(notchSide === "left" ? -1 : 1)
     }
 
     Timer {

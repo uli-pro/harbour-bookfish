@@ -48,7 +48,7 @@ Page {
 
     // Leaving goes through the pulley, which saves and notes the end.
     backNavigation: false
-    allowedOrientations: Orientation.Portrait
+    allowedOrientations: app.pageOrientations
 
     function fileUrl(path) {
         return "file://" + path.split("/").map(encodeURIComponent).join("/")
@@ -526,9 +526,14 @@ Page {
         onTriggered: page.refresh()
     }
 
+    // In landscape the cover stands left of the rest, as high as the page.
+    readonly property real coverSize: isLandscape ? height - 2 * Theme.paddingLarge
+                                                  : Math.min(width, height) * 0.6
+
     SilicaFlickable {
         anchors.fill: parent
-        contentHeight: column.height + Theme.paddingLarge
+        contentHeight: Math.max(column.height, isLandscape ? coverSize + Theme.paddingLarge : 0)
+                       + Theme.paddingLarge
 
         PullDownMenu {
             MenuItem {
@@ -556,10 +561,41 @@ Page {
             }
         }
 
+        Item {
+            // Above the title in portrait (see the place kept for it below).
+            x: isLandscape ? Theme.horizontalPageMargin : (page.width - width) / 2
+            y: isLandscape ? Theme.paddingLarge : Theme.paddingLarge + column.spacing
+            width: page.coverSize
+            height: width
+
+            Rectangle {
+                anchors.fill: parent
+                visible: cover.status !== Image.Ready
+                color: Theme.rgba(Theme.highlightBackgroundColor, Theme.opacityFaint)
+
+                Icon {
+                    anchors.centerIn: parent
+                    source: "image://theme/icon-l-music"
+                }
+            }
+
+            Image {
+                id: cover
+
+                anchors.fill: parent
+                source: page.coverUrl
+                sourceSize.width: width
+                sourceSize.height: height
+                fillMode: Image.PreserveAspectFit
+                asynchronous: true
+            }
+        }
+
         Column {
             id: column
 
-            width: parent.width
+            x: isLandscape ? page.coverSize + Theme.horizontalPageMargin : 0
+            width: page.width - x
             spacing: Theme.paddingMedium
 
             Item {
@@ -567,32 +603,11 @@ Page {
                 height: Theme.paddingLarge
             }
 
+            // The cover's place in portrait.
             Item {
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: Math.min(page.width, page.height) * 0.6
-                height: width
-
-                Rectangle {
-                    anchors.fill: parent
-                    visible: cover.status !== Image.Ready
-                    color: Theme.rgba(Theme.highlightBackgroundColor, Theme.opacityFaint)
-
-                    Icon {
-                        anchors.centerIn: parent
-                        source: "image://theme/icon-l-music"
-                    }
-                }
-
-                Image {
-                    id: cover
-
-                    anchors.fill: parent
-                    source: page.coverUrl
-                    sourceSize.width: width
-                    sourceSize.height: height
-                    fillMode: Image.PreserveAspectFit
-                    asynchronous: true
-                }
+                visible: !isLandscape
+                width: 1
+                height: page.coverSize
             }
 
             Label {

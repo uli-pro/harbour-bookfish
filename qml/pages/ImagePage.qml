@@ -40,7 +40,7 @@ Page {
                                               image.y + py * image.height - cy))
     }
 
-    allowedOrientations: Orientation.All
+    allowedOrientations: app.pageOrientations
     // Enlarged, a swipe moves the picture instead of leaving the page.
     backNavigation: !zoomed
 

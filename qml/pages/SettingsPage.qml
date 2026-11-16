@@ -3,7 +3,8 @@ import Sailfish.Silica 1.0
 import "../components"
 
 // The settings: a page for each kind, what is set there in a second line,
-// and the page colours.
+// then the orientation and the page colours. In landscape the latter stand
+// on the right, so that all shows without scrolling.
 Page {
     id: page
 
@@ -35,13 +36,14 @@ Page {
 
     SilicaFlickable {
         anchors.fill: parent
-        contentHeight: column.height + Theme.paddingLarge
+        contentHeight: Math.max(column.height, choices.y + choices.height) + Theme.paddingLarge
 
         Column {
             id: column
-            width: parent.width
+            width: isLandscape ? parent.width / 2 : parent.width
 
             PageHeader {
+                id: header
                 title: qsTr("Settings")
             }
 
@@ -83,7 +85,12 @@ Page {
             SettingsEntry {
                 //: Settings of the reading page's bar of buttons
                 title: qsTr("Button bar")
-                summary: [
+                // In landscape the reading page has no bar.
+                enabled: isPortrait
+                summary: !isPortrait
+                         //: Why the button bar settings are dimmed in landscape
+                         ? qsTr("Only in portrait")
+                         : [
                     //: Size of the reading page's buttons, e.g. "130 %"
                     qsTr("%1 %").arg(Math.round(app.controlsScale * 100)),
                     app.controlsAtBottom
@@ -110,8 +117,37 @@ Page {
                 onClicked: pageStack.push(Qt.resolvedUrl("DictionarySettingsPage.qml"))
             }
 
-            // Last, below the entries: changed most often, it is the
-            // nearest to the thumb.
+        }
+
+        // Below the entries, nearest to the thumb: changed most often. In
+        // landscape beside them, level with the first.
+        Column {
+            id: choices
+
+            x: isLandscape ? parent.width / 2 : 0
+            y: isLandscape ? header.height : column.height
+            width: isLandscape ? parent.width / 2 : parent.width
+
+            ChoiceRow {
+                //: How the app is turned: with the phone, or always the same way
+                label: qsTr("Orientation")
+                options: [
+                    //: Orientation: the app turns with the phone
+                    qsTr("Automatic"),
+                    //: Orientation: always upright
+                    qsTr("Portrait"),
+                    //: Orientation: always landscape, the phone's top (with the camera) on the left
+                    qsTr("Landscape, top left"),
+                    //: Orientation: always landscape, the phone's top (with the camera) on the right
+                    qsTr("Landscape, top right"),
+                    //: Orientation: always upright, but upside down
+                    qsTr("Upside down")]
+                picture: Component { OrientationPicture { } }
+                currentIndex: Math.max(0, app.orientationChoices.indexOf(app.orientationChoice))
+                onChosen: app.setOrientation(app.orientationChoices[index])
+            }
+
+            // Last: changed most often, it is the nearest to the thumb.
             ChoiceRow {
                 //: Colours of the reading page: black on white or white on black
                 label: qsTr("Colour mode")

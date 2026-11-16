@@ -33,6 +33,15 @@ addEventListener("DOMContentLoaded", function (event) {
     doc.addEventListener("click", function (e) { e.preventDefault() }, true)
 }, true)
 
+// The view's new size reaches Gecko up to a second after Qt's (turning
+// the phone), passing other sizes on the way; QML lays out once it has
+// the right one.
+addEventListener("resize", function (event) {
+    // Only the window sends it.
+    if (content)
+        sendAsyncMessage("bookfish:resized", { width: content.innerWidth, height: content.innerHeight })
+}, true)
+
 // Wait for "load", not DOMContentLoaded: images change the number of pages.
 addEventListener("load", function (event) {
     if (event.target === content.document)
@@ -45,6 +54,7 @@ addMessageListener("bookfish:layout", function (message) {
     var width = content.innerWidth
     var margin = o.margin
     var target = o.target
+    var columns = o.columns > 1 ? 2 : 1
     // Laid out again (new text size, controls moved): replace our style and
     // show the page with the character in the middle of the page shown now.
     // Wherever the reader is on the page, the text moves by half a page at
@@ -87,7 +97,7 @@ addMessageListener("bookfish:layout", function (message) {
         "  font-size: " + fontSize + "px; }" +
         "html body { margin: 0; height: 100vh; box-sizing: border-box; overflow: hidden;" +
         "  padding: " + o.marginTop + "px " + margin + "px " + marginBottom + "px;" +
-        "  column-width: " + (width - 2 * margin) + "px; column-gap: " + (2 * margin) + "px; column-fill: auto;" +
+        columnRule(width, margin, columns) +
         "  color: " + o.color + "; background: " + o.background + ";" +
         "  font-size: " + fontSize + "px; line-height: " + o.lineHeight + ";" +
         "  overflow-wrap: break-word; }" +
@@ -142,6 +152,15 @@ addMessageListener("bookfish:layout", function (message) {
         ".bookfish-table-render > h|table { width: auto; min-width: 0; max-width: none; margin: 0; }" +
         ".bookfish-table-render h|a { color: inherit; text-decoration: none; }" +
         (o.background === "black" ? ".bookfish-table-render h|*:not(h|hr) { color: inherit; background-color: transparent; }" : ""))
+    // innerWidth is rounded (469 for 468.9): far into a long chapter the
+    // small difference would put a box on the wrong page, and with two
+    // columns a width too large leaves room for one only.
+    var real = doc.body ? doc.body.getBoundingClientRect().width : width
+    if (real > 0 && Math.abs(real - width) > 0.001) {
+        style.textContent = style.textContent.replace(important(columnRule(width, margin, columns)),
+                                                      important(columnRule(real, margin, columns)))
+        width = real
+    }
     normalize(doc, o)
 
     var sentences = []
@@ -175,7 +194,13 @@ addMessageListener("bookfish:layout", function (message) {
         // The body scrolls, not the root element: Sailfish's Gecko stops
         // scrolling the root four screen widths before its end.
         scroller: doc.body || doc.documentElement,
+        // A screen's width: two columns in landscape if chosen.
         width: width,
+        columns: columns,
+        margin: margin,
+        // The view's size this layout was made for, in CSS pixels.
+        viewWidth: content.innerWidth,
+        viewHeight: content.innerHeight,
         // The WebView enlarges text by itself (measured: 1.6); the settings
         // page shows its sample at the size the reader sees. A page Gecko
         // could not parse has no body.
@@ -196,6 +221,7 @@ addMessageListener("bookfish:layout", function (message) {
         texts: null
     }
     applyMarks(o.marks || [])
+    evenColumns(doc)
     go(target)
     remark()
     if (o.highlight) {
@@ -940,7 +966,7 @@ function pictureAt(x, y) {
     if (picture) {
         var rect = picture.getBoundingClientRect()
         var style = content.getComputedStyle(state.scroller)
-        var textWidth = state.width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+        var textWidth = columnWidth(parseFloat(style.paddingLeft) + parseFloat(style.paddingRight))
         if (Math.min(rect.width, rect.height) >= textWidth / 4) {
             if (picture.localName === "img") {
                 src = picture.currentSrc || picture.src || ""
@@ -1166,7 +1192,7 @@ function normalize(doc, o) {
     // A book's odd table must not cost the whole chapter: without the layout
     // finishing, QML keeps the view covered.
     try {
-        fitTables(doc, o.margin)
+        fitTables(doc, o.margin, o.columns > 1 ? 2 : 1)
         splitTallTables(doc)
         markTables(doc)
     } catch (e) { }
@@ -1188,13 +1214,13 @@ function outerTables(doc) {
 // minTableScale: small text reads better than broken words.
 var minTableScale = 0.4
 
-function fitTables(doc, margin) {
+function fitTables(doc, margin, columns) {
     var tables = outerTables(doc)
     // All reads before all writes: one reflow per round, however many tables.
     function tooWide(list) {
         // Not innerWidth: rounded, and far into a long chapter the small
         // difference would put a box on the wrong page.
-        var width = doc.body.getBoundingClientRect().width
+        var width = doc.body.getBoundingClientRect().width / columns
         var scrolled = doc.body.scrollLeft
         var wide = []
         for (var i = 0; i < list.length; ++i) {
@@ -1399,7 +1425,7 @@ function drawTable(index) {
     var box = doc.createElementNS(xhtml, "div")
     box.setAttribute("class", "bookfish-table-render")
     var style = content.getComputedStyle(state.scroller)
-    var textWidth = state.width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+    var textWidth = columnWidth(parseFloat(style.paddingLeft) + parseFloat(style.paddingRight))
     // Up to twice the page's width: as narrow as the text, cells broke
     // their lines after every word or two (Huyen, 16.11.2026), and the
     // picture is fitted to the screen's width. A narrower table keeps its
@@ -1489,6 +1515,42 @@ addMessageListener("bookfish:turn", function (message) {
 
 function pageCount() {
     return Math.max(1, Math.round(state.scroller.scrollWidth / state.width))
+}
+
+// Two columns: a chapter ending in a left column would scroll only half
+// the last screen, which then showed half the screen before. A filler as
+// high as a column leaves the rest of that column and fills the right one.
+function evenColumns(doc) {
+    var old = doc.getElementById("bookfish-filler")
+    if (old)
+        old.parentNode.removeChild(old)
+    if (state.columns < 2)
+        return
+    var halves = Math.round(state.scroller.scrollWidth / (state.width / 2))
+    if (halves % 2 === 0)
+        return
+    var style = content.getComputedStyle(state.scroller)
+    var filler = doc.createElementNS(xhtml, "div")
+    filler.id = "bookfish-filler"
+    filler.style.setProperty("height", (state.scroller.clientHeight - parseFloat(style.paddingTop)
+                                        - parseFloat(style.paddingBottom)) + "px", "important")
+    filler.style.setProperty("margin", "0", "important")
+    filler.style.setProperty("padding", "0", "important")
+    filler.style.setProperty("border", "0", "important")
+    state.scroller.appendChild(filler)
+}
+
+// The CSS columns: one screen width each, or two to a screen. Every screen
+// starts exactly one width further right. Slightly narrower than exact,
+// or rounding may leave room for one column only.
+function columnRule(width, margin, columns) {
+    var column = columns > 1 ? width / columns - 2 * margin - 0.01 : width - 2 * margin
+    return "  column-width: " + column + "px; column-gap: " + (2 * margin) + "px; column-fill: auto;"
+}
+
+// The width of a column of text; padding is the page's on both sides.
+function columnWidth(padding) {
+    return (state.width - padding - (state.columns - 1) * 2 * state.margin) / state.columns
 }
 
 function currentPage() {
@@ -1781,6 +1843,9 @@ function showPage(page) {
     // Report where the view really is, should the scroll be clamped.
     page = currentPage()
     var text = firstTextOn(page)
+    // The view has another size than this layout was made for (the phone
+    // is turning): the middle of the screen is elsewhere in the text.
+    var stale = content.innerWidth !== state.viewWidth || content.innerHeight !== state.viewHeight
     sendAsyncMessage("bookfish:page", {
         serial: state.serial,
         page: page,
@@ -1789,7 +1854,14 @@ function showPage(page) {
         offset: text.offset,
         offsetOnPage: text.onPage,
         fraction: pages > 1 ? page / (pages - 1) : 0,
-        textScale: state.textScale
+        textScale: state.textScale,
+        // Where the page is held when the screen turns: measured now, while
+        // the screen and the layout still agree.
+        middle: stale ? -1 : middleOffset(page, state.margin),
+        stale: stale,
+        viewWidth: state.viewWidth,
+        viewHeight: state.viewHeight,
+        pixelRatio: content.devicePixelRatio || 1
     })
 }
 
