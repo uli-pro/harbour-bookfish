@@ -24,7 +24,7 @@ Page {
     // are set smaller, and it shows where one is.
     readonly property real textSize: Math.max(app.minFontSize, app.fontSize - 6) * app.textScale
 
-    allowedOrientations: Orientation.Portrait
+    allowedOrientations: app.pageOrientations
     palette.colorScheme: lightPage ? Theme.DarkOnLight : Theme.LightOnDark
 
     Rectangle {
@@ -67,12 +67,30 @@ Page {
 
         VerticalScrollDecorator { }
 
-        Component.onCompleted: {
+        // Scrolled by the reader: the page stays there when it turns.
+        property bool moved: false
+
+        function showNote() {
             if (page.first <= 0)
                 return
             positionViewAtIndex(page.first, ListView.Beginning)
             // Some of the note before shows that there is more above.
             contentY = Math.max(contentY - 1.5 * app.lineHeight * page.textSize, originY)
+        }
+
+        Component.onCompleted: showNote()
+        onMovementStarted: moved = true
+        // Turned, the lines wrap anew and the note would slip out of sight;
+        // once they are laid out.
+        onWidthChanged: {
+            if (!moved)
+                noteAgain.restart()
+        }
+
+        Timer {
+            id: noteAgain
+            interval: 0
+            onTriggered: listView.showNote()
         }
     }
 

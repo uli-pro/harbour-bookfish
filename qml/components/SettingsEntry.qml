@@ -25,6 +25,8 @@ BackgroundItem {
             width: parent.width
             truncationMode: TruncationMode.Fade
             color: entry.highlighted ? Theme.highlightColor : Theme.primaryColor
+            // Not available now: dimmed; the second line says why.
+            opacity: entry.enabled ? 1 : Theme.opacityLow
         }
         Label {
             id: summaryLabel

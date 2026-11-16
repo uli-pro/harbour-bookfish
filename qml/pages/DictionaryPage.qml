@@ -66,7 +66,7 @@ Page {
             lookUp()
     }
 
-    allowedOrientations: Orientation.Portrait
+    allowedOrientations: app.pageOrientations
     palette.colorScheme: lightPage ? Theme.DarkOnLight : Theme.LightOnDark
 
     Rectangle {

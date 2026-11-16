@@ -77,6 +77,23 @@ ApplicationWindow {
     readonly property real maxControlsScale: 2.0
     readonly property real controlsScale: settingValue(controlsScaleSetting.value, 1,
                                                        minControlsScale, maxControlsScale)
+    // "auto" follows the phone (and Sailfish's own lock); one position
+    // holds for every page, even against that lock.
+    readonly property var orientationChoices: ["auto", "portrait", "landscape", "landscapeInverted",
+                                               "portraitInverted"]
+    readonly property string orientationChoice: orientationChoices.indexOf(orientationSetting.value) >= 0
+                                                 ? orientationSetting.value : "auto"
+    readonly property int pageOrientations: {
+        switch (orientationChoice) {
+        case "portrait": return Orientation.Portrait
+        case "landscape": return Orientation.Landscape
+        case "landscapeInverted": return Orientation.LandscapeInverted
+        case "portraitInverted": return Orientation.PortraitInverted
+        default: return Orientation.All
+        }
+    }
+    // Columns of the reading page in landscape: 1 or 2.
+    readonly property int landscapeColumns: Number(landscapeColumnsSetting.value) === 1 ? 1 : 2
     // A cover taken out of a book by Python's cover thread; file is "" if
     // the book has none that can be shown.
     signal coverReady(string key, string file)
@@ -108,6 +125,14 @@ ApplicationWindow {
 
     function setControls(where) {
         controlsSetting.value = where
+    }
+
+    function setOrientation(choice) {
+        orientationSetting.value = choice
+    }
+
+    function setLandscapeColumns(columns) {
+        landscapeColumnsSetting.value = columns
     }
 
     function setControlsScale(scale) {
@@ -253,7 +278,10 @@ ApplicationWindow {
 
     initialPage: Component { LibraryPage { } }
     cover: Qt.resolvedUrl("cover/CoverPage.qml")
-    allowedOrientations: defaultAllowedOrientations
+    allowedOrientations: Orientation.All
+    // Pages without their own say follow the setting; those with it give
+    // the same.
+    _defaultPageOrientations: pageOrientations
 
 
     ConfigurationValue {
@@ -290,6 +318,18 @@ ApplicationWindow {
         id: controlsScaleSetting
         key: "/apps/harbour-bookfish/controlsScale"
         defaultValue: 1
+    }
+
+    ConfigurationValue {
+        id: orientationSetting
+        key: "/apps/harbour-bookfish/orientation"
+        defaultValue: "auto"
+    }
+
+    ConfigurationValue {
+        id: landscapeColumnsSetting
+        key: "/apps/harbour-bookfish/landscapeColumns"
+        defaultValue: 2
     }
 
     ConfigurationValue {

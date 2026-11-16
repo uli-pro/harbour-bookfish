@@ -20,6 +20,10 @@ Item {
     property bool wideLast: false
     // Below the choices, e.g. why they cannot be chosen now.
     property alias hint: hintText.text
+    // Optional: a picture for each choice instead of its name, which then
+    // shows below for the one chosen. The picture gets the properties
+    // choice (index), chosen and highlighted.
+    property Component picture: null
 
     signal chosen(int index)
 
@@ -62,7 +66,7 @@ Item {
 
                     width: choiceRow.wideLast && index === choiceRow.options.length - 1
                            ? row.width : (row.width - (row.columns - 1) * row.spacing) / row.columns
-                    height: Theme.itemSizeSmall
+                    height: choiceRow.picture ? Theme.itemSizeLarge : Theme.itemSizeSmall
                     onClicked: choiceRow.chosen(index)
 
                     // The frame of the one chosen, apart from it on the
@@ -90,7 +94,34 @@ Item {
                         border.width: option.current ? 0 : Math.max(1, Math.round(Theme.pixelRatio))
                         border.color: Theme.rgba(Theme.primaryColor, Theme.opacityLow)
                     }
+                    Loader {
+                        id: pictureLoader
+
+                        anchors.fill: parent
+                        anchors.margins: Theme.paddingMedium
+                        sourceComponent: choiceRow.picture
+
+                        Binding {
+                            target: pictureLoader.item
+                            property: "choice"
+                            value: index
+                            when: pictureLoader.item !== null
+                        }
+                        Binding {
+                            target: pictureLoader.item
+                            property: "chosen"
+                            value: option.current
+                            when: pictureLoader.item !== null
+                        }
+                        Binding {
+                            target: pictureLoader.item
+                            property: "highlighted"
+                            value: option.highlighted
+                            when: pictureLoader.item !== null
+                        }
+                    }
                     Label {
+                        visible: !choiceRow.picture
                         anchors.centerIn: parent
                         width: Math.min(implicitWidth, parent.width - 2 * Theme.paddingSmall)
                         truncationMode: TruncationMode.Fade
@@ -105,6 +136,17 @@ Item {
                     }
                 }
             }
+        }
+
+        // With pictures: the name of the one chosen, marked in words too.
+        Label {
+            width: parent.width
+            visible: choiceRow.picture !== null
+            truncationMode: TruncationMode.Fade
+            font.pixelSize: Theme.fontSizeSmall
+            color: Theme.highlightColor
+            opacity: choiceRow.enabled ? 1 : Theme.opacityLow
+            text: "✓ " + (choiceRow.options[choiceRow.currentIndex] || "")
         }
 
         Label {
