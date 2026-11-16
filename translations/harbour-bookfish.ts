@@ -1012,13 +1012,13 @@ Search hit shown and number of hits, e.g. &quot;3 / 39&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2726"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2728"/>
         <source>Bookmark added</source>
         <extracomment>Shown briefly after a bookmark was made</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2741"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2743"/>
         <source>Copied</source>
         <extracomment>Shown briefly after the selected text was copied</extracomment>
         <translation type="unfinished"></translation>

@@ -1,5 +1,3 @@
-import os
-
 from bookfish.errors import EpubError
 from bookfish.package import (BookInfo, SpineItem, TocEntry, read_info, read_nav, read_ncx,
                                read_package, text_length)
