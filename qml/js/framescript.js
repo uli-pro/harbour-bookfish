@@ -133,8 +133,8 @@ addMessageListener("bookfish:layout", function (message) {
         // Bookmarks and notes: a dotted line, which changes no line's height.
         "body .bookfish-mark { text-decoration: underline dotted " + o.underlineColor + ";" +
         "  text-decoration-thickness: 0.1em; text-underline-offset: 0.2em; }" +
-        // The first cell of each table in the colour of links: a long press
-        // on it opens the table as the book made it.
+        // The first cell and the caption of each table in the colour of
+        // links: a long press on them opens the table as the book made it.
         "body .bookfish-table-link, body .bookfish-table-link h|* { color: " +
         (o.background === "black" ? "#8ab4f8" : "#0645ad") + "; }" +
         // A table drawn for the picture view (drawTable), outside the body
@@ -1107,7 +1107,7 @@ function normalize(doc, o) {
     if (!doc.body)
         return
     // Ours only: a book's own element of that class keeps it.
-    tableLinks.forEach(function (link) { link.cell.classList.remove("bookfish-table-link") })
+    tableLinks.forEach(function (link) { link.element.classList.remove("bookfish-table-link") })
     tableLinks = []
     var elements = doc.body.getElementsByTagName("*")
     var justified = []
@@ -1364,23 +1364,33 @@ function splitTallTables(doc) {
     tallRows.forEach(function (row) { override(row, "display", "block") })
 }
 
-// In each table, the first cell with text looks
-// like a link: a long press on it opens the table as the book made it (QML's
-// table view). Numbered as Python counts outer tables. Only a class: places
-// are kept as offsets in the chapter's text, which must not change.
+// In each table, the first cell with text looks like a link, and so does the
+// table's caption ("Table 2-1. ...", Huyen): a long press on either opens the
+// table as the book made it (QML's table view). Numbered as Python counts
+// outer tables. Only a class: places are kept as offsets in the chapter's
+// text, which must not change. Paragraphs before or after a table are not
+// taken for captions: in the library those beginning with "Table" are body
+// text ("Table 4-3 shows ...", 16.11.2026).
 var tableLinks = []
 
 function markTables(doc) {
+    function mark(element, index) {
+        if (element.textContent.trim() && !element.classList.contains("bookfish-table-link")) {
+            element.classList.add("bookfish-table-link")
+            tableLinks.push({ element: element, table: index })
+            return true
+        }
+        return false
+    }
     outerTables(doc).forEach(function (table, index) {
+        Array.prototype.forEach.call(table.children, function (child) {
+            if (child.namespaceURI === xhtml && child.localName === "caption")
+                mark(child, index)
+        })
         var cells = table.querySelectorAll("td, th")
         for (var i = 0; i < cells.length; ++i) {
-            var cell = cells[i]
-            if (cell.closest("table") === table && cell.textContent.trim()
-                    && !cell.classList.contains("bookfish-table-link")) {
-                cell.classList.add("bookfish-table-link")
-                tableLinks.push({ cell: cell, table: index })
+            if (cells[i].closest("table") === table && mark(cells[i], index))
                 return
-            }
         }
     })
 }
@@ -1456,11 +1466,11 @@ function drawTable(index) {
     }
 }
 
-// The number of the table whose marked cell is at x, y, or -1.
+// The number of the table whose marked cell or caption is at x, y, or -1.
 function tableLinkAt(x, y) {
     for (var el = state.doc.elementFromPoint(x, y); el; el = el.parentElement) {
         for (var i = 0; i < tableLinks.length; ++i) {
-            if (tableLinks[i].cell === el)
+            if (tableLinks[i].element === el)
                 return tableLinks[i].table
         }
     }
