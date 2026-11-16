@@ -180,7 +180,13 @@ class BookIndex(object):
     def __init__(self, root):
         self.root = root
         book = read_package(root)
-        self.chapters = [read_chapter(root, item.path) for item in book.spine]
+        # A path listed again shares its text: a crafted spine repeating one
+        # chapter thousands of times filled the memory.
+        read = {}
+        for item in book.spine:
+            if item.path not in read:
+                read[item.path] = read_chapter(root, item.path)
+        self.chapters = [read[item.path] for item in book.spine]
         self.pages = PageFinder(page_numbers([item.path for item in book.spine], book.pages),
                                 self.chapters, [item.linear for item in book.spine], book.language)
         spine_index = {}

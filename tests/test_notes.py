@@ -22,6 +22,38 @@ class ShortTest(unittest.TestCase):
             self.assertFalse(is_short(text), text)
 
 
+class CssTest(unittest.TestCase):
+
+    def test_rules(self):
+        sheet = ("/* .x { font-weight: bold } */ .a { font-style: italic }\n"
+                 "@media screen { span.b { font-weight: 700 } } .c { color: red"
+                 " } .open { font-weight: bold")
+        self.assertEqual(notes._css_rules(sheet),
+                         [(" .a ", " font-style: italic "),
+                          (" span.b ", " font-weight: 700 "),
+                          (" .c ", " color: red ")])
+
+    def test_unclosed_comment_and_long_parts(self):
+        self.assertEqual(notes._css_rules(".a { x } /* .b { y }"), [(".a ", " x ")])
+        long = "x" * 2000
+        self.assertEqual(notes._css_rules(".a { %s } .%s { y } .c { z }" % (long, long)),
+                         [(" .c ", " z ")])
+
+
+class ListPageTest(unittest.TestCase):
+
+    def body(self, inner):
+        from xml.etree import ElementTree
+        return ElementTree.fromstring("<body>" + inner + "</body>")
+
+    def test_links_nested_in_links_count_once(self):
+        # Five links around one word, beside a longer text: no list page.
+        nested = '<a href="#x">' * 5 + "word" + "</a>" * 5
+        self.assertFalse(notes._list_page(self.body("<p>" + nested + " a longer text</p>")))
+        links = "".join('<p><a href="#c{0}">Chapter {0}</a></p>'.format(i) for i in range(6))
+        self.assertTrue(notes._list_page(self.body("<h1>Contents</h1>" + links)))
+
+
 class FollowTest(TempDirTestCase):
 
     def book(self, notes_body):

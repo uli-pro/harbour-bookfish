@@ -27,6 +27,9 @@ DEFAULT_ACTIVE_CLASS = "-epub-media-overlay-active"
 # one title of 3 million characters made the cache too large to read.
 MAX_META_LENGTH = 500
 MAX_AUTHORS = 20
+# Far above any book (a Bible of one file per chapter: 1189); every list
+# of the reader has an entry per item.
+MAX_SPINE = 10000
 
 Book = collections.namedtuple(
     "Book", "identifier title authors language cover duration active_class "
@@ -309,6 +312,8 @@ def _read_manifest(opf, opf_path):
 def _read_spine(opf, manifest):
     spine = []
     for ref in opf.iterfind(_OPF + "spine/" + _OPF + "itemref"):
+        if len(spine) >= MAX_SPINE:
+            break
         item = manifest.get(ref.get("idref"))
         if item is None:
             continue

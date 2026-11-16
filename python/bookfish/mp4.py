@@ -10,7 +10,8 @@ around it, so a broken file ends the reading instead of looping.
 import struct
 
 from . import audioutil
-from .audioutil import AudioError, clean_text, open_regular, picture_type, read_exact
+from .audioutil import (AudioError, clean_text, known_duration, open_regular, picture_type,
+                        read_exact)
 
 MAX_BOXES = 10000
 MAX_BOX_READ = 1024 * 1024
@@ -145,7 +146,7 @@ def _duration(data):
             return None
         scale, length = struct.unpack(">II", data[12:20])
         unknown = 0xffffffff
-    return length * 1000 // scale if scale and 0 < length < unknown else None
+    return known_duration(length * 1000 // scale) if scale and 0 < length < unknown else None
 
 
 def _chapters(data):

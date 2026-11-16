@@ -105,12 +105,12 @@ def _body_of(doc):
     return body if body is not None else doc
 
 
-_CSS_COMMENT = re.compile(r"/\*.*?\*/", re.S)
-_CSS_RULE = re.compile(r"([^{}]+)\{([^{}]*)\}")
 _CSS_CLASS = re.compile(r"(?:[a-zA-Z][\w-]*)?\.([\w-]+)")
 _CSS_BOLD = re.compile(r"font-weight\s*:\s*(bold(?:er)?|[6-9]00)\b|\bfont\s*:[^;]*\bbold\b", re.I)
 _CSS_ITALIC = re.compile(r"font-style\s*:\s*(italic|oblique)\b|\bfont\s*:[^;]*\b(italic|oblique)\b", re.I)
 MAX_CSS_SIZE = 2 * 1024 * 1024
+# Longer selectors or declarations are no simple class rules.
+_MAX_CSS_PART = 1024
 
 
 def _class_styles(root, path, doc):
@@ -139,7 +139,7 @@ def _class_styles(root, path, doc):
                 continue
     styles = {}
     for sheet in sheets:
-        for selectors, declarations in _CSS_RULE.findall(_CSS_COMMENT.sub("", sheet)):
+        for selectors, declarations in _css_rules(sheet):
             bold = bool(_CSS_BOLD.search(declarations))
             italic = bool(_CSS_ITALIC.search(declarations))
             if not bold and not italic:
@@ -150,6 +150,33 @@ def _class_styles(root, path, doc):
                     old = styles.get(match.group(1), (False, False))
                     styles[match.group(1)] = (old[0] or bold, old[1] or italic)
     return styles
+
+
+def _css_rules(sheet):
+    """(selectors, declarations) of the innermost rules of sheet. By hand:
+    regular expressions over a whole sheet took quadratic time on sheets
+    without braces (2 MB: hours)."""
+    parts = []
+    start = 0
+    while True:
+        comment = sheet.find("/*", start)
+        if comment < 0:
+            parts.append(sheet[start:])
+            break
+        parts.append(sheet[start:comment])
+        end = sheet.find("*/", comment + 2)
+        if end < 0:
+            break
+        start = end + 2
+    rules = []
+    # The text after the last "}" is no complete rule.
+    for chunk in "".join(parts).split("}")[:-1]:
+        head, brace, declarations = chunk.rpartition("{")
+        selectors = head.rpartition("{")[2]
+        if (brace and selectors.strip() and len(selectors) <= _MAX_CSS_PART
+                and len(declarations) <= _MAX_CSS_PART):
+            rules.append((selectors, declarations))
+    return rules
 
 
 def _local(tag):
@@ -219,13 +246,27 @@ def _leads(body, link):
 
 
 def _list_page(body):
-    """A page mostly of links: contents, an index."""
-    links = [a for a in body.iter() if _local(a.tag) == "a" and a.get("href")]
-    if len(links) < 5:
-        return False
-    def length(element):
-        return len(re.sub(r"\s+", "", _text(element)))
-    return sum(length(a) for a in links) > 0.5 * length(body)
+    """A page mostly of links: contents, an index. One walk: measuring each
+    link's text on its own was quadratic in links nested in links."""
+    links = 0
+    counts = [0, 0]  # visible characters outside and inside links
+    stack = [(body, False)]
+    while stack:
+        element, inside = stack.pop()
+        if not isinstance(element.tag, str):
+            continue
+        if _local(element.tag) == "a" and element.get("href"):
+            links += 1
+            inside = True
+        counts[inside] += _visible(element.text)
+        for child in element:
+            stack.append((child, inside))
+            counts[inside] += _visible(child.tail)
+    return links >= 5 and counts[True] > 0.5 * (counts[False] + counts[True])
+
+
+def _visible(text):
+    return len("".join(text.split())) if text else 0
 
 
 def _units(body):

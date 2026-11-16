@@ -19,10 +19,12 @@ reader last moved the place, in seconds since 1970). An EPUB and its audiobook
 compare both to offer going to the place of the one used last.
 
 File format: {"books": {key: position}, "last": path of the EPUB file,
-"recent": paths of the books opened last, newest first}; a book's path is
-that of its EPUB or audio file, or of the folder of an audiobook.
+"unshown": that path until the book was shown, "recent": paths of the books
+opened last, newest first}; a book's path is that of its EPUB or audio file,
+or of the folder of an audiobook.
 """
 
+import json
 import math
 import os
 
@@ -61,20 +63,48 @@ def save(path, key, position, now=None):
             if "progress" not in position and "progress" in old:
                 position["progress"] = old["progress"]
     state["books"][key] = position
+    # The books used longest ago go while the file would be too large to be
+    # read again: then every place would be lost.
+    books = state["books"]
+    others = sorted((k for k in books if k != key), key=lambda k: _time(books[k]))
+    size = len(json.dumps(state, sort_keys=True))
+    while others and size > MAX_SIZE * 9 // 10:
+        old = others.pop(0)
+        size -= len(json.dumps({old: books.pop(old)})) - 1
     _write(path, state)
+
+
+def _time(position):
+    stamp = position.get("time") if isinstance(position, dict) else None
+    return stamp if isinstance(stamp, (int, float)) else 0
 
 
 def load_last(path):
-    """The book read last, or None if there is none or it is gone."""
-    last = _read_all(path)["last"]
-    return last if isinstance(last, str) and _exists(last) else None
+    """The book read last, or None if there is none or it is gone, or if it
+    was never shown since it was opened: the app may have crashed on it,
+    and opening it at every start would keep the library out of reach."""
+    state = _read_all(path)
+    last = state["last"]
+    if not isinstance(last, str) or last == state["unshown"] or not _exists(last):
+        return None
+    return last
 
 
 def save_last(path, epub_path):
+    """epub_path was opened; it counts as unshown until shown() is called."""
     state = _read_all(path)
     state["last"] = epub_path
+    state["unshown"] = epub_path
     state["recent"] = ([epub_path] + [p for p in state["recent"] if p != epub_path])[:RECENT]
     _write(path, state)
+
+
+def shown(path):
+    """The book opened last was shown: its first page or its audio."""
+    state = _read_all(path)
+    if state["unshown"] is not None:
+        state["unshown"] = None
+        _write(path, state)
 
 
 def load_recent(path):
@@ -87,12 +117,14 @@ def _exists(path):
 
 
 def _read_all(path):
-    state = {"books": {}, "last": None, "recent": []}
+    state = {"books": {}, "last": None, "unshown": None, "recent": []}
     stored = jsonfile.read(path, MAX_SIZE)
     if isinstance(stored, dict):
         if isinstance(stored.get("books"), dict):
             state["books"] = stored["books"]
         state["last"] = stored.get("last")
+        if isinstance(stored.get("unshown"), str):
+            state["unshown"] = stored["unshown"]
         recent = stored.get("recent")
         if isinstance(recent, list):
             state["recent"] = [p for p in recent if isinstance(p, str)][:RECENT]
@@ -130,11 +162,14 @@ def _valid_text(position):
     fraction = position.get("fraction")
     # bool is a subclass of int, but true is no chapter number.
     if (not isinstance(spine, int) or isinstance(spine, bool) or spine < 0
-            or not isinstance(sentence, str) or len(sentence) > _MAX_ID_LENGTH
+            or not isinstance(sentence, str)
             or not isinstance(fraction, (int, float))
             or isinstance(fraction, bool) or not math.isfinite(fraction)
             or not 0 <= fraction <= 1):
         return None
+    # A book's ids may be of any length; the place is kept without one.
+    if len(sentence) > _MAX_ID_LENGTH:
+        sentence = ""
     # Files from before listening have no "heard", from before the reading
     # history no "offset".
     heard = position.get("heard", False) is True

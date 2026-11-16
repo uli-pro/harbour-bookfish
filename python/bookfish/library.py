@@ -27,6 +27,8 @@ from .xmlutil import MAX_XML_SIZE, parse_xml_data
 
 MAX_CACHE_SIZE = 16 * 1024 * 1024
 MAX_COVER_SIZE = 5 * 1024 * 1024
+# Folders below the library folder; far deeper than any library.
+MAX_DEPTH = 32
 # PNG and GIF are decoded at full size before they are scaled down; a small
 # file can hold a huge image. JPEG is decoded scaled.
 MAX_COVER_PIXELS = 4096
@@ -60,8 +62,9 @@ folder name; kind "epub" or "audiobook"; files the audio files in order."""
 def list_books(folders):
     """Return the books below folders (see BookFile), sorted by name.
 
-    Hidden files and folders are left out. Symbolic links to folders are not
-    followed, so a link cannot make the walk endless. Missing folders are
+    Hidden files and folders are left out, and folders deeper than MAX_DEPTH.
+    Symbolic links to folders are not followed, so a link cannot make the
+    walk endless. Missing folders are
     ignored, and so are names that are not valid UTF-8: QML could not show
     or open them.
     """
@@ -69,6 +72,10 @@ def list_books(folders):
     seen = set()
     for folder in folders:
         for dirpath, dirnames, filenames in os.walk(folder):
+            # os.walk recurses before Python 3.12: 1000 levels raised
+            # RecursionError on Sailfish OS, and no book was listed.
+            if dirpath[len(folder):].count(os.sep) >= MAX_DEPTH:
+                dirnames[:] = []
             dirnames[:] = [d for d in dirnames if not d.startswith(".")]
             epubs, mp3s = [], []
             for filename in filenames:
@@ -373,7 +380,7 @@ def extract_cover(epub_path, cover, target):
             data = _member(archive, cover, MAX_COVER_SIZE)
     except Exception:
         return False
-    if not _small_image(data):
+    if not small_image(data):
         return False
     return _write_cover(data, target)
 
@@ -410,7 +417,7 @@ def extract_audio_cover(path, cover, target):
         return False
     if (not data or len(data) > MAX_COVER_SIZE
             or picture_type(data) != os.path.splitext(cover)[1].lower().replace("jpeg", "jpg")[1:]
-            or not _small_image(data)):
+            or not small_image(data)):
         return False
     return _write_cover(data, target)
 
@@ -437,7 +444,7 @@ def prune_covers(covers_dir, names):
                 pass
 
 
-def _small_image(data):
+def small_image(data):
     """False for PNG and GIF images larger than MAX_COVER_PIXELS a side."""
     if data[:8] == b"\x89PNG\r\n\x1a\n" and len(data) >= 24:
         width, height = struct.unpack(">II", data[16:24])

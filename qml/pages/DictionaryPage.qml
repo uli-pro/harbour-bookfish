@@ -93,7 +93,8 @@ Page {
             width: listView.width
 
             PageHeader {
-                title: page.words
+                // Text from the book; without "<" Qt never takes it for HTML.
+                title: page.words.replace(/</g, "\u2039")
                 description: result && result.pair ? app.pairName(result.pair.split("-")) : ""
             }
 
@@ -156,7 +157,7 @@ Page {
                   : result.error === "no_dictionary" ? qsTr("No dictionary for this book")
                   : result.error ? qsTr("The dictionary could not be read.")
                   //: Nothing found in the dictionary, e.g. "No entry for “bucket”"
-                  : qsTr("No entry for “%1”").arg(page.words)
+                  : qsTr("No entry for “%1”").arg(page.words.replace(/</g, "\u2039"))
             hintText: result && result.error === "no_dictionary"
                       ? qsTr("Import a word list of dict.cc in the settings.") : ""
         }

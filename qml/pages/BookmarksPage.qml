@@ -155,6 +155,7 @@ Page {
 
                         width: parent.width - (pageLabel.text !== "" ? pageLabel.width + Theme.paddingMedium : 0)
                         text: reader ? reader.tocTitle(model.spine) : ""
+                        textFormat: Text.PlainText
                         truncationMode: TruncationMode.Fade
                         font.pixelSize: Theme.fontSizeExtraSmall
                         color: item.highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor
@@ -171,6 +172,7 @@ Page {
                 Label {
                     width: parent.width
                     text: model.quote || model.raw
+                    textFormat: Text.PlainText
                     wrapMode: Text.Wrap
                     maximumLineCount: 3
                     elide: Text.ElideRight
@@ -181,6 +183,7 @@ Page {
                     width: parent.width
                     visible: model.note !== ""
                     text: model.note
+                    textFormat: Text.PlainText
                     wrapMode: Text.Wrap
                     maximumLineCount: 3
                     elide: Text.ElideRight

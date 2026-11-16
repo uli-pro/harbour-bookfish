@@ -217,9 +217,17 @@ WebViewPage {
     property int anchorOffset: -1
     // Covered for turning the phone: taps would act on a page not shown.
     property bool turning: false
+    // The first page painted: the book is reopened at the next start (see
+    // positions.load_last).
+    property bool shown: false
     onCoveredChanged: {
-        if (!covered)
-            turning = false
+        if (covered)
+            return
+        turning = false
+        if (!shown) {
+            shown = true
+            py.call("bookfish.bridge.book_shown", [app.positionsFile])
+        }
     }
 
     // Turning pages needs the horizontal swipe; the library is in the pulley.

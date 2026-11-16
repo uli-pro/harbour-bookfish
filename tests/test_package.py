@@ -1,3 +1,6 @@
+from unittest import mock
+
+from bookfish import package
 from bookfish.errors import EpubError
 from bookfish.package import (BookInfo, SpineItem, TocEntry, read_info, read_nav, read_ncx,
                                read_package, text_length)
@@ -120,6 +123,11 @@ class PackageTest(TempDirTestCase):
     def test_unknown_idref_skipped(self):
         book = self.book(spine='<itemref idref="nope"/><itemref idref="c1"/>')
         self.assertEqual(len(book.spine), 1)
+
+    def test_spine_cut(self):
+        with mock.patch.object(package, "MAX_SPINE", 3):
+            book = self.book(spine='<itemref idref="c1"/>' * 5)
+        self.assertEqual(len(book.spine), 3)
 
     def test_empty_spine(self):
         self.assertFails("bad_package", spine="")

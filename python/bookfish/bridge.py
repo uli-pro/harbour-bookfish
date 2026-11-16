@@ -198,6 +198,17 @@ def _cover_target(cover_path, name, covers_dir):
     return os.path.join(covers_dir, name + ext) if ext in _COVER_TYPES else ""
 
 
+def _lock_screen_cover(root, cover_path):
+    if not cover_path or os.path.splitext(cover_path)[1].lower() not in _COVER_TYPES:
+        return False
+    try:
+        with open(local_path(root, cover_path), "rb") as f:
+            data = f.read(library.MAX_COVER_SIZE + 1)
+    except OSError:
+        return False
+    return len(data) <= library.MAX_COVER_SIZE and library.small_image(data)
+
+
 def cover(path, cover_path, name, covers_dir):
     """The file of the book's cover in covers_dir, extracted on first use
     from the EPUB or the audiobook at path; "" if there is none."""
@@ -273,9 +284,9 @@ def open_book(epub_path, cache_dir):
         "authors": book.authors,
         "language": book.language,
         "duration": book.duration,
-        # Shown on the lock screen; a cover named but missing is no cover.
-        "cover": (book.cover if book.cover and os.path.isfile(local_path(root, book.cover))
-                  else None),
+        # Shown on the lock screen, by processes outside the sandbox: only
+        # the pictures the library would show.
+        "cover": book.cover if _lock_screen_cover(root, book.cover) else None,
         "activeClass": book.active_class,
         "spine": [{"path": item.path, "overlay": item.overlay,
                    "linear": item.linear} for item in book.spine],
@@ -438,6 +449,8 @@ def save_position(path, key, position, moved=False):
         positions.save(path, key, position, time.time() if moved else None)
     except OSError as e:
         return _error("io", str(e))
+    except ValueError as e:
+        return _error("invalid", str(e))
     return True
 
 
@@ -487,6 +500,15 @@ def load_last_book(path):
 def save_last_book(path, epub_path):
     try:
         positions.save_last(path, epub_path)
+    except OSError as e:
+        return _error("io", str(e))
+    return True
+
+
+def book_shown(path):
+    """The book opened last was shown, see positions.load_last."""
+    try:
+        positions.shown(path)
     except OSError as e:
         return _error("io", str(e))
     return True

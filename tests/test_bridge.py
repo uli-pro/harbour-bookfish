@@ -1,6 +1,8 @@
 import getpass
 import json
 import os
+import shutil
+import struct
 import threading
 import time
 import unittest
@@ -52,7 +54,8 @@ class BridgeTest(TempDirTestCase):
         self.assertEqual(book["authors"], ["Wilde, Oscar"])
         self.assertEqual(book["language"], "en")
         self.assertEqual(book["duration"], 39000)
-        self.assertEqual(book["cover"], "OEBPS/cover.svg")
+        # SVG goes to the lock screen as little as to the library.
+        self.assertIsNone(book["cover"])
         self.assertEqual(book["activeClass"], "-epub-media-overlay-active")
         self.assertEqual(book["spine"], [
             {"path": "OEBPS/title.xhtml", "overlay": None, "linear": True},
@@ -67,6 +70,21 @@ class BridgeTest(TempDirTestCase):
     def test_missing_cover(self):
         make_epub(self.epub, [entry for entry in mini_entries() if entry[0] != "OEBPS/cover.svg"])
         self.assertIsNone(bridge.open_book(self.epub, self.cache_dir)["cover"])
+
+    def test_lock_screen_cover_checked_like_the_library(self):
+        def book_with(png):
+            entries = []
+            for name, data in mini_entries():
+                if name == "OEBPS/content.opf":
+                    data = data.replace(b'cover.svg" media-type="image/svg+xml"',
+                                        b'cover.png" media-type="image/png"')
+                entries.append((name, data))
+            make_epub(self.epub, entries + [("OEBPS/cover.png", png)])
+            shutil.rmtree(self.cache_dir, ignore_errors=True)
+            return bridge.open_book(self.epub, self.cache_dir)["cover"]
+        self.assertEqual(book_with(ad.PNG), "OEBPS/cover.png")
+        huge = b"\x89PNG\r\n\x1a\n" + struct.pack(">I4sII", 13, b"IHDR", 30000, 30000) + b"\0" * 40
+        self.assertIsNone(book_with(huge))
 
     def test_pages(self):
         self.assertIsNone(bridge.open_book(self.epub, self.cache_dir)["pages"])
@@ -184,6 +202,8 @@ class BridgeTest(TempDirTestCase):
         path = os.path.join(self.tmp, "positions.json")
         self.assertIsNone(bridge.load_last_book(path))
         self.assertIs(bridge.save_last_book(path, self.epub), True)
+        self.assertIsNone(bridge.load_last_book(path))
+        self.assertIs(bridge.book_shown(path), True)
         self.assertEqual(bridge.load_last_book(path), self.epub)
         open(os.path.join(self.tmp, "file"), "w").close()
         broken = os.path.join(self.tmp, "file", "positions.json")

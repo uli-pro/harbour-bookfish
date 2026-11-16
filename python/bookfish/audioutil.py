@@ -7,6 +7,9 @@ import stat
 from .errors import EpubError
 
 MAX_TEXT_LENGTH = 500
+# QML keeps times in 32-bit ints: nearly 600 hours, beyond any book. Longer
+# durations and later chapter marks are unknown.
+MAX_TIME = 2 ** 31 - 1
 _CONTROL = re.compile("[\x00-\x1f\x7f]+")
 _NUMBER = re.compile(r"(\d+)")
 _PART = re.compile(r"\d{1,6}(\.\d{1,3})?")
@@ -71,6 +74,11 @@ def natural_key(name):
     return [(0, int(part), part) if i % 2 else (1, 0, part) for i, part in enumerate(parts)]
 
 
+def known_duration(ms):
+    """ms, or None if it is beyond MAX_TIME."""
+    return ms if ms is None or ms <= MAX_TIME else None
+
+
 def chapter_list(marks, duration):
     """Chapters [(begin, end, title)] in ms from marks [(begin, title)] as
     found in a file: sorted, within the file, each ending where the next
@@ -79,7 +87,7 @@ def chapter_list(marks, duration):
     usable."""
     begins = {}
     for begin, title in marks:
-        if begin < 0 or (duration is not None and begin >= duration):
+        if begin < 0 or begin > MAX_TIME or (duration is not None and begin >= duration):
             continue
         begins.setdefault(begin, title)
     order = sorted(begins)

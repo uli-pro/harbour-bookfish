@@ -39,6 +39,20 @@ class ListBooksTest(TempDirTestCase):
         self.assertEqual([b.path for b in list_books([self.path("books")])],
                          [self.path("books/book.epub")])
 
+    def test_deep_folders_left_out(self):
+        write_files(self.tmp, {"/".join(["d"] * 32) + "/deep.epub": "",
+                               "/".join(["d"] * 33) + "/deeper.epub": ""})
+        self.assertEqual([b.name for b in list_books([self.tmp])], ["deep"])
+        # os.walk recursed into all of them before Python 3.12.
+        # makedirs and rmtree recurse as well.
+        folders = [self.path("e")]
+        for _ in range(1199):
+            folders.append(os.path.join(folders[-1], "e"))
+        for folder in folders:
+            os.mkdir(folder)
+        self.addCleanup(lambda: [os.rmdir(folder) for folder in reversed(folders)])
+        self.assertEqual([b.name for b in list_books([self.tmp])], ["deep"])
+
     def test_several_folders(self):
         write_files(self.tmp, {"one/b.epub": "", "two/a.epub": ""})
         self.assertEqual(

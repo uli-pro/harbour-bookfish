@@ -183,6 +183,16 @@ class Mp3Test(TempDirTestCase):
         info = mp3.read(self.write(ad.mp3(chapters, version=4)))
         self.assertEqual(info["chapters"][299], (299000, "Kapitel 299"))
 
+    def test_title_looked_for_in_the_first_sub_frames(self):
+        def chapter(element, empty):
+            return ad.frame("CHAP", element.encode() + b"\0" + struct.pack(">IIII", 0, 1000, 0, 0)
+                            + ad.frame("TXXX", b"") * empty + ad.text("TIT2", "Title"))
+        info = mp3.read(self.write(ad.mp3([chapter("a", 3)])))
+        self.assertEqual(info["chapters"], [(0, "Title")])
+        # Thousands of empty ones took 70 ms per MB.
+        info = mp3.read(self.write(ad.mp3([chapter("a", 100)])))
+        self.assertEqual(info["chapters"], [(0, "")])
+
     def test_unsynchronised_tag_not_read(self):
         data = bytearray(ad.mp3([ad.text("TIT2", "T")]))
         data[5] = 0x80
@@ -290,9 +300,15 @@ class Mp4Test(TempDirTestCase):
         self.assertEqual((info["duration"], info["chapters"], info["title"]), (10000, [], ""))
 
     def test_mvhd_version_1(self):
-        mvhd = ad.box(b"mvhd", b"\1\0\0\0" + struct.pack(">QQIQ", 0, 0, 1000, 2 ** 33) + bytes(80))
-        data = ad.box(b"ftyp", b"M4B ") + ad.box(b"moov", mvhd)
-        self.assertEqual(mp4.read(self.write(data))["duration"], 2 ** 33)
+        def duration(length):
+            mvhd = ad.box(b"mvhd", b"\1\0\0\0" + struct.pack(">QQIQ", 0, 0, 1000, length)
+                          + bytes(80))
+            data = ad.box(b"ftyp", b"M4B ") + ad.box(b"moov", mvhd)
+            return mp4.read(self.write(data))["duration"]
+        self.assertEqual(duration(2 ** 31 - 1), 2 ** 31 - 1)
+        # Beyond what QML keeps in an int: unknown.
+        self.assertIsNone(duration(2 ** 31))
+        self.assertIsNone(duration(2 ** 63))
 
     def test_chapter_list_cut_short(self):
         data = bytearray(ad.m4b(chapters=[(0, "One"), (1000, "Two")]))
@@ -334,6 +350,8 @@ class AudioUtilTest(unittest.TestCase):
                          [(0, 5000, "A"), (5000, 9000, "B"), (9000, None, "C")])
         self.assertEqual(chapter_list([(70000, "beyond")], 60000), [])
         self.assertEqual(chapter_list([], None), [])
+        # Without a duration, marks beyond what QML keeps in an int are dropped.
+        self.assertEqual(chapter_list([(0, "A"), (2 ** 31, "B")], None), [(0, None, "A")])
 
     def test_series_index(self):
         for part, index in (("4", 4.0), (" 04 ", 4.0), ("1.5", 1.5), ("3/7", 3.0), ("", None),

@@ -22,12 +22,13 @@ Page {
         model: ListModel { id: rows }
 
         header: PageHeader {
-            title: page.name || qsTr("Unknown author")
+            // Text from books; without "<" Qt never takes it for HTML.
+            title: page.name ? page.name.replace(/</g, "\u2039") : qsTr("Unknown author")
         }
 
         section.property: page.hasSeries ? "series" : ""
         section.delegate: SectionHeader {
-            text: section || qsTr("Other books")
+            text: section ? section.replace(/</g, "\u2039") : qsTr("Other books")
         }
 
         delegate: BookItem {

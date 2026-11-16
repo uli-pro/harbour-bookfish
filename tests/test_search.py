@@ -147,6 +147,17 @@ class BookIndexTest(TempDirTestCase):
         write_files(self.tmp, files)
         return BookIndex(self.tmp)
 
+    def test_repeated_chapter_read_once(self):
+        files = {"META-INF/container.xml": CONTAINER, "OPS/c0.xhtml": xhtml("<p>Once.</p>"),
+                 "OPS/nav.xhtml": NAV.format(entries="", pages="")}
+        files["OPS/package.opf"] = OPF.format(
+            items='<item id="c0" href="c0.xhtml" media-type="application/xhtml+xml"/>',
+            refs='<itemref idref="c0"/>' * 50)
+        write_files(self.tmp, files)
+        index = BookIndex(self.tmp)
+        self.assertEqual(len(index.chapters), 50)
+        self.assertEqual(len({id(chapter) for chapter in index.chapters}), 1)
+
     def test_all_words_in_one_paragraph_in_any_order(self):
         index = self.book(['<p>The swallow flew.</p><p>The prince wept.</p>',
                            '<p>Prince and Swallow parted.</p>'])
