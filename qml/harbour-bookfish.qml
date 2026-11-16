@@ -99,9 +99,10 @@ ApplicationWindow {
     signal coverReady(string key, string file)
     // The result of a search in the book, see FindPage.
     signal searchFinished(int serial, var result)
-    // The listening history of a book, see FindPage.
+    // The history of reading and listening in an EPUB, see FindPage.
     signal historyFinished(int serial, var result)
-    // The printed pages of places in a book, see ReaderPage.askPages().
+    // Printed pages of places in a book, or the page flip view's stops; see
+    // bridge.page_labels and bridge.flip_stops.
     signal pagesFound(int serial, var result)
     // The files of an audiobook folder read, see AudiobookPage.
     signal audiobookRead(string path, var result)

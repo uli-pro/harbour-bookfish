@@ -3,7 +3,8 @@
 Returns plain dicts and lists, because PyOtherSide hands namedtuples to QML
 as lists without field names. A book that cannot be used is not a program
 error: it comes back as {"error": code, "detail": text}, where code is one
-of the EpubError codes or "io", and QML shows a translated message.
+of the EpubError codes, "io", "internal", "invalid" or "missing", and QML
+shows a translated message.
 """
 
 import collections

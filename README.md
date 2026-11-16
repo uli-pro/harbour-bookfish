@@ -106,9 +106,10 @@ sfdk build /path/to/harbour-bookfish
 
 ## Running tests
 
-The Python modules in `python/bookfish/` (except `bridge.py`) use only the
-standard library and are tested without the SDK. They must work with
-Python 3.8 (Sailfish OS up to 5.0) and 3.11 (from 5.1).
+The Python modules in `python/bookfish/` use only the standard library
+(`bridge.py` imports PyOtherSide only to send events) and are tested without
+the SDK. They must work with Python 3.8 (Sailfish OS up to 5.0) and 3.11
+(from 5.1).
 
 ```
 cd /path/to/harbour-bookfish

@@ -1,7 +1,7 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
 
-// The page flip view of the reading page (lernen/32): pictures of nine
+// The page flip view of the reading page: pictures of nine
 // screen pages, the one in the middle the page chosen, four before and four
 // after it in reading order; a bar over the whole book below. It fills the
 // screen, so the reading page behind can load other chapters to draw them.

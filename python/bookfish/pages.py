@@ -94,7 +94,7 @@ def page_numbers(spine_paths, targets):
 
 
 # Characters a printed page holds, measured on the library's page lists
-# (lernen/31): German books 1590 (median), English ones 1690. ReaderPage
+# German books 1590 (median), English ones 1690. ReaderPage
 # estimates the page in the corner the same way.
 def chars_per_page(language):
     return 1600 if (language or "").lower().startswith("de") else 1700

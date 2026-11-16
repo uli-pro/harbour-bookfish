@@ -2,7 +2,7 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 
 // Search in the open book: every paragraph holding all words typed. With
-// nothing typed, the history: where reading and listening started, went on
+// fewer than two letters typed, the history: where reading and listening started, went on
 // and ended, newest first. For an audiobook only the history.
 Page {
     id: page

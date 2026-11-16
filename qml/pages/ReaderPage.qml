@@ -80,7 +80,7 @@ WebViewPage {
     property int findIndex: -1
     property string findQuery: ""
     property bool findShown: false
-    // The page flip view (lernen/32). While it is open the reading page is
+    // The page flip view. While it is open the reading page is
     // browsing: the view may load other chapters to draw their pages, and
     // the place read, the history and the corner stay as they were. Its
     // bar's stops (see bridge.flip_stops) are read once. flipOrigin is the
@@ -288,7 +288,7 @@ WebViewPage {
         })
     }
 
-    // target: { id, fraction } or { end: true }, see framescript.js
+    // target: where to go in the chapter, see go() in framescript.js
     function loadChapter(index, target) {
         // The frame script drops it with the jump or the new chapter.
         selection = null
@@ -387,7 +387,7 @@ WebViewPage {
         })
     }
 
-    // Same chapter and sentence, new text size. While a layout is under way
+    // Same chapter and place, new settings or size. While a layout is under way
     // the "page" message calls this again if the size has changed meanwhile.
     function relayout() {
         if (closed)
@@ -503,7 +503,7 @@ WebViewPage {
         pageTotal = pageLabel !== "" ? estimatedTotal() : 0
     }
 
-    // Measured on the library's page lists (lernen/31): German books print
+    // Measured on the library's page lists: German books print
     // 1590 characters a page (median), English ones 1690. As
     // pages.chars_per_page, which counts the pages in lists.
     function printedPageChars() {
@@ -1340,7 +1340,8 @@ WebViewPage {
         flickable.webView.sendAsyncMessage("bookfish:hitTest", { x: x, y: y })
     }
 
-    // A long press: a picture opens, a link is followed (see notes.py).
+    // A long press: a table or picture opens, a word is selected (looked up in
+    // landscape), or a link is followed (see notes.py).
     function pressAt(x, y) {
         flickable.webView.sendAsyncMessage("bookfish:pressAt", { x: x, y: y })
     }
@@ -2087,7 +2088,7 @@ WebViewPage {
 
         // Above the text: its buttons take taps beyond the row.
         z: 1
-        // In landscape the page is for reading alone (lernen/29).
+        // In landscape the page is for reading alone.
         visible: page.isPortrait
         // Upside down, the notch is below: the controls stay above it.
         y: atBottom ? parent.height - height - (notchSide === "bottom" ? cutoutHeight : 0) : 0
@@ -2633,8 +2634,8 @@ WebViewPage {
         webView.onRecvAsyncMessage: page.handleMessage(message, data)
 
 
-        // The WebView itself gets no touches: no links, no zooming, no text
-        // selection. Swipes and taps are handled here.
+        // The WebView itself gets no touches (no zooming, no native selection);
+        // swipes, taps and long presses are handled here.
         MouseArea {
             parent: flickable.webView
             anchors.fill: parent
@@ -2781,7 +2782,7 @@ WebViewPage {
     // Laid out for a new size once Gecko has it (see laidWidth): up to a
     // second after Qt, passing other sizes on the way (516 × 1070 between
     // portrait and landscape); laid out before, the page was a different
-    // one (lernen/29).
+    // one.
     Timer {
         id: geckoSettled
 
