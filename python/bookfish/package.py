@@ -23,6 +23,11 @@ _FONT_OBFUSCATION = {"http://www.idpf.org/2008/embedding",
 
 DEFAULT_ACTIVE_CLASS = "-epub-media-overlay-active"
 
+# Far above real metadata, which goes to every library view and its cache:
+# one title of 3 million characters made the cache too large to read.
+MAX_META_LENGTH = 500
+MAX_AUTHORS = 20
+
 Book = collections.namedtuple(
     "Book", "identifier title authors language cover duration active_class "
             "spine toc pages")
@@ -104,10 +109,10 @@ def read_package(root):
                 pass
 
     return Book(
-        identifier=_identifier(opf, metadata),
-        title=_first_text(metadata, _DC + "title"),
-        authors=_authors(metadata),
-        language=_first_text(metadata, _DC + "language"),
+        identifier=_short(_identifier(opf, metadata)),
+        title=_short(_first_text(metadata, _DC + "title")),
+        authors=[_short(name) for name in _authors(metadata)[:MAX_AUTHORS]],
+        language=_short(_first_text(metadata, _DC + "language")),
         cover=_cover(metadata, manifest),
         duration=_duration(metadata),
         active_class=(_meta(metadata, "media:active-class")
@@ -126,11 +131,11 @@ def read_info(opf, opf_path):
     series, index = _series(metadata)
     manifest = _read_manifest(opf, opf_path)
     return BookInfo(
-        identifier=_identifier(opf, metadata),
-        title=_first_text(metadata, _DC + "title"),
-        authors=[name for name, _ in creators],
-        sort=_sort_name(metadata, creators[0], len(creators)) if creators else "",
-        series=series,
+        identifier=_short(_identifier(opf, metadata)),
+        title=_short(_first_text(metadata, _DC + "title")),
+        authors=[_short(name) for name, _ in creators[:MAX_AUTHORS]],
+        sort=_short(_sort_name(metadata, creators[0], len(creators))) if creators else "",
+        series=_short(series),
         series_index=index,
         cover=_cover(metadata, manifest),
         audio=any(item.overlay for item in _read_spine(opf, manifest)))
@@ -442,6 +447,10 @@ def _meta(metadata, prop):
 def _first_text(parent, tag):
     element = parent.find(tag)
     return _text(element) if element is not None else ""
+
+
+def _short(text):
+    return text[:MAX_META_LENGTH]
 
 
 def _text(element):

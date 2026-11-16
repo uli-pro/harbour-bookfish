@@ -121,8 +121,10 @@ def scan_now(folders, cache_file, covers_dir):
         return _error("io", str(e))
     if not changed:
         return {"unchanged": True}
-    library.prune_covers(covers_dir, {library.cover_name(e)
-                                      for e in library.load_cached(cache_file)})
+    # Without a readable cache every cover would look orphaned.
+    cached = library.load_cached(cache_file)
+    if cached:
+        library.prune_covers(covers_dir, {library.cover_name(e) for e in cached})
     return library_view(entries, folders)
 
 

@@ -302,6 +302,17 @@ class LibraryViewTest(TempDirTestCase):
         self.assertEqual(bridge.cached_library(cache_file, [books]), view)
         self.assertEqual(bridge.cached_library(cache_file, [books + "x"])["books"], [])
 
+    def test_covers_kept_without_a_readable_cache(self):
+        books = os.path.join(self.tmp, "books")
+        os.makedirs(books)
+        make_epub(os.path.join(books, "b.epub"), mini_entries())
+        covers = os.path.join(self.tmp, "covers")
+        os.makedirs(covers)
+        open(os.path.join(covers, "fedcba9876543210.png"), "w").close()
+        with mock.patch.object(library, "load_cached", return_value=[]):
+            bridge.scan_now([books], os.path.join(self.tmp, "library.json"), covers)
+        self.assertEqual(os.listdir(covers), ["fedcba9876543210.png"])
+
 
 class PartnerTest(TempDirTestCase):
 

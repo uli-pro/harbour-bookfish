@@ -369,6 +369,16 @@ class InfoTest(TempDirTestCase):
                                                 spine='<itemref idref="c1"/>'))
         return read_info(opf, "OPS/package.opf")
 
+    def test_long_metadata_cut(self):
+        # Library views and their cache carry these for every book.
+        info = self.info('<dc:identifier>{0}</dc:identifier><dc:title>{0}</dc:title>'
+                         '<dc:creator>{0}</dc:creator>'.format("x" * 100000)
+                         + '<dc:creator>A</dc:creator>' * 100
+                         + '<meta name="calibre:series" content="{}"/>'.format("s" * 100000))
+        for text in (info.identifier, info.title, info.sort, info.series, info.authors[0]):
+            self.assertEqual(len(text), 500)
+        self.assertEqual(len(info.authors), 20)
+
     def test_epub2(self):
         info = self.info(
             '<dc:identifier id="uid">urn:uuid:1</dc:identifier><dc:title>Shogun</dc:title>'
