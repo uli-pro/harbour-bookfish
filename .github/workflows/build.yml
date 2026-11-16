@@ -1,0 +1,66 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests (Python ${{ matrix.python }})
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        # Sailfish OS up to 5.0 ships Python 3.8, from 5.1 on 3.11.
+        python: ["3.8", "3.11"]
+    container: docker.io/library/python:${{ matrix.python }}-slim
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - run: python -B -m unittest discover -s tests -t .
+        env:
+          PYTHONPATH: python
+
+  rpm:
+    name: RPM
+    runs-on: ubuntu-24.04
+    needs: tests
+    env:
+      # coderus/sailfishos-platform-sdk-aarch64:5.1.0.11: the target of local
+      # builds (Sailfish SDK 3.13.5); the package is noarch.
+      SDK_IMAGE: docker.io/coderus/sailfishos-platform-sdk-aarch64@sha256:5ef805767de26bbf8fb98ee61ecc94dec30e033bc90f2635f9b3ebe171a826a1
+      TARGET: SailfishOS-5.1.0.11-aarch64
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: Build and validate
+        run: |
+          mkdir -p RPMS
+          chmod a+w RPMS
+          docker run --rm -v "$PWD":/workspace:ro -v "$PWD/RPMS":/out "$SDK_IMAGE" \
+            bash -euxc 'cp -r /workspace ~/src && cd ~/src &&
+                        mb2 -t "$0" build &&
+                        rpmvalidation -t "$0" --suites harbour RPMS/*.noarch.rpm &&
+                        cp RPMS/*.noarch.rpm /out/' "$TARGET"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: rpm
+          path: RPMS/*.noarch.rpm
+
+  release:
+    name: Draft release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    needs: rpm
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: rpm
+      # A draft: the maintainer publishes it after the device test.
+      - run: gh release create "$GITHUB_REF_NAME" --draft --verify-tag --title "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" *.noarch.rpm
+        env:
+          GH_TOKEN: ${{ github.token }}
