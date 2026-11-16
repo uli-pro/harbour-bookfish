@@ -1111,7 +1111,13 @@ function normalize(doc, o) {
     if (!doc.body)
         return
     // Ours only: a book's own element of that class keeps it.
-    tableLinks.forEach(function (link) { link.element.classList.remove("bookfish-table-link") })
+    // Of the chapter before, which may be gone already when chapters
+    // follow each other quickly (the page flip view): "dead object".
+    tableLinks.forEach(function (link) {
+        try {
+            link.element.classList.remove("bookfish-table-link")
+        } catch (e) { }
+    })
     tableLinks = []
     var elements = doc.body.getElementsByTagName("*")
     var justified = []
@@ -1505,12 +1511,63 @@ function awaitPaint(serial) {
     paintSerial = serial
 }
 
+// Pictures of pages for the page flip view: each page is scrolled to,
+// drawn and scrolled back within this one task, so the screen never shows
+// it (measured on the Jolla: 3 to 6 ms a page). Answered with the pages'
+// printed page marks; the layout's serial tells whether they still fit.
+// Asked as drawPages, answered as thumbs (see hitTest).
+// Always answered, also with nothing: QML asks for one drawing at a time.
+addMessageListener("bookfish:drawPages", function (message) {
+    var o = message.data
+    if (!current() || o.serial !== state.serial) {
+        sendAsyncMessage("bookfish:thumbs", { serial: -1, gen: o.gen, pages: 0, thumbs: [] })
+        return
+    }
+    var pages = pageCount()
+    var thumbs = []
+    for (var i = 0; i < o.pages.length; ++i) {
+        var page = o.pages[i]
+        if (page < 0 || page >= pages)
+            continue
+        try {
+            thumbs.push({ page: page, url: drawPage(page, o.width), mark: pageMarkAt(page) })
+        } catch (e) {
+            // Shown grey; the others still come.
+            thumbs.push({ page: page, url: "", mark: -1 })
+        }
+    }
+    sendAsyncMessage("bookfish:thumbs", { serial: state.serial, gen: o.gen, pages: pages, thumbs: thumbs })
+})
+
+// page as a JPEG data URL width pixels wide.
+function drawPage(page, width) {
+    var w = content.innerWidth
+    var h = content.innerHeight
+    var scale = width / w
+    var scroller = state.scroller
+    var left = scroller.scrollLeft
+    scroller.scrollLeft = page * state.width
+    try {
+        var canvas = state.doc.createElementNS(xhtml, "canvas")
+        canvas.width = Math.max(1, Math.round(w * scale))
+        canvas.height = Math.max(1, Math.round(h * scale))
+        var context = canvas.getContext("2d")
+        context.scale(scale, scale)
+        context.drawWindow(content, content.scrollX, content.scrollY, w, h,
+                           content.getComputedStyle(state.doc.documentElement).backgroundColor)
+        return canvas.toDataURL("image/jpeg", 0.8)
+    } finally {
+        scroller.scrollLeft = left
+    }
+}
+
 // A jump within the chapter: what was marked belongs to the place left.
 addMessageListener("bookfish:goto", function (message) {
     if (!current())
         return
     state.selection = null
-    if (!message.data.target.find)
+    // The page flip view's goings keep what the page read has marked.
+    if (!message.data.target.find && !message.data.target.browse)
         unmark()
     go(message.data.target)
 })
@@ -1741,12 +1798,32 @@ function firstTextOn(page) {
     return { offset: texts.starts[i] + c, onPage: pageOfBox(rects[0]) <= page }
 }
 
-// The printed page in effect on page (text: firstTextOn(page)): the index
-// in state.pageMarks of the last mark on an earlier page or on this one
-// before its first text, -1 if none. A mark on this page counts also if the
-// page holds no text: pictures printed as pages of their own. A mark's place
-// is its box; without one (hidden) the page of the first text after it.
-function pageMarkAt(page, text) {
+// The printed page shown for page: the index in state.pageMarks of the last
+// mark on this page or an earlier one, -1 if none. A page beginning on the
+// screen counts, though the lines above it belong to the one before: going
+// to page 143 shows the screen where it begins, which then says 143. A
+// mark's place is its box; without one (hidden) the page of the first text
+// after it, see markPage().
+function pageMarkAt(page) {
+    var found = -1
+    var foundPage = -1
+    for (var i = 0; i < state.pageMarks.length; ++i) {
+        var markPage = markPageOf(i)
+        if (markPage < 0 || markPage > page)
+            continue
+        // Several on one page: the last in the text. Pictures printed as
+        // pages of their own share the offset of the text after them.
+        if (found < 0 || markPage > foundPage
+                || (markPage === foundPage && state.pageMarkOffsets[i] >= state.pageMarkOffsets[found])) {
+            found = i
+            foundPage = markPage
+        }
+    }
+    return found
+}
+
+// The page of state.pageMarks[i], -1 if it is not in the chapter.
+function markPageOf(i) {
     if (!state.pageMarkOffsets) {
         var texts = textNodes()
         state.pageMarkOffsets = state.pageMarks.map(function (id) {
@@ -1770,25 +1847,15 @@ function pageMarkAt(page, text) {
             return lo < texts.nodes.length ? texts.starts[lo] : texts.all.length
         })
     }
-    var found = -1
-    var foundPage = -1
-    for (var i = 0; i < state.pageMarks.length; ++i) {
-        var offset = state.pageMarkOffsets[i]
-        if (offset < 0)
-            continue
-        var id = state.pageMarks[i]
-        // Not cached: pictures loading later move the pages.
-        var rects = id === "" ? [] : state.doc.getElementById(id).getClientRects()
-        var markPage = id === "" ? 0 : rects.length ? pageOfBox(rects[0]) : pageOfText(offset)
-        if (markPage > page || (markPage === page && text.onPage && offset > text.offset))
-            continue
-        if (found < 0 || markPage > foundPage
-                || (markPage === foundPage && offset >= state.pageMarkOffsets[found])) {
-            found = i
-            foundPage = markPage
-        }
-    }
-    return found
+    var offset = state.pageMarkOffsets[i]
+    if (!(offset >= 0))
+        return -1
+    var id = state.pageMarks[i]
+    if (id === "")
+        return 0
+    // Not cached: pictures loading later move the pages.
+    var rects = state.doc.getElementById(id).getClientRects()
+    return rects.length ? pageOfBox(rects[0]) : pageOfText(offset)
 }
 
 // The page of the first text shown at or after offset; the last page if
@@ -1899,11 +1966,29 @@ function goFound(find) {
 }
 
 // target: { id, offset, fraction } (any may be missing; the first one
-// found counts), { end: true } or { find } (see findRange); keep is only
+// found counts), { end: true }, { find } (see findRange), { pageMark } (an
+// index in state.pageMarks: the page where that printed page begins) or
+// { share } (estimated pages: the page holding that share of the chapter,
+// where ReaderPage's corner then shows the page beginning there) or
+// { page } (a page of this layout, from the page flip view); keep is only
 // read by the layout.
 function go(target) {
     if (target.find) {
         goFound(target.find)
+        return
+    }
+    if (typeof target.pageMark === "number") {
+        var markPage = target.pageMark < state.pageMarks.length ? markPageOf(target.pageMark) : -1
+        showPage(markPage >= 0 ? markPage : 0)
+        return
+    }
+    if (typeof target.page === "number") {
+        showPage(target.page)
+        return
+    }
+    if (typeof target.share === "number") {
+        var pages = pageCount()
+        showPage(Math.min(pages - 1, Math.floor(target.share * pages + 1e-9)))
         return
     }
     var el = target.id ? state.doc.getElementById(target.id) : null
@@ -1932,7 +2017,7 @@ function showPage(page) {
         page: page,
         pages: pages,
         firstId: firstSentenceStartingOn(page),
-        pageMark: pageMarkAt(page, text),
+        pageMark: pageMarkAt(page),
         offset: text.offset,
         offsetOnPage: text.onPage,
         fraction: pages > 1 ? page / (pages - 1) : 0,

@@ -8,6 +8,39 @@ Page {
 
     // The reading page: its bookmarks, chapter titles and actions.
     property Item reader
+    // The printed page of each bookmark, by id (bridge.page_labels).
+    property var pageLabels: ({})
+    property bool pagesEstimated: false
+    property int pagesSerial: -1
+    property var askedFor: []
+
+    function askPages() {
+        if (!reader || !reader.book)
+            return
+        var marks = reader.bookmarks
+        askedFor = marks.map(function (mark) { return mark.id })
+        pagesSerial = ++app.searchSerial
+        py.call("bookfish.bridge.page_labels", [reader.book.root, marks.map(function (mark) {
+            return { spine: mark.spine, offset: mark.offset }
+        }), pagesSerial])
+    }
+
+    Connections {
+        target: app
+        onPagesFound: {
+            if (serial !== page.pagesSerial)
+                return
+            if (result.error) {
+                console.warn("Cannot read the pages", result.error, result.detail)
+                return
+            }
+            var labels = {}
+            for (var i = 0; i < page.askedFor.length; ++i)
+                labels[page.askedFor[i]] = result.labels[i]
+            page.pagesEstimated = result.estimated
+            page.pageLabels = labels
+        }
+    }
 
     // Rows are changed where they are, not the whole list replaced: a row
     // rebuilt while its delete counts down would delete at once (Silica),
@@ -37,11 +70,17 @@ Page {
         }
     }
 
-    Component.onCompleted: sync()
+    Component.onCompleted: {
+        sync()
+        askPages()
+    }
 
     Connections {
         target: reader
-        onBookmarksChanged: page.sync()
+        onBookmarksChanged: {
+            page.sync()
+            page.askPages()
+        }
     }
 
     ListModel {
@@ -106,12 +145,28 @@ Page {
                 y: Theme.paddingMedium
                 width: parent.width - 2 * x
 
-                Label {
+                // The chapter, and the page right beside it: never cut off.
+                Item {
                     width: parent.width
-                    text: reader ? reader.tocTitle(model.spine) : ""
-                    truncationMode: TruncationMode.Fade
-                    font.pixelSize: Theme.fontSizeExtraSmall
-                    color: item.highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor
+                    height: chapterLabel.height
+
+                    Label {
+                        id: chapterLabel
+
+                        width: parent.width - (pageLabel.text !== "" ? pageLabel.width + Theme.paddingMedium : 0)
+                        text: reader ? reader.tocTitle(model.spine) : ""
+                        truncationMode: TruncationMode.Fade
+                        font.pixelSize: Theme.fontSizeExtraSmall
+                        color: item.highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor
+                    }
+                    Label {
+                        id: pageLabel
+
+                        anchors.right: parent.right
+                        text: app.pageText(page.pageLabels[model.ident] || "", page.pagesEstimated)
+                        font.pixelSize: Theme.fontSizeExtraSmall
+                        color: item.highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor
+                    }
                 }
                 Label {
                     width: parent.width

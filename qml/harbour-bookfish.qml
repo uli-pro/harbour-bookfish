@@ -101,6 +101,8 @@ ApplicationWindow {
     signal searchFinished(int serial, var result)
     // The listening history of a book, see FindPage.
     signal historyFinished(int serial, var result)
+    // The printed pages of places in a book, see ReaderPage.askPages().
+    signal pagesFound(int serial, var result)
     // The files of an audiobook folder read, see AudiobookPage.
     signal audiobookRead(string path, var result)
     // An import of a word list has ended, see bridge.import_dictionary.
@@ -249,6 +251,18 @@ ApplicationWindow {
         return Math.floor(100 * progress)
     }
 
+    // The printed page of a place in a list (bookmarks, search hits); ""
+    // if it has none.
+    function pageText(label, estimated) {
+        if (!label)
+            return ""
+        return estimated
+                //: Estimated page of the printed book in a list, e.g. "≈ p. 143"
+                ? qsTr("≈ p. %1").arg(label)
+                //: Page of the printed book in a list, e.g. "p. 143"
+                : qsTr("p. %1").arg(label)
+    }
+
     function errorText(code) {
         switch (code) {
         case "not_zip":
@@ -373,6 +387,7 @@ ApplicationWindow {
                 setHandler("cover", app.coverReady)
                 setHandler("search", app.searchFinished)
                 setHandler("history", app.historyFinished)
+                setHandler("pages", app.pagesFound)
                 setHandler("audiobook", app.audiobookRead)
                 setHandler("dictionary", app.dictionaryEvent)
                 app.pythonReady = true

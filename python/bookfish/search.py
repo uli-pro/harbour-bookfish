@@ -12,6 +12,7 @@ import unicodedata
 
 from .errors import EpubError
 from .package import read_package
+from .pages import PageFinder, page_numbers
 from .paths import local_path
 from .xmlutil import parse_xml
 
@@ -180,6 +181,8 @@ class BookIndex(object):
         self.root = root
         book = read_package(root)
         self.chapters = [read_chapter(root, item.path) for item in book.spine]
+        self.pages = PageFinder(page_numbers([item.path for item in book.spine], book.pages),
+                                self.chapters, [item.linear for item in book.spine], book.language)
         spine_index = {}
         for index, item in enumerate(book.spine):
             spine_index.setdefault(item.path, index)
@@ -201,6 +204,35 @@ class BookIndex(object):
         or ""."""
         i = bisect.bisect_right(self._marks, (spine, offset)) - 1
         return self._titles[i] if i >= 0 else ""
+
+    def page_labels(self, places):
+        """The printed page at each place, for lists: {estimated, labels},
+        a label being "" where there is none. A place is {spine, offset}
+        (UTF-16, as bookmarks) or {spine, fragment} (an element, as the
+        contents); anything else has no page."""
+        labels = []
+        for place in places:
+            spine = place.get("spine") if isinstance(place, dict) else None
+            if isinstance(spine, float) and spine.is_integer():
+                spine = int(spine)
+            if not isinstance(spine, int) or isinstance(spine, bool) or not 0 <= spine < len(self.chapters):
+                labels.append("")
+                continue
+            chapter = self.chapters[spine]
+            fragment = place.get("fragment")
+            offset = place.get("offset")
+            if isinstance(fragment, str):
+                labels.append(self.pages.label(spine, chapter.ids.get(fragment, 0)))
+            elif isinstance(offset, (int, float)) and not isinstance(offset, bool) and offset >= 0:
+                labels.append(self.pages.label(spine, min(chapter.index(int(offset)), len(chapter.text))))
+            else:
+                labels.append("")
+        return {"estimated": self.pages.estimated, "labels": labels}
+
+    def flip_stops(self):
+        """{estimated, stops} for the bar of the page flip view, see
+        pages.PageFinder.stops."""
+        return {"estimated": self.pages.estimated, "stops": self.pages.stops(self.title_at)}
 
     def sentence(self, spine, ident):
         """The element ident of chapter spine as a place to go to, like a
@@ -281,12 +313,14 @@ class BookIndex(object):
     def search(self, query, here=None, limit=LIMIT):
         """The paragraphs holding every word of query, in reading order.
 
-        Returns {hits, total, before}: at most limit hits, the number of all
-        hits, and how many of them lie before the place here (see place);
-        before is -1 if here is not a place in the book.
-        A hit is {spine, chapter, offset, length, text, snippet}: offset and
-        length (UTF-16) give the first match in the chapter's text, text is
-        that match, snippet a list of {text, match} to show.
+        Returns {hits, total, before, pagesEstimated}: at most limit hits,
+        the number of all hits, how many of them lie before the place here
+        (see place; -1 if here is not a place in the book), and whether the
+        hits' pages are estimated.
+        A hit is {spine, chapter, page, offset, length, text, snippet}: page
+        is the printed page ("" if none), offset and length (UTF-16) give
+        the first match in the chapter's text, text is that match, snippet a
+        list of {text, match} to show.
         """
         words = fold(query).split()
         hits = []
@@ -294,7 +328,8 @@ class BookIndex(object):
         before = 0
         place = self.place(here)
         if not words:
-            return {"hits": hits, "total": 0, "before": 0 if place is not None else -1}
+            return {"hits": hits, "total": 0, "before": 0 if place is not None else -1,
+                    "pagesEstimated": self.pages.estimated}
         for spine, chapter in enumerate(self.chapters):
             for (start, end), folded in zip(chapter.paragraphs, chapter.folded):
                 if not all(word in folded for word in words):
@@ -304,7 +339,8 @@ class BookIndex(object):
                     before += 1
                 if len(hits) < limit:
                     hits.append(self._hit(spine, chapter, start, end, words))
-        return {"hits": hits, "total": total, "before": before if place is not None else -1}
+        return {"hits": hits, "total": total, "before": before if place is not None else -1,
+                "pagesEstimated": self.pages.estimated}
 
     def _before(self, spine, start, end, folded, words, place):
         """Whether the first match in the paragraph lies before place."""
@@ -335,6 +371,7 @@ class BookIndex(object):
         a, b = matches[0]
         return {"spine": spine,
                 "chapter": self.title_at(spine, start + a),
+                "page": self.pages.label(spine, start + a),
                 "offset": chapter.utf16(start + a),
                 "length": chapter.utf16(start + b) - chapter.utf16(start + a),
                 "text": paragraph[a:b],

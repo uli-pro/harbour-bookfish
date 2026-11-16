@@ -24,7 +24,7 @@ OPF = """<?xml version="1.0"?>
 </package>"""
 
 NAV = """<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
-<body><nav epub:type="toc"><ol>{entries}</ol></nav></body></html>"""
+<body><nav epub:type="toc"><ol>{entries}</ol></nav>{pages}</body></html>"""
 
 
 def xhtml(body):
@@ -129,8 +129,9 @@ class ChapterTest(TempDirTestCase):
 
 class BookIndexTest(TempDirTestCase):
 
-    def book(self, chapters, toc=()):
-        """chapters: list of XHTML bodies; toc: (title, href) pairs."""
+    def book(self, chapters, toc=(), pages=()):
+        """chapters: list of XHTML bodies; toc and pages (the page list):
+        (title, href) pairs."""
         files = {"META-INF/container.xml": CONTAINER}
         items = []
         refs = []
@@ -139,8 +140,10 @@ class BookIndexTest(TempDirTestCase):
             refs.append('<itemref idref="c{}"/>'.format(i))
             files["OPS/c{}.xhtml".format(i)] = xhtml(body)
         files["OPS/package.opf"] = OPF.format(items="".join(items), refs="".join(refs))
+        page_list = "".join('<li><a href="{}">{}</a></li>'.format(href, name) for name, href in pages)
         files["OPS/nav.xhtml"] = NAV.format(entries="".join(
-            '<li><a href="{}">{}</a></li>'.format(href, title) for title, href in toc))
+            '<li><a href="{}">{}</a></li>'.format(href, title) for title, href in toc),
+            pages='<nav epub:type="page-list"><ol>{}</ol></nav>'.format(page_list) if pages else "")
         write_files(self.tmp, files)
         return BookIndex(self.tmp)
 
@@ -183,7 +186,7 @@ class BookIndexTest(TempDirTestCase):
 
     def test_no_words_no_hits(self):
         index = self.book(['<p>text</p>'])
-        self.assertEqual(index.search(" ,; "), {"hits": [], "total": 0, "before": -1})
+        self.assertEqual(index.search(" ,; "), {"hits": [], "total": 0, "before": -1, "pagesEstimated": True})
 
     def test_limit_and_total(self):
         index = self.book(['<p>word</p>' * 5])
@@ -310,3 +313,45 @@ class BookIndexTest(TempDirTestCase):
         result = index.search("happy prince")
         self.assertGreater(result["total"], 0)
         self.assertEqual(result["hits"][0]["chapter"], "Title Page")
+
+
+class PagesTest(TempDirTestCase):
+
+    book = BookIndexTest.book
+
+    def paged(self):
+        return self.book(['<h1 id="h">Title</h1><p>One <span id="p1"/>first page.</p>',
+                          '<p id="a">Still <span id="p2"/>second 😀 <span id="p3"/>third.</p>'],
+                         toc=[("Title", "c0.xhtml#h"), ("Part", "c1.xhtml#a")],
+                         pages=[("1", "c0.xhtml#p1"), ("2", "c1.xhtml#p2"), ("3", "c1.xhtml#p3")])
+
+    def test_hits_have_their_page(self):
+        result = self.paged().search("third")
+        self.assertEqual([hit["page"] for hit in result["hits"]], ["3"])
+        self.assertFalse(result["pagesEstimated"])
+
+    def test_labels_of_places_and_elements(self):
+        index = self.paged()
+        text = index.chapters[1].text
+        # After the emoji: UTF-16 counts it twice.
+        third = text.index("third") + 1
+        result = index.page_labels([{"spine": 0, "fragment": "h"}, {"spine": 1, "fragment": "a"},
+                                    {"spine": 1.0, "offset": third}, {"spine": 1, "offset": 0},
+                                    {"spine": 9, "offset": 0}, {"spine": 0}, None,
+                                    {"spine": 0, "fragment": ""}])
+        self.assertEqual(result, {"estimated": False, "labels": ["", "1", "3", "1", "", "", "", ""]})
+
+    def test_flip_stops(self):
+        result = self.paged().flip_stops()
+        self.assertFalse(result["estimated"])
+        self.assertEqual([(s["label"], s["spine"], s["mark"], s["title"]) for s in result["stops"]],
+                         [("", 0, -1, "Title"), ("1", 0, 0, "Title"), ("2", 1, 0, "Part"), ("3", 1, 1, "Part")])
+
+    def test_estimated_without_page_list(self):
+        index = self.book(['<p>' + "word " * 1000 + '</p>'])
+        self.assertTrue(index.search("word")["pagesEstimated"])
+        self.assertEqual(index.search("word")["hits"][0]["page"], "1")
+        result = index.flip_stops()
+        self.assertTrue(result["estimated"])
+        self.assertEqual([s["label"] for s in result["stops"]], ["1", "2", "3"])
+

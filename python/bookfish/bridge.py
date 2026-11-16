@@ -577,6 +577,21 @@ def history(root, path, key, serial):
     _searcher.submit("history", root, serial, path, key)
 
 
+def page_labels(root, places, serial):
+    """The printed pages of places in the book at root (see
+    search.BookIndex.page_labels), read in a thread like the search; the
+    result comes as the event ("pages", serial, result)."""
+    _closed.discard(root)
+    _searcher.submit("pages", root, serial, places)
+
+
+def flip_stops(root, serial):
+    """The places of the page flip view's bar (see
+    search.BookIndex.flip_stops), as the event ("pages", serial, result)."""
+    _closed.discard(root)
+    _searcher.submit("flip", root, serial)
+
+
 def drop_search(root):
     """Forget the index of the book at root, which is being closed."""
     global _index
@@ -607,6 +622,10 @@ def _search(key, root, serial, *args):
                 return
             if key == "history":
                 result = _history(index, *args)
+            elif key == "pages":
+                result = index.page_labels(*args)
+            elif key == "flip":
+                result = index.flip_stops()
             else:
                 result = index.search(*args)
     except EpubError as e:
@@ -617,7 +636,7 @@ def _search(key, root, serial, *args):
         # The search page waits for an answer.
         traceback.print_exc()
         result = _error("internal", repr(e))
-    _send("history" if key == "history" else "search", serial, result)
+    _send({"history": "history", "pages": "pages", "flip": "pages"}.get(key, "search"), serial, result)
 
 
 def _history(index, path, key):
