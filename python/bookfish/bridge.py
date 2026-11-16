@@ -22,6 +22,7 @@ from . import (audiobook, bookmarks, cache, dictionary, history as history_store
 from .errors import EpubError
 from .overlay import read_overlay
 from .package import read_package, text_length
+from .pages import page_numbers
 from .paths import local_path
 from .search import BookIndex
 
@@ -280,6 +281,8 @@ def open_book(epub_path, cache_dir):
                  "fragment": entry.fragment, "level": entry.level,
                  "spine": spine_index.get(entry.path, -1)}
                 for entry in book.toc],
+        # The printed pages, None to estimate them (see pages.page_numbers).
+        "pages": page_numbers([item.path for item in book.spine], book.pages),
     }
 
 

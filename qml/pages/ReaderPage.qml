@@ -45,6 +45,14 @@ WebViewPage {
     property real charsPerPage: 0
     property int bookPage: 0
     property int bookPages: 0
+    // The page of the printed book shown in the corner: from the book's
+    // page list (book.pages, see pages.py), else estimated by characters.
+    // pageMark is the frame script's mark in effect on the page shown
+    // (index in book.pages.marks[topChapter]). pageTotal 0: no total.
+    property int pageMark: -1
+    property string pageLabel: ""
+    property int pageTotal: 0
+    property bool pageEstimated: false
     property real fraction: 0
     // Chosen in the settings; until then as the ambience.
     readonly property bool lightPage: app.pageColors === "light"
@@ -312,6 +320,7 @@ WebViewPage {
             // see on a black page. Dimmed there, so white text stays legible.
             markColor: light ? "rgba(255,225,0,0.55)" : "rgba(230,190,0,0.45)",
             marks: chapterMarks(chapter),
+            pageMarks: pageMarksOf(chapter),
             underlineColor: light ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.55)",
             margin: 24,
             marginTop: 4,
@@ -378,6 +387,7 @@ WebViewPage {
 
     function updateBookPages() {
         if (chapterChars.length !== book.spine.length) {
+            updatePageNumber()
             if (!countingChars) {
                 countingChars = true
                 var paths = book.spine.map(function (item) { return item.path })
@@ -411,6 +421,65 @@ WebViewPage {
         }
         bookPage = before + pageIndex + 1
         bookPages = before + pageCount + after
+        updatePageNumber()
+    }
+
+    function pageMarksOf(index) {
+        var marks = book.pages ? book.pages.marks[index] : null
+        return marks ? marks.map(function (mark) { return mark[0] }) : []
+    }
+
+    // Of the page last reported (topChapter), so a chapter asked for but
+    // not shown yet does not mix with the old chapter's mark.
+    function updatePageNumber() {
+        var pages = book.pages
+        if (pages) {
+            var marks = pages.marks[topChapter]
+            var entry = marks && pageMark >= 0 && pageMark < marks.length ? marks[pageMark].slice(1)
+                                                                         : pages.start[topChapter]
+            pageEstimated = false
+            pageLabel = entry ? entry[0] : ""
+            pageTotal = entry && entry[1] ? pages.total : 0
+            return
+        }
+        pageEstimated = true
+        if (chapterChars.length !== book.spine.length || topChapter < 0) {
+            pageLabel = ""
+            return
+        }
+        // Measured on the library's page lists (lernen/31): German books
+        // print 1590 characters a page (median), English ones 1690.
+        var perPage = (book.language || "").toLowerCase().indexOf("de") === 0 ? 1600 : 1700
+        var before = 0
+        var total = 0
+        for (var i = 0; i < chapterChars.length; ++i) {
+            if (!book.spine[i].linear)
+                continue
+            if (i < topChapter)
+                before += chapterChars[i]
+            total += chapterChars[i]
+        }
+        var length = book.spine[topChapter].linear ? chapterChars[topChapter] : 0
+        var share = pageCount > 0 ? pageIndex / pageCount : 0
+        pageTotal = Math.max(1, Math.ceil(total / perPage))
+        pageLabel = String(Math.min(pageTotal, Math.floor((before + share * length) / perPage) + 1))
+    }
+
+    // wide: in landscape, with spaces.
+    function pageNumberText(wide) {
+        if (!pageLabel)
+            return ""
+        if (!pageTotal)
+            return pageLabel
+        if (pageEstimated)
+            //: Estimated page of the printed book in landscape, e.g. "≈ 30 / 295"
+            return wide ? qsTr("≈ %1 / %2").arg(pageLabel).arg(pageTotal)
+                          //: Estimated page of the printed book, e.g. "≈30/295"
+                        : qsTr("≈%1/%2").arg(pageLabel).arg(pageTotal)
+        //: Page of the printed book in landscape, e.g. "30 / 295"
+        return wide ? qsTr("%1 / %2").arg(pageLabel).arg(pageTotal)
+                      //: Page of the printed book, e.g. "30/295"
+                    : qsTr("%1/%2").arg(pageLabel).arg(pageTotal)
     }
 
     // How far into the book a place is, 0 to 1: the characters of the
@@ -513,6 +582,7 @@ WebViewPage {
                 topOffset = data.offset
             topChapter = chapter
             topOffsetOnPage = data.offsetOnPage
+            pageMark = data.pageMark
             fraction = data.fraction
             pixelRatio = data.pixelRatio
             laidWidth = data.viewWidth
@@ -1865,7 +1935,7 @@ WebViewPage {
             width: controls.placeWidth(4) - 2 * Theme.paddingSmall
             height: controls.faceHeight
             // Not beside the player's buttons: there it distracts.
-            visible: bookPages > 0 && (controls.mode === "read" || controls.mode === "find")
+            visible: pageLabel !== "" && (controls.mode === "read" || controls.mode === "find")
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
             fontSizeMode: Text.HorizontalFit
@@ -1873,8 +1943,7 @@ WebViewPage {
             // As small as the buttons' texts.
             font.pixelSize: Math.round(controls.fontScale * Math.round(0.85 * Theme.fontSizeTiny))
             color: palette.secondaryColor
-            //: Estimated page in the whole book, e.g. "30/295"
-            text: qsTr("%1/%2").arg(bookPage).arg(bookPages)
+            text: pageNumberText(false)
         }
     }
 
@@ -2236,7 +2305,7 @@ WebViewPage {
 
         readonly property bool inStrip: notchSide === "left" || notchSide === "right"
 
-        visible: isLandscape && bookPages > 0
+        visible: isLandscape && pageLabel !== ""
         z: 1
         x: notchSide === "left" ? 0 : page.width - width
         width: inStrip ? notchDepth : Math.round(24 * pixelRatio)
@@ -2251,8 +2320,7 @@ WebViewPage {
             font.pixelSize: Math.round(0.85 * Theme.fontSizeTiny)
             // As the hints elsewhere: secondaryColor hardly shows on white.
             color: lightPage ? "#8c8c8c" : "#808080"
-            //: Estimated page in the whole book in landscape, written upright beside the text, e.g. "30 / 295"
-            text: qsTr("%1 / %2").arg(bookPage).arg(bookPages)
+            text: pageNumberText(true)
         }
     }
 
