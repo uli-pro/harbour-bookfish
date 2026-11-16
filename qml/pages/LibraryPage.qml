@@ -28,10 +28,16 @@ Page {
         resumed = true
         py.setHandler("library", page.scanned)
         py.call("bookfish.bridge.load_last_book", [app.positionsFile], function (path) {
-            if (path)
+            if (path) {
                 openBook(path, true)
-            else
-                showLibrary()
+                return
+            }
+            py.call("bookfish.bridge.first_start", [app.positionsFile], function (first) {
+                if (first)
+                    openBook(app.guideFile, true)
+                else
+                    showLibrary()
+            })
         })
     }
 
@@ -44,7 +50,7 @@ Page {
             if (serial !== scanSerial)
                 return
             defaultFolders = folders
-            var chosen = app.libraryFolder ? [app.libraryFolder] : folders
+            var chosen = app.libraryFolders(folders)
             py.call("bookfish.bridge.cached_library", [app.libraryCache, chosen], function (view) {
                 if (serial !== scanSerial)
                     return
@@ -173,7 +179,8 @@ Page {
     function openAudiobook(path, resuming) {
         // Starting, the folders are not known yet; then all books of the
         // cache count.
-        var folders = app.libraryFolder ? [app.libraryFolder] : defaultFolders
+        var folders = app.libraryFolder || defaultFolders.length > 0
+                ? app.libraryFolders(defaultFolders) : []
         py.call("bookfish.bridge.open_audiobook",
                 [path, app.libraryCache, folders, app.coversFolder, app.audiobooksFolder],
                 function (book) {

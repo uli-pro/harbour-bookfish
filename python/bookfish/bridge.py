@@ -494,6 +494,12 @@ def delete_bookmark(path, key, ident):
     return True
 
 
+def first_start(path):
+    """Whether the app has never opened a book: path, the positions file,
+    does not exist yet."""
+    return not os.path.lexists(path)
+
+
 def load_last_book(path):
     return positions.load_last(path)
 
