@@ -217,7 +217,8 @@ def broken_info(path, kind="epub"):
 
 
 def scan(folders, cache_file):
-    """All EPUBs below folders as ([{path, stamp, info}], changed).
+    """All books below folders, EPUBs and audiobooks, as ([{path, stamp,
+    info}], changed).
 
     Only files that are new or changed since the cache file was written are
     read; reading every book from a memory card took 93 s on the device.

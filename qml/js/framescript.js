@@ -1210,8 +1210,7 @@ function normalize(doc, o) {
 
 // Only outer tables: a nested one goes along with the one around it.
 function outerTables(doc) {
-    // By namespace: in XML, getElementsByTagName("table") misses <h:table>,
-    // which Python counts (tables.py numbers them the same way).
+    // By namespace: in XML, getElementsByTagName("table") misses <h:table>.
     return Array.prototype.filter.call(doc.body.getElementsByTagNameNS(xhtml, "table"), function (table) {
         return !table.parentElement.closest("table")
     })
@@ -1376,11 +1375,11 @@ function splitTallTables(doc) {
 
 // In each table, the first cell with text looks like a link, and so does the
 // table's caption ("Table 2-1. ...", Huyen): a long press on either opens the
-// table as the book made it (QML's table view). Numbered as Python counts
-// outer tables. Only a class: places are kept as offsets in the chapter's
+// table as the book made it (QML's table view). Numbered as outerTables()
+// counts them, for drawTable(). Only a class: places are kept as offsets in the chapter's
 // text, which must not change. Paragraphs before or after a table are not
 // taken for captions: in the library those beginning with "Table" are body
-// text ("Table 4-3 shows ...", 16.11.2026).
+// text ("Table 4-3 shows ...").
 var tableLinks = []
 
 function markTables(doc) {
@@ -1408,8 +1407,9 @@ function markTables(doc) {
 // The index-th outer table as the book made it, as a PNG (base64): the reader
 // shrinks tables too wide for the page and breaks those taller than a page
 // into rows. A copy without our changes is laid out outside the columns,
-// as narrow as its words allow, drawn at twice the screen's resolution for
-// zooming in, and taken out again before anything reaches the screen.
+// up to twice the text's width (see below), drawn at twice the screen's
+// resolution for zooming in, and taken out again before anything reaches
+// the screen.
 // Within the texture size of phones' GPUs (often 8192), and memory: the
 // picture is held several times, as canvas, base64 and QImage.
 var tableWidthFactor = 2
@@ -1447,7 +1447,7 @@ function drawTable(index) {
     var style = content.getComputedStyle(state.scroller)
     var textWidth = columnWidth(parseFloat(style.paddingLeft) + parseFloat(style.paddingRight))
     // Up to twice the page's width: as narrow as the text, cells broke
-    // their lines after every word or two (Huyen, 16.11.2026), and the
+    // their lines after every word or two (Huyen), and the
     // picture is fitted to the screen's width. A narrower table keeps its
     // own width, a wider one its longest words.
     box.style.width = (tableWidthFactor * textWidth) + "px"
@@ -1803,7 +1803,7 @@ function firstTextOn(page) {
 // screen counts, though the lines above it belong to the one before: going
 // to page 143 shows the screen where it begins, which then says 143. A
 // mark's place is its box; without one (hidden) the page of the first text
-// after it, see markPage().
+// after it, see markPageOf().
 function pageMarkAt(page) {
     var found = -1
     var foundPage = -1
@@ -1938,8 +1938,8 @@ function sentenceAt(range) {
     return ""
 }
 
-// The found text is selected, which Gecko shows marked; the WebView gets
-// no touches, so the reader cannot change the selection.
+// The found text is selected, which Gecko shows marked, unless the reader
+// has selected text (see remark()).
 function goFound(find) {
     var at = findOffsets(find)
     var range = at ? rangeAt(at.start, at.end) : null

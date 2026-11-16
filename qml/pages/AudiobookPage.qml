@@ -784,7 +784,8 @@ Page {
                 }
             }
 
-            // Offered when the EPUB was read later, see start().
+            // Offered when the EPUB was read later, see resume() and
+            // app.partnerOffered().
             Item {
                 x: Theme.horizontalPageMargin
                 width: parent.width - x - Theme.paddingMedium

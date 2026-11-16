@@ -5,7 +5,7 @@ So a link counts as a note by its form: a short mark ("12", "[3]", "*",
 "a", "iv") inside running text, leading to a place that is no chapter.
 Every other link (a chapter in the contents, "see chapter 3", a note's
 number leading back to the text) is a jump. The rules were measured on a
-library of some 590 books (18 000 notes); see the README.
+library of some 590 books (18 000 notes).
 
 Only the XHTML namespace counts; the text comes as Qt's StyledText with
 nothing but <i>, <b> and <br>, all else escaped.
@@ -53,9 +53,9 @@ def follow_link(root, spine, toc, chapter, href, ordinal):
     of chapter paths, toc the places of the contents as (path, fragment).
 
     Returns {"jump": spine index, "id": fragment} to go there,
-    {"paragraphs": [StyledText], "first": i, "last": j} for a note (the
-    note itself is first..last, the rest its neighbours), or {} if the
-    link leads nowhere in the book.
+    {"paragraphs": [StyledText], "first": i, "last": j, "mark": text} for
+    a note (the note itself is first..last, the rest its neighbours; mark
+    is the link's text), or {} if the link leads nowhere in the book.
     """
     try:
         target = resolve(chapter, href)

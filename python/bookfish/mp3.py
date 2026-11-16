@@ -383,8 +383,8 @@ def _duration(f, start, file_size):
 
 
 def _frame_header(data):
-    """{bitrate (bit/s), rate, samples, length, mono, version} of an MPEG audio
-    frame header, or None if data is none."""
+    """{bitrate (bit/s), rate, samples, length, mono, version, crc} of an
+    MPEG audio frame header, or None if data is none."""
     if data[0] != 0xff or data[1] & 0xe0 != 0xe0:
         return None
     version = {0: 25, 2: 2, 3: 1}.get((data[1] >> 3) & 3)
