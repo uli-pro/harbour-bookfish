@@ -18,7 +18,7 @@ import traceback
 import unicodedata
 
 from . import (audiobook, bookmarks, cache, dictionary, history as history_store, library,
-               notes, positions)
+               notes, positions, tableimage)
 from .errors import EpubError
 from .overlay import read_overlay
 from .package import read_package, text_length
@@ -410,6 +410,17 @@ def follow_link(root, spine, toc, chapter, href, ordinal):
         # The reader waits for an answer.
         traceback.print_exc()
         return {}
+
+
+def save_table_image(root, data):
+    """{"path": file} of the table picture data (base64 PNG from the frame
+    script), stored in the book's folder, see tableimage.save."""
+    try:
+        return {"path": tableimage.save(root, data)}
+    except ValueError as e:
+        return _error("bad_picture", str(e))
+    except OSError as e:
+        return _error("io", str(e))
 
 
 def load_position(path, key):

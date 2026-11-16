@@ -103,6 +103,8 @@ WebViewPage {
     // book has been used. A layout alone moves the page a little.
     property bool moved: false
     readonly property bool listening: player.active && player.chapter === chapter
+    // A table's picture is being stored, see showTable().
+    property bool tableSaving: false
     // The sentence spoken and the one before it, with the time until which
     // a tap on that one still pauses (see isSpoken()). Until startedUntil a
     // tap does not pause: it repeats one that seemed to do nothing while the
@@ -540,7 +542,11 @@ WebViewPage {
                     flickable.webView.sendAsyncMessage("bookfish:selectClear", {})
                 return
             }
-            if (data.selection)
+            if (data.tableImage)
+                showTable(data.tableImage)
+            else if (data.tableError)
+                console.warn("Cannot draw the table", data.tableError)
+            else if (data.selection)
                 startSelection(data.selection)
             else if (data.picture)
                 showPicture(data.picture)
@@ -955,6 +961,31 @@ WebViewPage {
         if (path.indexOf(book.root.replace(/\/+$/, "") + "/") !== 0 || /\/\.\.?(\/|$)/.test(path))
             return
         pageStack.push(Qt.resolvedUrl("ImagePage.qml"), { source: src, pageColor: pageColor })
+    }
+
+    // A table as the book made it, drawn by the frame script as a PNG
+    // (base64): Python stores it in the book's folder for the picture view.
+    function showTable(png) {
+        // A second long press meanwhile would remove this picture before it
+        // is shown.
+        if (tableSaving)
+            return
+        tableSaving = true
+        var from = chapter
+        py.call("bookfish.bridge.save_table_image", [book.root, png], function (result) {
+            if (typeof page === "undefined" || !page)
+                return
+            tableSaving = false
+            if (closed || chapter !== from || status !== PageStatus.Active)
+                return
+            if (result.error) {
+                console.warn("Cannot show the table", result.error, result.detail)
+                return
+            }
+            pageStack.push(Qt.resolvedUrl("ImagePage.qml"),
+                           { source: fileUrl(result.path), pageColor: pageColor, doubleTapZoom: 1.75,
+                             fitWidth: true })
+        })
     }
 
     function togglePlay() {

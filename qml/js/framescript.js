@@ -122,7 +122,26 @@ addMessageListener("bookfish:layout", function (message) {
         "body .bookfish-active, body .bookfish-resume { background-color: " + o.markColor + "; }" +
         // Bookmarks and notes: a dotted line, which changes no line's height.
         "body .bookfish-mark { text-decoration: underline dotted " + o.underlineColor + ";" +
-        "  text-decoration-thickness: 0.1em; text-underline-offset: 0.2em; }")
+        "  text-decoration-thickness: 0.1em; text-underline-offset: 0.2em; }" +
+        // The first cell of each table in the colour of links: a long press
+        // on it opens the table as the book made it.
+        "body .bookfish-table-link, body .bookfish-table-link h|* { color: " +
+        (o.background === "black" ? "#8ab4f8" : "#0645ad") + "; }" +
+        // A table drawn for the picture view (drawTable), outside the body
+        // and its columns: the body's rules again.
+        ".bookfish-table-render { position: absolute; left: 0; top: 0; z-index: 2147483647; margin: 0;" +
+        "  padding: 0.5em; box-sizing: content-box; overflow: visible; display: block; float: none;" +
+        "  min-width: 0; max-width: none; min-height: 0; max-height: none; border: 0; transform: none;" +
+        "  text-indent: 0; columns: auto; overflow-wrap: normal; word-break: normal; color: " + o.color + "; background: " +
+        o.background + "; font-size: " + fontSize + "px; line-height: " + o.lineHeight + "; }" +
+        ".bookfish-table-render h|* { line-height: inherit; font-family: " + o.fontFamily + bookFonts(doc) + "; }" +
+        ".bookfish-table-render h|pre, .bookfish-table-render h|pre h|*, .bookfish-table-render h|code," +
+        "  .bookfish-table-render h|code h|*, .bookfish-table-render h|kbd, .bookfish-table-render h|kbd h|*," +
+        "  .bookfish-table-render h|samp, .bookfish-table-render h|samp h|*, .bookfish-table-render h|tt," +
+        "  .bookfish-table-render h|tt h|* { font-family: monospace; }" +
+        ".bookfish-table-render > h|table { width: auto; min-width: 0; max-width: none; margin: 0; }" +
+        ".bookfish-table-render h|a { color: inherit; text-decoration: none; }" +
+        (o.background === "black" ? ".bookfish-table-render h|*:not(h|hr) { color: inherit; background-color: transparent; }" : ""))
     normalize(doc, o)
 
     var sentences = []
@@ -266,6 +285,17 @@ addMessageListener("bookfish:pressAt", function (message) {
         return
     var x = message.data.x * content.innerWidth
     var y = message.data.y * content.innerHeight
+    var table = tableLinkAt(x, y)
+    if (table >= 0) {
+        var answer = { serial: state.serial }
+        try {
+            answer.tableImage = drawTable(table)
+        } catch (e) {
+            answer.tableError = String(e)
+        }
+        sendAsyncMessage("bookfish:pressed", answer)
+        return
+    }
     var src = pictureAt(x, y)
     var link = null
     var answer = { serial: state.serial, picture: src }
@@ -1050,6 +1080,9 @@ function normalize(doc, o) {
     overridden = []
     if (!doc.body)
         return
+    // Ours only: a book's own element of that class keeps it.
+    tableLinks.forEach(function (link) { link.cell.classList.remove("bookfish-table-link") })
+    tableLinks = []
     var elements = doc.body.getElementsByTagName("*")
     var justified = []
     var centred = []
@@ -1135,13 +1168,16 @@ function normalize(doc, o) {
     try {
         fitTables(doc, o.margin)
         splitTallTables(doc)
+        markTables(doc)
     } catch (e) { }
 }
 
 // Only outer tables: a nested one goes along with the one around it.
 function outerTables(doc) {
-    return Array.prototype.filter.call(doc.body.getElementsByTagName("table"), function (table) {
-        return table.namespaceURI === xhtml && !table.parentElement.closest("table")
+    // By namespace: in XML, getElementsByTagName("table") misses <h:table>,
+    // which Python counts (tables.py numbers them the same way).
+    return Array.prototype.filter.call(doc.body.getElementsByTagNameNS(xhtml, "table"), function (table) {
+        return !table.parentElement.closest("table")
     })
 }
 
@@ -1300,6 +1336,109 @@ function splitTallTables(doc) {
         })
     })
     tallRows.forEach(function (row) { override(row, "display", "block") })
+}
+
+// In each table, the first cell with text looks
+// like a link: a long press on it opens the table as the book made it (QML's
+// table view). Numbered as Python counts outer tables. Only a class: places
+// are kept as offsets in the chapter's text, which must not change.
+var tableLinks = []
+
+function markTables(doc) {
+    outerTables(doc).forEach(function (table, index) {
+        var cells = table.querySelectorAll("td, th")
+        for (var i = 0; i < cells.length; ++i) {
+            var cell = cells[i]
+            if (cell.closest("table") === table && cell.textContent.trim()
+                    && !cell.classList.contains("bookfish-table-link")) {
+                cell.classList.add("bookfish-table-link")
+                tableLinks.push({ cell: cell, table: index })
+                return
+            }
+        }
+    })
+}
+
+// The index-th outer table as the book made it, as a PNG (base64): the reader
+// shrinks tables too wide for the page and breaks those taller than a page
+// into rows. A copy without our changes is laid out outside the columns,
+// as narrow as its words allow, drawn at twice the screen's resolution for
+// zooming in, and taken out again before anything reaches the screen.
+// Within the texture size of phones' GPUs (often 8192), and memory: the
+// picture is held several times, as canvas, base64 and QImage.
+var tableWidthFactor = 2
+var maxTablePixels = 16e6
+var maxTableSide = 8192
+
+function drawTable(index) {
+    var doc = state.doc
+    var table = outerTables(doc)[index]
+    if (!table)
+        throw new Error("no table " + index)
+    var copy = table.cloneNode(true)
+    var originals = [table].concat(Array.prototype.slice.call(table.getElementsByTagName("*")))
+    var copies = [copy].concat(Array.prototype.slice.call(copy.getElementsByTagName("*")))
+    var copyOf = new Map()
+    originals.forEach(function (element, i) { copyOf.set(element, copies[i]) })
+    for (var i = overridden.length - 1; i >= 0; --i) {
+        var o = overridden[i]
+        var c = copyOf.get(o[0])
+        if (!c || !c.style)
+            continue
+        if (o[2])
+            c.style.setProperty(o[1], o[2], o[3])
+        else
+            c.style.removeProperty(o[1])
+    }
+    // Ids stay: the book's rules for #id apply to the copy too, and the
+    // copy is gone before anyone looks one up.
+    copies.forEach(function (element) {
+        if (element.classList)
+            element.classList.remove("bookfish-table-link", "bookfish-active", "bookfish-resume", "bookfish-mark")
+    })
+    var box = doc.createElementNS(xhtml, "div")
+    box.setAttribute("class", "bookfish-table-render")
+    var style = content.getComputedStyle(state.scroller)
+    var textWidth = state.width - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+    // Up to twice the page's width: as narrow as the text, cells broke
+    // their lines after every word or two (Huyen, 16.11.2026), and the
+    // picture is fitted to the screen's width. A narrower table keeps its
+    // own width, a wider one its longest words.
+    box.style.width = (tableWidthFactor * textWidth) + "px"
+    box.appendChild(copy)
+    doc.documentElement.appendChild(box)
+    try {
+        box.style.width = Math.ceil(copy.getBoundingClientRect().width) + "px"
+        var rect = box.getBoundingClientRect()
+        // What sticks out of the box counts too.
+        var w = Math.ceil(Math.max(rect.width, box.scrollWidth))
+        var h = Math.ceil(Math.max(rect.height, box.scrollHeight))
+        var scale = Math.min(2 * (content.devicePixelRatio || 1), Math.sqrt(maxTablePixels / (w * h)),
+                             maxTableSide / w, maxTableSide / h)
+        var canvas = doc.createElementNS(xhtml, "canvas")
+        canvas.width = Math.max(1, Math.round(w * scale))
+        canvas.height = Math.max(1, Math.round(h * scale))
+        var context = canvas.getContext("2d")
+        context.scale(scale, scale)
+        // drawWindow takes document coordinates.
+        context.drawWindow(content, rect.left + content.scrollX, rect.top + content.scrollY, w, h,
+                           style.backgroundColor)
+        var url = canvas.toDataURL("image/png")
+        return url.slice(url.indexOf(",") + 1)
+    } finally {
+        box.remove()
+    }
+}
+
+// The number of the table whose marked cell is at x, y, or -1.
+function tableLinkAt(x, y) {
+    for (var el = state.doc.elementFromPoint(x, y); el; el = el.parentElement) {
+        for (var i = 0; i < tableLinks.length; ++i) {
+            if (tableLinks[i].cell === el)
+                return tableLinks[i].table
+        }
+    }
+    return -1
 }
 
 // After a layout QML covers the view until Gecko has painted it; the layout

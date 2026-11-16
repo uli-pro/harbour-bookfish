@@ -2,18 +2,25 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 import "../components"
 
-// A picture of the book, to look at closely (see ReaderPage.showPicture).
-// At first it fits the screen; it is enlarged up to four times that.
+// A picture of the book, to look at closely (see ReaderPage.showPicture), or
+// a table drawn as one (ReaderPage.showTable). At first it fits the screen,
+// a table its width only; it is enlarged up to four times that.
 Page {
     id: page
 
     property url source
     property color pageColor
+    // A double tap zooms in this far; tables need less than pictures.
+    property real doubleTapZoom: 2.5
+    // A tall table fitted to the screen would be too small to read: it fits
+    // the width, and scrolls.
+    property bool fitWidth: false
 
     // Relative to fitting the screen, so turning the phone keeps it.
     property real zoom: 1
     readonly property real fitScale: image.implicitWidth > 0 && image.implicitHeight > 0
-                                     ? Math.min(width / image.implicitWidth, height / image.implicitHeight)
+                                     ? (fitWidth ? width / image.implicitWidth
+                                                 : Math.min(width / image.implicitWidth, height / image.implicitHeight))
                                      : 1
     readonly property bool zoomed: zoom > 1.01
 
@@ -60,7 +67,7 @@ Page {
             anchors.fill: parent
             contentWidth: Math.max(width, image.width)
             contentHeight: Math.max(height, image.height)
-            interactive: page.zoomed
+            interactive: page.zoomed || image.height > height + 1
             // A delayed press may keep the second finger from the PinchArea.
             pressDelay: 0
 
@@ -79,7 +86,7 @@ Page {
             MouseArea {
                 width: flick.contentWidth
                 height: flick.contentHeight
-                onDoubleClicked: page.zoomTo(page.zoomed ? 1 : 2.5,
+                onDoubleClicked: page.zoomTo(page.zoomed ? 1 : page.doubleTapZoom,
                                              mouse.x - flick.contentX, mouse.y - flick.contentY)
             }
         }
