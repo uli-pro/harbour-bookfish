@@ -12,13 +12,15 @@ audiobooks, and the app then falls back to file names.
 import struct
 
 from . import audioutil
-from .audioutil import AudioError, clean_text, open_regular, picture_type, read_exact
+from .audioutil import (AudioError, clean_text, known_duration, open_regular, picture_type,
+                        read_exact)
 
 MAX_TEXT = 64 * 1024
 MAX_CHAPTER_FRAME = 1024 * 1024
 MAX_PICTURE = 5 * 1024 * 1024
 MAX_FRAMES = 10000
 MAX_CHAPTERS = 5000
+_MAX_SUB_FRAMES = 16
 # How far after the tag the first audio frame is looked for: some files
 # have padding or junk between them.
 _SYNC_SEARCH = 64 * 1024
@@ -59,7 +61,7 @@ def read(path, chapters=True):
         info = tag.read(chapters)
         if not tag.version:
             _read_v1(f, size, info)
-        info["duration"] = _duration(f, tag.end, size)
+        info["duration"] = known_duration(_duration(f, tag.end, size))
     if info["duration"] is None and not tag.found:
         raise AudioError("not_audio", "no ID3 tag and no MPEG frame")
     return info
@@ -243,10 +245,13 @@ class _Tag:
         if id_end < 0 or len(data) < id_end + 17:
             return None
         begin = struct.unpack(">I", data[id_end + 1:id_end + 5])[0]
-        # Sub-frames, laid out like the frames of the tag; read from the
-        # frame's content, not the file, as there may be thousands.
+        # Sub-frames, laid out like the frames of the tag. The title comes
+        # first or nearly; a crafted frame of empty sub-frames took 70 ms
+        # per MB.
         pos = id_end + 17
-        while pos + 10 <= len(data) and _frame_id(data[pos:pos + 4]):
+        for _ in range(_MAX_SUB_FRAMES):
+            if pos + 10 > len(data) or not _frame_id(data[pos:pos + 4]):
+                break
             sub_size = (_synchsafe(data[pos + 4:pos + 8]) if self.version == 4 else None)
             if sub_size is None:
                 sub_size = struct.unpack(">I", data[pos + 4:pos + 8])[0]

@@ -1,5 +1,6 @@
 import json
 import os
+from unittest import mock
 
 from bookfish import positions
 
@@ -88,13 +89,28 @@ class PositionsTest(TempDirTestCase):
     def test_invalid_positions(self):
         for bad in [None, [], {}, dict(POSITION, spine=-1), dict(POSITION, spine=True),
                     dict(POSITION, spine=1.5), dict(POSITION, id=5),
-                    dict(POSITION, id="x" * 1001), dict(POSITION, fraction=1.5),
+                    dict(POSITION, fraction=1.5),
                     dict(POSITION, fraction=float("nan")), dict(POSITION, fraction="0")]:
             with self.subTest(position=bad):
                 self.write(json.dumps({"books": {"book": bad}}))
                 self.assertIsNone(positions.load(self.path, "book"))
                 with self.assertRaises(ValueError):
                     positions.save(self.path, "book", bad)
+
+
+    def test_long_id_dropped_place_kept(self):
+        positions.save(self.path, "book", dict(POSITION, id="x" * 1001))
+        self.assertEqual(positions.load(self.path, "book"), dict(POSITION, id=""))
+
+    def test_oldest_books_go_before_the_file_grows_too_large(self):
+        place = dict(POSITION, id="x" * 1000)
+        with mock.patch.object(positions, "MAX_SIZE", 20000):
+            for i in range(40):
+                positions.save(self.path, "book%02d" % i, place, now=1000 + i)
+            self.assertLessEqual(os.path.getsize(self.path), positions.MAX_SIZE)
+            self.assertEqual(positions.load(self.path, "book39"), dict(place, time=1039))
+            self.assertEqual(positions.load(self.path, "book30"), dict(place, time=1030))
+            self.assertIsNone(positions.load(self.path, "book00"))
 
 
 class LastBookTest(TempDirTestCase):
@@ -110,11 +126,22 @@ class LastBookTest(TempDirTestCase):
 
     def test_save_and_load(self):
         positions.save_last(self.path, self.epub)
+        positions.shown(self.path)
+        self.assertEqual(positions.load_last(self.path), self.epub)
+
+    def test_not_reopened_until_shown(self):
+        # The app may have crashed on it: the library comes first.
+        positions.save_last(self.path, self.epub)
+        self.assertIsNone(positions.load_last(self.path))
+        self.assertIsNone(positions.load_last(self.path))
+        self.assertEqual(positions.load_recent(self.path), [self.epub])
+        positions.shown(self.path)
         self.assertEqual(positions.load_last(self.path), self.epub)
 
     def test_kept_next_to_positions(self):
         positions.save(self.path, "book", POSITION)
         positions.save_last(self.path, self.epub)
+        positions.shown(self.path)
         positions.save(self.path, "other", POSITION)
         self.assertEqual(positions.load_last(self.path), self.epub)
         self.assertEqual(positions.load(self.path, "book"), POSITION)
@@ -149,6 +176,7 @@ class RecentTest(TempDirTestCase):
         a, b, c, d = self.epubs
         for epub in (a, b, c, a, d):
             positions.save_last(self.path, epub)
+            positions.shown(self.path)
         self.assertEqual(positions.load_recent(self.path), [d, a, c])
         self.assertEqual(positions.load_last(self.path), d)
 
@@ -190,6 +218,7 @@ class AudioPositionTest(TempDirTestCase):
         folder = os.path.join(self.tmp, "Book")
         os.mkdir(folder)
         positions.save_last(self.path, folder)
+        positions.shown(self.path)
         self.assertEqual(positions.load_last(self.path), folder)
         self.assertEqual(positions.load_recent(self.path), [folder])
         os.rmdir(folder)

@@ -25,12 +25,18 @@ import unicodedata
 import zipfile
 from urllib.parse import quote
 
+from .archive import open_zip
+from .errors import EpubError
+
 # 2: the "to" of English verbs in the index (15.11.2026).
 SCHEMA = 2
 SUFFIX = ".sqlite"
 # Far above any list of dict.cc (EN-DE: 78 MB); a ZIP claiming more is no
 # list but an attempt to fill the device.
 MAX_LIST_SIZE = 1 << 30
+# dict.cc lines are a few hundred bytes; longer ones are skipped, which also
+# bounds the cost of parsing nested brackets.
+MAX_LINE = 4096
 _HEADER_LINES = 20
 _BATCH = 50000
 # Results shown: entries with the same word and kind count as one.
@@ -344,9 +350,12 @@ def _open_list(path):
     """The list at path as a binary stream, with its size: a text file, or
     the text file in a ZIP that holds nothing else."""
     if zipfile.is_zipfile(path):
-        with zipfile.ZipFile(path) as archive:
+        with open(path, "rb") as f, _open_zip(f, path) as archive:
             members = [info for info in archive.infolist() if not info.is_dir()]
             if len(members) != 1 or not members[0].filename.lower().endswith(".txt"):
+                raise DictionaryError("not_dictionary", path)
+            # zipfile does not bound the memory of its bzip2 and LZMA decoders.
+            if members[0].compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED):
                 raise DictionaryError("not_dictionary", path)
             if members[0].file_size > MAX_LIST_SIZE:
                 raise DictionaryError("too_large", path)
@@ -358,6 +367,13 @@ def _open_list(path):
             if size > MAX_LIST_SIZE:
                 raise DictionaryError("too_large", path)
             yield stream, size
+
+
+def _open_zip(f, path):
+    try:
+        return open_zip(f, max_entries=10)
+    except EpubError:
+        raise DictionaryError("not_dictionary", path)
 
 
 def _header(stream):
@@ -499,8 +515,18 @@ def _fill(connection, stream, size, languages, progress, cancelled):
     count = 0
     done = 0
     rows = []
-    for raw in stream:
+    lines = 0
+    while True:
+        raw = stream.readline(MAX_LINE)
+        if not raw:
+            break
         done += len(raw)
+        lines += 1
+        if lines % _BATCH == 0 and cancelled is not None and cancelled():
+            raise Cancelled()
+        if len(raw) == MAX_LINE and not raw.endswith(b"\n"):
+            done += _skip_line(stream)
+            continue
         entry = _parse(raw.decode("utf-8", "replace"))
         if entry is None:
             continue
@@ -520,6 +546,16 @@ def _fill(connection, stream, size, languages, progress, cancelled):
     if cancelled is not None and cancelled():
         raise Cancelled()
     return count
+
+
+def _skip_line(stream):
+    """Read past the end of the current line; return the bytes read."""
+    skipped = 0
+    while True:
+        part = stream.readline(MAX_LINE)
+        skipped += len(part)
+        if not part or part.endswith(b"\n"):
+            return skipped
 
 
 def _store(connection, rows):

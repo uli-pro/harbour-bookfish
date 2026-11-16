@@ -1,7 +1,7 @@
 import unittest
 
 from bookfish.errors import EpubError
-from bookfish.overlay import Fragment, Overlay, parse_clock, read_overlay
+from bookfish.overlay import Fragment, parse_clock, read_overlay
 
 from .helpers import MINI_DIR, TempDirTestCase, write_files
 
@@ -103,49 +103,3 @@ class ReadOverlayTest(TempDirTestCase):
         self.assertEqual(cm.exception.code, "bad_overlay")
 
 
-class OverlayTest(unittest.TestCase):
-
-    def setUp(self):
-        # File a: an announcement until 300 ms, then sentences with a gap
-        # from 2000 to 2500 ms. File b: the last sentence runs to the end.
-        self.overlay = Overlay([
-            Fragment("c.xhtml", "s0", "a.mp3", 300, 1000),
-            Fragment("c.xhtml", "s1", "a.mp3", 1000, 2000),
-            Fragment("c.xhtml", "s2", "a.mp3", 2500, 3000),
-            Fragment("c.xhtml", "s3", "b.mp3", 0, 500),
-            Fragment("c.xhtml", "s4", "b.mp3", 500, None),
-        ])
-
-    def test_index_of(self):
-        self.assertEqual(self.overlay.index_of("s0"), 0)
-        self.assertEqual(self.overlay.index_of("s4"), 4)
-        self.assertIsNone(self.overlay.index_of("nope"))
-
-    def test_index_at(self):
-        for audio, ms, index in [
-                ("a.mp3", 0, None),       # announcement
-                ("a.mp3", 299, None),
-                ("a.mp3", 300, 0),        # exactly on a begin
-                ("a.mp3", 999, 0),
-                ("a.mp3", 1000, 1),       # end of one is begin of the next
-                ("a.mp3", 2000, None),    # gap
-                ("a.mp3", 2499, None),
-                ("a.mp3", 2500, 2),
-                ("a.mp3", 3000, None),    # after the last sentence
-                ("b.mp3", 0, 3),
-                ("b.mp3", 10 ** 9, 4),    # open end
-                ("c.mp3", 0, None)]:      # unknown file
-            with self.subTest(audio=audio, ms=ms):
-                self.assertEqual(self.overlay.index_at(audio, ms), index)
-
-    def test_overlap_later_clip_wins(self):
-        overlay = Overlay([Fragment("c.xhtml", "long", "a.mp3", 0, 5000),
-                           Fragment("c.xhtml", "short", "a.mp3", 1000, 2000)])
-        self.assertEqual(overlay.index_at("a.mp3", 500), 0)
-        self.assertEqual(overlay.index_at("a.mp3", 1500), 1)
-        self.assertIsNone(overlay.index_at("a.mp3", 3000))
-
-    def test_first_occurrence_of_id_wins(self):
-        overlay = Overlay([Fragment("c.xhtml", "s", "a.mp3", 0, 1),
-                           Fragment("c.xhtml", "s", "a.mp3", 1, 2)])
-        self.assertEqual(overlay.index_of("s"), 0)

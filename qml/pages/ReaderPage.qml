@@ -217,9 +217,17 @@ WebViewPage {
     property int anchorOffset: -1
     // Covered for turning the phone: taps would act on a page not shown.
     property bool turning: false
+    // The first page painted: the book is reopened at the next start (see
+    // positions.load_last).
+    property bool shown: false
     onCoveredChanged: {
-        if (!covered)
-            turning = false
+        if (covered)
+            return
+        turning = false
+        if (!shown) {
+            shown = true
+            py.call("bookfish.bridge.book_shown", [app.positionsFile])
+        }
     }
 
     // Turning pages needs the horizontal swipe; the library is in the pulley.
@@ -2689,12 +2697,14 @@ WebViewPage {
     // The handles of a selection, over the view and above the controls: a
     // handle hanging below the last line reaches into the controls when they
     // sit below the text. Moves with the view (the pulley).
+    // The WebView goes first when the page is destroyed.
     Item {
-        x: flickable.x + flickable.contentItem.x + flickable.webView.x
-        y: flickable.y + flickable.contentItem.y + flickable.webView.y
+        readonly property Item view: flickable.webView
+        x: view ? flickable.x + flickable.contentItem.x + view.x : 0
+        y: view ? flickable.y + flickable.contentItem.y + view.y : 0
         z: 2
-        width: flickable.webView.width
-        height: flickable.webView.height
+        width: view ? view.width : 0
+        height: view ? view.height : 0
         visible: selecting && !pulley.active
 
         SelectionHandle {

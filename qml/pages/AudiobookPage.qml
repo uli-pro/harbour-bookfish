@@ -347,6 +347,9 @@ Page {
                 })
     }
 
+    // The book was reported as shown, see onFileDurationChanged.
+    property bool reportedShown: false
+
     // GStreamer's duration of the file playing replaces the estimate of a
     // folder opened for the first time (and a wrong one in the tags).
     function fixLength() {
@@ -459,7 +462,15 @@ Page {
         rate: app.playbackRate
         onFinished: page.handOver(chapter)
         onPlayingChanged: page.playbackChanged()
-        onFileDurationChanged: page.fixLength()
+        onFileDurationChanged: {
+            page.fixLength()
+            // The audio loaded: the book is reopened at the next start (see
+            // positions.load_last).
+            if (fileDuration > 0 && !page.reportedShown) {
+                page.reportedShown = true
+                py.call("bookfish.bridge.book_shown", [app.positionsFile])
+            }
+        }
         // Saved already, see playbackChanged().
         onFailed: {
             page.stopPlayer()

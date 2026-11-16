@@ -1,5 +1,6 @@
-import os
+from unittest import mock
 
+from bookfish import package
 from bookfish.errors import EpubError
 from bookfish.package import (BookInfo, SpineItem, TocEntry, read_info, read_nav, read_ncx,
                                read_package, text_length)
@@ -122,6 +123,11 @@ class PackageTest(TempDirTestCase):
     def test_unknown_idref_skipped(self):
         book = self.book(spine='<itemref idref="nope"/><itemref idref="c1"/>')
         self.assertEqual(len(book.spine), 1)
+
+    def test_spine_cut(self):
+        with mock.patch.object(package, "MAX_SPINE", 3):
+            book = self.book(spine='<itemref idref="c1"/>' * 5)
+        self.assertEqual(len(book.spine), 3)
 
     def test_empty_spine(self):
         self.assertFails("bad_package", spine="")
@@ -370,6 +376,16 @@ class InfoTest(TempDirTestCase):
         opf = ElementTree.fromstring(OPF.format(metadata=metadata, manifest=manifest,
                                                 spine='<itemref idref="c1"/>'))
         return read_info(opf, "OPS/package.opf")
+
+    def test_long_metadata_cut(self):
+        # Library views and their cache carry these for every book.
+        info = self.info('<dc:identifier>{0}</dc:identifier><dc:title>{0}</dc:title>'
+                         '<dc:creator>{0}</dc:creator>'.format("x" * 100000)
+                         + '<dc:creator>A</dc:creator>' * 100
+                         + '<meta name="calibre:series" content="{}"/>'.format("s" * 100000))
+        for text in (info.identifier, info.title, info.sort, info.series, info.authors[0]):
+            self.assertEqual(len(text), 500)
+        self.assertEqual(len(info.authors), 20)
 
     def test_epub2(self):
         info = self.info(

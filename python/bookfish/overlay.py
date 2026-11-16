@@ -1,6 +1,5 @@
 """Media overlays (SMIL): which sentence is spoken when."""
 
-import bisect
 import collections
 import re
 
@@ -95,7 +94,7 @@ def _read_par(par, smil_path):
 
 
 class Overlay(object):
-    """The sentences of one chapter in reading order, with lookups both ways.
+    """The sentences of one chapter in reading order.
 
     skipped counts the sentences of the SMIL file that could not be played.
     """
@@ -103,38 +102,3 @@ class Overlay(object):
     def __init__(self, fragments, skipped=0):
         self.fragments = list(fragments)
         self.skipped = skipped
-        self._by_id = {}
-        by_audio = {}
-        for index, fragment in enumerate(self.fragments):
-            self._by_id.setdefault(fragment.text_id, index)
-            by_audio.setdefault(fragment.audio_path, []).append(
-                (fragment.begin, index))
-        self._by_audio = {}
-        for path, pairs in by_audio.items():
-            pairs.sort()
-            self._by_audio[path] = ([b for b, _ in pairs], [i for _, i in pairs])
-
-    def index_of(self, text_id):
-        """Index of the sentence with the element id text_id, or None."""
-        return self._by_id.get(text_id)
-
-    def index_at(self, audio_path, position):
-        """Index of the sentence playing at position (ms) in audio_path.
-
-        That is the sentence of audio_path that began last at or before
-        position, unless it has already ended: None before the first
-        sentence (e.g. an announcement), in a gap and for unknown files.
-        If clips overlap, the later one wins and an earlier, longer clip
-        is not reported once the later one has ended.
-        """
-        entry = self._by_audio.get(audio_path)
-        if entry is None:
-            return None
-        begins, indices = entry
-        i = bisect.bisect_right(begins, position) - 1
-        if i < 0:
-            return None
-        fragment = self.fragments[indices[i]]
-        if fragment.end is not None and position >= fragment.end:
-            return None
-        return indices[i]

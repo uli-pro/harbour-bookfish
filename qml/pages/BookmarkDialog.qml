@@ -58,6 +58,7 @@ Dialog {
                 width: parent.width - 2 * x
                 visible: text !== ""
                 text: dialog.chapterTitle
+                textFormat: Text.PlainText
                 truncationMode: TruncationMode.Fade
                 font.pixelSize: Theme.fontSizeExtraSmall
                 color: Theme.secondaryHighlightColor
@@ -67,6 +68,7 @@ Dialog {
                 x: Theme.horizontalPageMargin
                 width: parent.width - 2 * x
                 text: dialog.quote
+                textFormat: Text.PlainText
                 wrapMode: Text.Wrap
                 maximumLineCount: 4
                 elide: Text.ElideRight
