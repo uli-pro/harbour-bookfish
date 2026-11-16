@@ -168,33 +168,33 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
 <context>
     <name>BookmarksPage</name>
     <message>
-        <location filename="../qml/pages/BookmarksPage.qml" line="96"/>
+        <location filename="../qml/pages/BookmarksPage.qml" line="98"/>
         <source>Bookmarks</source>
         <extracomment>Title of the list of bookmarks and notes</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/BookmarksPage.qml" line="101"/>
+        <location filename="../qml/pages/BookmarksPage.qml" line="103"/>
         <source>No bookmarks yet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/BookmarksPage.qml" line="102"/>
+        <location filename="../qml/pages/BookmarksPage.qml" line="104"/>
         <source>Long press on text to add one</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/BookmarksPage.qml" line="112"/>
+        <location filename="../qml/pages/BookmarksPage.qml" line="114"/>
         <source>Edit note</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/BookmarksPage.qml" line="120"/>
+        <location filename="../qml/pages/BookmarksPage.qml" line="122"/>
         <source>Delete</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/BookmarksPage.qml" line="125"/>
+        <location filename="../qml/pages/BookmarksPage.qml" line="127"/>
         <source>Deleting</source>
         <translation type="unfinished"></translation>
     </message>
@@ -693,39 +693,39 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
     </message>
 </context>
 <context>
-    <name>PageFlipPanel</name>
+    <name>PageFlipGrid</name>
     <message>
-        <location filename="../qml/components/PageFlipPanel.qml" line="40"/>
+        <location filename="../qml/components/PageFlipGrid.qml" line="55"/>
         <source>Beginning</source>
         <extracomment>Place in the page flip view before the first page of the printed book (cover, title)</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/components/PageFlipPanel.qml" line="43"/>
+        <location filename="../qml/components/PageFlipGrid.qml" line="58"/>
         <source>Page ≈ %1 / %2</source>
         <extracomment>Estimated page of the printed book in the page flip view, e.g. &quot;Page ≈ 143 / 380&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/components/PageFlipPanel.qml" line="46"/>
+        <location filename="../qml/components/PageFlipGrid.qml" line="61"/>
         <source>Page %1 / %2</source>
         <extracomment>Page of the printed book in the page flip view, e.g. &quot;Page 143 / 380&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/components/PageFlipPanel.qml" line="48"/>
+        <location filename="../qml/components/PageFlipGrid.qml" line="63"/>
         <source>Page %1</source>
         <extracomment>Page of the printed book without a total (Roman, or several volumes), e.g. &quot;Page vii&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/components/PageFlipPanel.qml" line="56"/>
+        <location filename="../qml/components/PageFlipGrid.qml" line="71"/>
         <source>Chapter %1</source>
         <extracomment>Chapter without a title in the contents, e.g. &quot;Chapter 12&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/components/PageFlipPanel.qml" line="187"/>
+        <location filename="../qml/components/PageFlipGrid.qml" line="127"/>
         <source>Go to page…</source>
         <extracomment>Opens a field to type a page of the printed book to go to</extracomment>
         <translation type="unfinished"></translation>
@@ -791,142 +791,124 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
 <context>
     <name>ReaderPage</name>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1655"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1997"/>
         <source>The narration could not be played.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2204"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2557"/>
         <source>Settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2236"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2589"/>
         <source>Find &amp; history</source>
         <extracomment>Opens the search in the book and its history of reading and listening</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1886"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2228"/>
         <source>%1×</source>
         <extracomment>Playback speed on the button that opens the page for speed and sleep timer, e.g. &quot;1.25×&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1083"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1413"/>
         <source>The bookmark could not be saved.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1082"/>
-        <location filename="../qml/pages/ReaderPage.qml" line="1100"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1412"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1430"/>
         <source>The note could not be saved.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="494"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="541"/>
         <source>≈ %1 / %2</source>
         <extracomment>Estimated page of the printed book in landscape, e.g. &quot;≈ 30 / 295&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="496"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="543"/>
         <source>≈%1/%2</source>
         <extracomment>Estimated page of the printed book, e.g. &quot;≈30/295&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="571"/>
-        <source>Back</source>
-        <extracomment>Button of the page flip view: back to where it was opened, in the front matter</extracomment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="574"/>
-        <source>Back to page ≈ %1</source>
-        <extracomment>Button of the page flip view: back to where it was opened, e.g. &quot;Back to page ≈ 120&quot;</extracomment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="576"/>
-        <source>Back to page %1</source>
-        <extracomment>Button of the page flip view: back to where it was opened, e.g. &quot;Back to page 120&quot;</extracomment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1154"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1484"/>
         <source>Deleting bookmark</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1154"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1484"/>
         <source>Deleting note</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1837"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2179"/>
         <source>Find</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1848"/>
-        <location filename="../qml/pages/ReaderPage.qml" line="1869"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2190"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2211"/>
         <source>Play</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1859"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2201"/>
         <source>Previous sentence</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1869"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2211"/>
         <source>Pause</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1878"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2220"/>
         <source>Next sentence</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1888"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2230"/>
         <source>Speed</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1900"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2242"/>
         <source>Chapter</source>
         <extracomment>Sleep timer button while it waits for the end of the chapter</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1902"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2244"/>
         <source>%1 min</source>
         <extracomment>Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1904"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2246"/>
         <source>Sleep timer</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1916"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2258"/>
         <source>Previous hit</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="498"/>
-        <location filename="../qml/pages/ReaderPage.qml" line="1925"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="545"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2267"/>
         <source>%1 / %2</source>
         <extracomment>Page of the printed book in landscape, e.g. &quot;30 / 295&quot;
 ----------
@@ -934,115 +916,121 @@ Search hit shown and number of hits, e.g. &quot;3 / 39&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1927"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="771"/>
+        <source>≈%1</source>
+        <extracomment>Estimated page of the printed book below a picture of the page flip view, e.g. &quot;≈143&quot;</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/ReaderPage.qml" line="2269"/>
         <source>All hits</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1937"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2279"/>
         <source>Next hit</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1946"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2288"/>
         <source>Close search</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1961"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2303"/>
         <source>Copy</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1973"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2315"/>
         <source>Delete bookmark</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1975"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2317"/>
         <source>Bookmark</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1990"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2332"/>
         <source>Dictionary</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2001"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2343"/>
         <source>Note</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2015"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2357"/>
         <source>Cancel</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2033"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2375"/>
         <source>Listened to %1 %</source>
         <extracomment>Offer on opening a book whose audiobook was listened to later, e.g. &quot;Listened to 43 %&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2052"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2394"/>
         <source>Dismiss</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="500"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="547"/>
         <source>%1/%2</source>
         <extracomment>Page of the printed book, e.g. &quot;30/295&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2042"/>
-        <location filename="../qml/pages/ReaderPage.qml" line="2043"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2384"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2385"/>
         <source>Go there</source>
         <extracomment>Goes to the place in the book or audiobook offered</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2208"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2561"/>
         <source>Library</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2231"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2584"/>
         <source>Bookmarks</source>
         <extracomment>Opens the list of bookmarks and notes</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2372"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2726"/>
         <source>Bookmark added</source>
         <extracomment>Shown briefly after a bookmark was made</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2387"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2741"/>
         <source>Copied</source>
         <extracomment>Shown briefly after the selected text was copied</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1442"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1782"/>
         <source>Chapter %1</source>
         <extracomment>Chapter without a title in the contents, e.g. &quot;Chapter 12&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2219"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2572"/>
         <source>Contents</source>
         <translation type="unfinished"></translation>
     </message>

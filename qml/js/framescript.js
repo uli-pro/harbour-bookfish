@@ -1111,7 +1111,13 @@ function normalize(doc, o) {
     if (!doc.body)
         return
     // Ours only: a book's own element of that class keeps it.
-    tableLinks.forEach(function (link) { link.element.classList.remove("bookfish-table-link") })
+    // Of the chapter before, which may be gone already when chapters
+    // follow each other quickly (the page flip view): "dead object".
+    tableLinks.forEach(function (link) {
+        try {
+            link.element.classList.remove("bookfish-table-link")
+        } catch (e) { }
+    })
     tableLinks = []
     var elements = doc.body.getElementsByTagName("*")
     var justified = []
@@ -1510,16 +1516,25 @@ function awaitPaint(serial) {
 // it (measured on the Jolla: 3 to 6 ms a page). Answered with the pages'
 // printed page marks; the layout's serial tells whether they still fit.
 // Asked as drawPages, answered as thumbs (see hitTest).
+// Always answered, also with nothing: QML asks for one drawing at a time.
 addMessageListener("bookfish:drawPages", function (message) {
     var o = message.data
-    if (!current() || o.serial !== state.serial)
+    if (!current() || o.serial !== state.serial) {
+        sendAsyncMessage("bookfish:thumbs", { serial: -1, gen: o.gen, pages: 0, thumbs: [] })
         return
+    }
     var pages = pageCount()
     var thumbs = []
     for (var i = 0; i < o.pages.length; ++i) {
         var page = o.pages[i]
-        if (page >= 0 && page < pages)
+        if (page < 0 || page >= pages)
+            continue
+        try {
             thumbs.push({ page: page, url: drawPage(page, o.width), mark: pageMarkAt(page) })
+        } catch (e) {
+            // Shown grey; the others still come.
+            thumbs.push({ page: page, url: "", mark: -1 })
+        }
     }
     sendAsyncMessage("bookfish:thumbs", { serial: state.serial, gen: o.gen, pages: pages, thumbs: thumbs })
 })
@@ -1551,7 +1566,8 @@ addMessageListener("bookfish:goto", function (message) {
     if (!current())
         return
     state.selection = null
-    if (!message.data.target.find)
+    // The page flip view's goings keep what the page read has marked.
+    if (!message.data.target.find && !message.data.target.browse)
         unmark()
     go(message.data.target)
 })

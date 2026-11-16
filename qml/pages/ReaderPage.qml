@@ -108,6 +108,10 @@ WebViewPage {
     property int gridGen: 0
     // A stop of the bar to go to once the page asked for before is shown.
     property int pendingStop: -1
+    // The stop shown for the middle until its page is drawn.
+    property int lastStop: -1
+    // Play pressed while browsing: from the page read, once it is back.
+    property bool playAfterLoad: false
     readonly property bool flipAllowed: controls.mode === "read" || controls.mode === "find"
     onFlipAllowedChanged: {
         if (!flipAllowed)
@@ -443,6 +447,11 @@ WebViewPage {
             }
             return
         }
+        // Browsing: the chapter laid out is not the one whose page is shown.
+        if (browsing) {
+            updatePageNumber()
+            return
+        }
         var spine = book.spine
         // Short chapters (titles, pictures) say little about a full page.
         if (chapterChars[chapter] >= 1000 && pageCount > 1)
@@ -584,6 +593,7 @@ WebViewPage {
         browseIntent = ""
         browseMoved = false
         gridCenter = { chapter: chapter, page: pageIndex }
+        lastStop = currentStop(flipStops, topChapter, pageMark, pageLabel)
         browsing = true
         flipShown = true
         if (flipStops.length === 0 && flipSerial < 0) {
@@ -610,17 +620,32 @@ WebViewPage {
             return
         var origin = flipOrigin
         var moved = browseMoved
+        var left = chapter !== (origin ? origin.spine : -1) || requested >= 0
         endBrowsing()
-        if (moved && origin)
-            loadChapter(origin.spine, origin.offset >= 0 ? { offset: origin.offset, fraction: origin.fraction }
-                                                         : { fraction: origin.fraction })
+        if (!moved || !origin)
+            return
+        // Another chapter was laid out: the hit looked at is marked anew
+        // (the bar still shows it). The sentence heard last comes back with
+        // the layout; bookmarks too.
+        var hit = findShown && findIndex >= 0 ? findHits[findIndex] : null
+        if (left && hit && hit.spine === origin.spine)
+            loadChapter(origin.spine, { find: { offset: hit.offset, length: hit.length, text: hit.text } })
+        else
+            loadChapter(origin.spine, origin.offset >= 0
+                        ? { offset: origin.offset, fraction: origin.fraction, browse: true }
+                        : { fraction: origin.fraction, browse: true })
     }
 
     // Reading on at a page of the view: a jump, as from the contents.
     function openTile(index) {
-        var tile = gridTiles[index]
+        var tile = browsing ? gridTiles[index] : null
         if (!tile || tile.page < 0)
             return
+        // The page read itself: nothing to go to.
+        if (!browseMoved && tile.chapter === flipOrigin.spine && tile.page === pageIndex) {
+            closeFlip()
+            return
+        }
         endBrowsing()
         findShown = false
         jumpTo(tile.chapter, { page: tile.page })
@@ -634,6 +659,12 @@ WebViewPage {
         endBrowsing()
         findShown = false
         jumpTo(stop.spine, stopTarget(stop))
+    }
+
+    // Going there while browsing keeps what is marked on the page read.
+    function browseTarget(target) {
+        target.browse = true
+        return target
     }
 
     function stopTarget(stop) {
@@ -706,6 +737,18 @@ WebViewPage {
         }
         if (drawAsked || requested >= 0 || !ready || browseIntent !== "")
             return
+        // All nine there: further pages of this chapter, a few at a time,
+        // so swiping on shows them at once.
+        if (here.length === 0 && load < 0) {
+            for (var d = 5; d <= 16 && here.length < 6; ++d) {
+                [d, -d].forEach(function (step) {
+                    var ahead = gridLocate(gridCenter, step)
+                    if (ahead && ahead.page >= 0 && ahead.chapter === chapter
+                            && !thumbCache[ahead.chapter + ":" + ahead.page] && here.length < 6)
+                        here.push(ahead.page)
+                })
+            }
+        }
         if (here.length > 0) {
             drawAsked = true
             flickable.webView.sendAsyncMessage("bookfish:drawPages", {
@@ -714,7 +757,7 @@ WebViewPage {
         } else if (load >= 0 && load !== chapter) {
             browseIntent = "fill"
             browseMoved = true
-            loadChapter(load, { fraction: 0 })
+            loadChapter(load, browseTarget({ fraction: 0 }))
         }
     }
 
@@ -742,12 +785,14 @@ WebViewPage {
         if (flipEstimated)
             return currentStop(flipStops, c, -1, estimatedPage(c, gridCenter.page, pageCounts[c] || 1))
         var hit = thumbCache[c + ":" + gridCenter.page]
-        return hit ? currentStop(flipStops, c, hit.mark, "") : -1
+        return hit ? currentStop(flipStops, c, hit.mark, "") : lastStop
     }
 
     // Dragging the bar: the page of the stop to the middle; in the chapter
     // laid out at once, else once the finger rests or lets go.
     function dragStop(index) {
+        if (!browsing)
+            return
         pendingStop = index
         var stop = flipStops[index]
         if (stop && stop.spine === chapter && ready && requested < 0)
@@ -757,6 +802,9 @@ WebViewPage {
     }
 
     function chooseStop(index) {
+        // Let go (or cancelled) where the middle already is: it stays.
+        if (!browsing || (index === flipGrid.current && pendingStop < 0 && !holdTimer.running))
+            return
         pendingStop = index
         centerOnStop()
     }
@@ -764,19 +812,20 @@ WebViewPage {
     // One at a time: the page report goes on with the latest stop.
     function centerOnStop() {
         holdTimer.stop()
-        if (pendingStop < 0 || browseIntent === "center")
+        if (!browsing || pendingStop < 0 || browseIntent === "center")
             return
         var stop = flipStops[pendingStop]
+        lastStop = pendingStop
         pendingStop = -1
         if (!stop)
             return
         browseIntent = "center"
         browseMoved = true
-        loadChapter(stop.spine, stopTarget(stop))
+        loadChapter(stop.spine, browseTarget(stopTarget(stop)))
     }
 
     function gridStep(delta) {
-        if (!gridCenter || browseIntent === "center")
+        if (!browsing || !gridCenter || browseIntent === "center")
             return
         var place = gridLocate(gridCenter, delta)
         if (!place)
@@ -789,7 +838,7 @@ WebViewPage {
         // A chapter not laid out yet: its first or last page.
         browseIntent = "center"
         browseMoved = true
-        loadChapter(place.chapter, delta > 0 ? { fraction: 0 } : { end: true })
+        loadChapter(place.chapter, browseTarget(delta > 0 ? { fraction: 0 } : { end: true }))
     }
 
     // A page reported while browsing: the chapter's pages, and the middle
@@ -822,7 +871,7 @@ WebViewPage {
             return
         }
         var keep = {}
-        if (Object.keys(thumbCache).length > 60) {
+        if (Object.keys(thumbCache).length > 100) {
             // Only the pages shown stay.
             gridTiles.forEach(function (tile) {
                 if (tile && tile.page >= 0)
@@ -990,6 +1039,10 @@ WebViewPage {
                 geckoSettled.restart()
             updateBookPages()
             savePosition()
+            if (playAfterLoad) {
+                playAfterLoad = false
+                play()
+            }
             if (laidOut !== layoutSettings() || relayoutWanted)
                 relayout()
             break
@@ -1009,7 +1062,7 @@ WebViewPage {
             break
         case "bookfish:edge":
             // Only the first of several quick turns past the end counts.
-            if (data.serial !== serial || !ready)
+            if (data.serial !== serial || !ready || browsing)
                 return
             var next = nextLinear(chapter, data.delta)
             if (next >= 0)
@@ -1560,6 +1613,16 @@ WebViewPage {
         // Closing: the page stays until its animation ends.
         if (player.playing || closed || !hasAudio)
             return
+        // From the cover or the lock screen while browsing: from the page
+        // read, once it is shown again.
+        if (browsing) {
+            var reload = browseMoved
+            closeFlip()
+            if (reload) {
+                playAfterLoad = true
+                return
+            }
+        }
         if (player.active && barShown)
             player.resume()
         else
@@ -1728,7 +1791,8 @@ WebViewPage {
     }
 
     function turn(delta) {
-        if (!ready || turning)
+        // Browsing, the view shows another page than the one read.
+        if (!ready || turning || browsing)
             return
         // The frame script drops it on turning.
         selection = null
@@ -2752,7 +2816,8 @@ WebViewPage {
 
         readonly property bool inStrip: notchSide === "left" || notchSide === "right"
 
-        visible: isLandscape
+        // Under the page flip view the page read is not shown.
+        visible: isLandscape && !flipShown
         // Above the strip that turns pages: a tap on the number opens the
         // page flip view.
         z: 2

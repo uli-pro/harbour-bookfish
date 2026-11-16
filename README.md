@@ -37,7 +37,13 @@ Readalouds can be created from an EPUB and an audiobook with
 - **Page numbers** are those of the printed book where the EPUB has a page
   list ("143/380"; Roman numerals of the front matter without the total).
   Otherwise they are estimated from the length of the text ("≈143/380"), so
-  they stay the same at any text size.
+  they stay the same at any text size. The contents, bookmarks and search
+  hits show them too.
+- **Flip through the book:** tap the page number. Nine pages are shown, the
+  current one in the middle; swipe, tap beside them or drag the bar below to
+  move through the book, also across chapters. Tap a page to read on there,
+  or close the view to return to where you were. "Go to page…" takes a page
+  number.
 - **Listen** by tapping a sentence: narration starts there. Tapping where
   there is no sentence starts at the top of the page. Tapping the sentence
   being spoken pauses; tapping it again goes on. When a book is opened

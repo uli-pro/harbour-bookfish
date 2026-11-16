@@ -34,6 +34,9 @@ Rectangle {
     readonly property real cellHeight: Math.round(cellWidth * tileAspect)
     readonly property real gap: Theme.paddingSmall
     readonly property real labelHeight: Math.round(1.3 * Theme.fontSizeTiny)
+    // In landscape the heading stands beside the page: more height for
+    // the pictures.
+    readonly property bool wide: width > height
 
     signal tileTapped(int index)
     signal swiped(int delta)
@@ -92,14 +95,16 @@ Rectangle {
         id: header
 
         width: parent.width
-        height: titleLabel.y + titleLabel.height + Theme.paddingSmall
+        height: (wide ? Math.max(pageLabel.y + pageLabel.height, closeButton.y + closeButton.height)
+                      : titleLabel.y + titleLabel.height) + Theme.paddingSmall
 
         Label {
             id: pageLabel
 
             x: Theme.horizontalPageMargin
             y: Theme.paddingSmall
-            width: goButton.x - x - Theme.paddingMedium
+            width: wide ? Math.min(implicitWidth, goButton.x - x - Theme.paddingMedium)
+                        : goButton.x - x - Theme.paddingMedium
             font.pixelSize: Theme.fontSizeLarge
             color: palette.highlightColor
             truncationMode: TruncationMode.Fade
@@ -144,9 +149,11 @@ Rectangle {
         Label {
             id: titleLabel
 
-            y: Math.max(pageLabel.y + pageLabel.height, closeButton.y + closeButton.height)
-            x: Theme.horizontalPageMargin
-            width: parent.width - 2 * x
+            // Beside the page in landscape, on its baseline; else below.
+            y: wide ? pageLabel.y + pageLabel.baselineOffset - baselineOffset
+                    : Math.max(pageLabel.y + pageLabel.height, closeButton.y + closeButton.height)
+            x: wide ? pageLabel.x + pageLabel.width + Theme.paddingLarge : Theme.horizontalPageMargin
+            width: wide ? goButton.x - x - Theme.paddingMedium : parent.width - 2 * x
             font.pixelSize: Theme.fontSizeSmall
             color: palette.secondaryHighlightColor
             truncationMode: TruncationMode.Fade
@@ -156,7 +163,8 @@ Rectangle {
         }
     }
 
-    // The pictures. A tap opens the page, a swipe goes one page on or back.
+    // The pictures. A tap opens the page, a swipe or a tap beside them goes
+    // one page on or back.
     Item {
         id: cells
 
@@ -248,6 +256,12 @@ Rectangle {
                 if (Math.abs(dx) >= Theme.startDragDistance || Math.abs(dy) >= Theme.startDragDistance)
                     return
                 var point = mapToItem(cellGrid, mouse.x, mouse.y)
+                // Beside the pictures: one page back or on, as the edges of
+                // the page read; quick taps go page by page.
+                if (point.x < 0 || point.x > cellGrid.width) {
+                    grid.swiped(point.x < 0 ? -1 : 1)
+                    return
+                }
                 var column = Math.floor(point.x / (grid.cellWidth + grid.gap))
                 var row = Math.floor(point.y / (grid.cellHeight + grid.labelHeight + grid.gap))
                 if (column >= 0 && column < 3 && row >= 0 && row < 3)
