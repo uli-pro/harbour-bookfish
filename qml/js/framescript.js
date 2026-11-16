@@ -1505,6 +1505,47 @@ function awaitPaint(serial) {
     paintSerial = serial
 }
 
+// Pictures of pages for the page flip view: each page is scrolled to,
+// drawn and scrolled back within this one task, so the screen never shows
+// it (measured on the Jolla: 3 to 6 ms a page). Answered with the pages'
+// printed page marks; the layout's serial tells whether they still fit.
+// Asked as drawPages, answered as thumbs (see hitTest).
+addMessageListener("bookfish:drawPages", function (message) {
+    var o = message.data
+    if (!current() || o.serial !== state.serial)
+        return
+    var pages = pageCount()
+    var thumbs = []
+    for (var i = 0; i < o.pages.length; ++i) {
+        var page = o.pages[i]
+        if (page >= 0 && page < pages)
+            thumbs.push({ page: page, url: drawPage(page, o.width), mark: pageMarkAt(page) })
+    }
+    sendAsyncMessage("bookfish:thumbs", { serial: state.serial, gen: o.gen, pages: pages, thumbs: thumbs })
+})
+
+// page as a JPEG data URL width pixels wide.
+function drawPage(page, width) {
+    var w = content.innerWidth
+    var h = content.innerHeight
+    var scale = width / w
+    var scroller = state.scroller
+    var left = scroller.scrollLeft
+    scroller.scrollLeft = page * state.width
+    try {
+        var canvas = state.doc.createElementNS(xhtml, "canvas")
+        canvas.width = Math.max(1, Math.round(w * scale))
+        canvas.height = Math.max(1, Math.round(h * scale))
+        var context = canvas.getContext("2d")
+        context.scale(scale, scale)
+        context.drawWindow(content, content.scrollX, content.scrollY, w, h,
+                           content.getComputedStyle(state.doc.documentElement).backgroundColor)
+        return canvas.toDataURL("image/jpeg", 0.8)
+    } finally {
+        scroller.scrollLeft = left
+    }
+}
+
 // A jump within the chapter: what was marked belongs to the place left.
 addMessageListener("bookfish:goto", function (message) {
     if (!current())
@@ -1912,8 +1953,9 @@ function goFound(find) {
 // found counts), { end: true }, { find } (see findRange), { pageMark } (an
 // index in state.pageMarks: the page where that printed page begins) or
 // { share } (estimated pages: the page holding that share of the chapter,
-// where ReaderPage's corner then shows the page beginning there); keep is
-// only read by the layout.
+// where ReaderPage's corner then shows the page beginning there) or
+// { page } (a page of this layout, from the page flip view); keep is only
+// read by the layout.
 function go(target) {
     if (target.find) {
         goFound(target.find)
@@ -1922,6 +1964,10 @@ function go(target) {
     if (typeof target.pageMark === "number") {
         var markPage = target.pageMark < state.pageMarks.length ? markPageOf(target.pageMark) : -1
         showPage(markPage >= 0 ? markPage : 0)
+        return
+    }
+    if (typeof target.page === "number") {
+        showPage(target.page)
         return
     }
     if (typeof target.share === "number") {

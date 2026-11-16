@@ -80,21 +80,40 @@ WebViewPage {
     property int findIndex: -1
     property string findQuery: ""
     property bool findShown: false
-    // The page flip view (lernen/32): open; its bar's stops (see
-    // bridge.flip_stops), read once, and whether they are estimated; the
-    // place it was opened at ({spine, offset, fraction, label, estimated})
-    // and whether it has gone elsewhere since.
+    // The page flip view (lernen/32). While it is open the reading page is
+    // browsing: the view may load other chapters to draw their pages, and
+    // the place read, the history and the corner stay as they were. Its
+    // bar's stops (see bridge.flip_stops) are read once. flipOrigin is the
+    // place it was opened at; gridCenter the screen page in the middle
+    // ({chapter, page}); pageCounts the screen pages of each chapter laid
+    // out, thumbCache the pages drawn ("chapter:page" → {url, mark}), both
+    // in this layout. browseIntent says what the next page report is for:
+    // "center" shows the page for the middle, "fill" a chapter to draw.
     property bool flipShown: false
+    property bool browsing: false
     property var flipStops: []
     property bool flipEstimated: false
     property int flipSerial: -1
     property var flipOrigin: null
-    property bool flipJumped: false
+    property var gridCenter: null
+    property var pageCounts: ({})
+    property var thumbCache: ({})
+    property var gridTiles: []
+    property string browseIntent: ""
+    // Another chapter was loaded or the page moved: closing goes back.
+    property bool browseMoved: false
+    // One drawing asked of the frame script at a time; gridGen tells
+    // answers to a view closed meanwhile.
+    property bool drawAsked: false
+    property int gridGen: 0
+    // A stop of the bar to go to once the page asked for before is shown.
+    property int pendingStop: -1
     readonly property bool flipAllowed: controls.mode === "read" || controls.mode === "find"
     onFlipAllowedChanged: {
         if (!flipAllowed)
-            flipShown = false
+            closeFlip()
     }
+    onOrientationChanged: closeFlip()
     // A stop of the page flip view typed in (GoToPageDialog), gone to
     // once this page is back.
     property int pendingFlip: -1
@@ -361,6 +380,8 @@ WebViewPage {
     function relayout() {
         if (closed)
             return
+        // The pictures drawn no longer fit: back to the page read.
+        closeFlip()
         // Under way: done after it ("page"); it may have begun before the
         // view took a new height.
         if (!ready) {
@@ -461,30 +482,43 @@ WebViewPage {
             return
         }
         pageEstimated = true
-        if (chapterChars.length !== book.spine.length || topChapter < 0) {
-            pageLabel = ""
-            return
-        }
-        // Measured on the library's page lists (lernen/31): German books
-        // print 1590 characters a page (median), English ones 1690. As
-        // pages.chars_per_page, which counts the pages in lists.
-        var perPage = (book.language || "").toLowerCase().indexOf("de") === 0 ? 1600 : 1700
-        var before = 0
+        pageLabel = estimatedPage(topChapter, pageIndex, pageCount)
+        pageTotal = pageLabel !== "" ? estimatedTotal() : 0
+    }
+
+    // Measured on the library's page lists (lernen/31): German books print
+    // 1590 characters a page (median), English ones 1690. As
+    // pages.chars_per_page, which counts the pages in lists.
+    function printedPageChars() {
+        return (book.language || "").toLowerCase().indexOf("de") === 0 ? 1600 : 1700
+    }
+
+    function estimatedTotal() {
         var total = 0
         for (var i = 0; i < chapterChars.length; ++i) {
-            if (!book.spine[i].linear)
-                continue
-            if (i < topChapter)
-                before += chapterChars[i]
-            total += chapterChars[i]
+            if (book.spine[i].linear)
+                total += chapterChars[i]
         }
-        var length = book.spine[topChapter].linear ? chapterChars[topChapter] : 0
-        // As with a page list, the last page beginning on the screen: the
-        // page of its last character. Going to a page (framescript.js go,
-        // share) shows the screen where it begins, which then says so.
-        var end = pageCount > 0 ? (pageIndex + 1) / pageCount : 0
-        pageTotal = Math.max(1, Math.ceil(total / perPage))
-        pageLabel = String(Math.max(1, Math.min(pageTotal, Math.floor((before + end * length - 1) / perPage) + 1)))
+        return Math.max(1, Math.ceil(total / printedPageChars()))
+    }
+
+    // The estimated printed page for screen page k of n in chapter c: as
+    // with a page list, the last page beginning on the screen, which is the
+    // page of its last character. Going to a page (framescript.js go,
+    // share) shows the screen where it begins, which then says so. "" while
+    // the chapters' characters are not counted.
+    function estimatedPage(c, k, n) {
+        if (chapterChars.length !== book.spine.length || c < 0 || c >= book.spine.length)
+            return ""
+        var before = 0
+        for (var i = 0; i < c; ++i) {
+            if (book.spine[i].linear)
+                before += chapterChars[i]
+        }
+        var length = book.spine[c].linear ? chapterChars[c] : 0
+        var end = n > 0 ? (k + 1) / n : 0
+        return String(Math.max(1, Math.min(estimatedTotal(),
+                                           Math.floor((before + end * length - 1) / printedPageChars()) + 1)))
     }
 
     // wide: in landscape, with spaces.
@@ -525,65 +559,292 @@ WebViewPage {
     }
 
     function toggleFlip() {
-        if (flipShown) {
-            flipShown = false
+        if (flipShown)
+            closeFlip()
+        else
+            openFlip()
+    }
+
+    function openFlip() {
+        if (!ready || requested >= 0 || topChapter !== chapter || !flipAllowed)
             return
-        }
-        if (!ready || topChapter < 0 || !flipAllowed)
-            return
-        // The line in the middle of the page, as when laying out anew: Back
-        // shows this very page again.
+        // The line in the middle of the page, as when laying out anew:
+        // closing shows this very page again.
         flipOrigin = { spine: topChapter,
                        offset: anchorChapter === topChapter && anchorOffset >= 0 ? anchorOffset
                                : topOffsetOnPage ? topOffset : -1,
-                       fraction: fraction, label: pageLabel, estimated: pageEstimated }
-        flipJumped = false
+                       fraction: fraction }
+        var counts = {}
+        counts[chapter] = pageCount
+        pageCounts = counts
+        thumbCache = {}
+        gridGen++
+        drawAsked = false
+        pendingStop = -1
+        browseIntent = ""
+        browseMoved = false
+        gridCenter = { chapter: chapter, page: pageIndex }
+        browsing = true
         flipShown = true
         if (flipStops.length === 0 && flipSerial < 0) {
             flipSerial = ++app.searchSerial
             py.call("bookfish.bridge.flip_stops", [book.root, flipSerial])
         }
+        fillGrid()
     }
 
+    function endBrowsing() {
+        holdTimer.stop()
+        browsing = false
+        flipShown = false
+        gridTiles = []
+        thumbCache = {}
+        gridGen++
+        pendingStop = -1
+        browseIntent = ""
+    }
+
+    // Back to where the view was opened, the very line; not a jump.
+    function closeFlip() {
+        if (!flipShown)
+            return
+        var origin = flipOrigin
+        var moved = browseMoved
+        endBrowsing()
+        if (moved && origin)
+            loadChapter(origin.spine, origin.offset >= 0 ? { offset: origin.offset, fraction: origin.fraction }
+                                                         : { fraction: origin.fraction })
+    }
+
+    // Reading on at a page of the view: a jump, as from the contents.
+    function openTile(index) {
+        var tile = gridTiles[index]
+        if (!tile || tile.page < 0)
+            return
+        endBrowsing()
+        findShown = false
+        jumpTo(tile.chapter, { page: tile.page })
+    }
+
+    // A page typed in: read there.
     function flipTo(index) {
         var stop = flipStops[index]
         if (!stop)
             return
-        flipJumped = true
-        // As from the contents.
+        endBrowsing()
         findShown = false
-        jumpTo(stop.spine, flipEstimated ? { share: stop.share }
-                                         : stop.mark >= 0 ? { pageMark: stop.mark } : { fraction: 0 })
+        jumpTo(stop.spine, stopTarget(stop))
     }
 
-    function flipBack() {
-        var origin = flipOrigin
-        flipShown = false
-        if (!origin)
+    function stopTarget(stop) {
+        return flipEstimated ? { share: stop.share } : stop.mark >= 0 ? { pageMark: stop.mark } : { fraction: 0 }
+    }
+
+    // The screen page d pages from the page from ({chapter, page}) in
+    // reading order: {chapter, page}, page -1 if a chapter on the way is
+    // not laid out yet (that chapter); null beyond the book.
+    function gridLocate(from, d) {
+        var c = from.chapter
+        var p = from.page + d
+        // Chapters may be empty; never more steps than chapters.
+        for (var steps = 0; steps <= book.spine.length; ++steps) {
+            var n = pageCounts[c]
+            if (n === undefined)
+                return { chapter: c, page: -1 }
+            if (p < 0) {
+                var before = nextLinear(c, -1)
+                if (before < 0)
+                    return null
+                c = before
+                if (pageCounts[c] === undefined)
+                    return { chapter: c, page: -1 }
+                p += pageCounts[c]
+            } else if (p >= n) {
+                var after = nextLinear(c, 1)
+                if (after < 0)
+                    return null
+                p -= n
+                c = after
+            } else {
+                return { chapter: c, page: p }
+            }
+        }
+        return null
+    }
+
+    // Shows what is there for the nine pages around the middle and draws or
+    // loads what is missing, nearest the middle first: pages of the chapter
+    // laid out by the frame script, others by loading their chapter.
+    function fillGrid() {
+        if (!browsing || !gridCenter)
             return
-        findShown = false
-        jumpTo(origin.spine, origin.offset >= 0 ? { offset: origin.offset, fraction: origin.fraction }
-                                                : { fraction: origin.fraction })
+        var at = []
+        var tiles = []
+        for (var i = 0; i < 9; ++i) {
+            var place = gridLocate(gridCenter, i - 4)
+            at.push(place)
+            if (!place) {
+                tiles.push(null)
+                continue
+            }
+            var hit = place.page >= 0 ? thumbCache[place.chapter + ":" + place.page] : null
+            tiles.push({ chapter: place.chapter, page: place.page, url: hit ? hit.url : "",
+                         label: place.page >= 0 ? tileLabel(place.chapter, place.page, hit ? hit.mark : -2) : "" })
+        }
+        gridTiles = tiles
+        var here = []
+        var load = -1
+        var nearest = [4, 3, 5, 2, 6, 1, 7, 0, 8]
+        for (i = 0; i < nearest.length; ++i) {
+            place = at[nearest[i]]
+            if (!place || (place.page >= 0 && thumbCache[place.chapter + ":" + place.page]))
+                continue
+            if (place.page >= 0 && place.chapter === chapter)
+                here.push(place.page)
+            else if (load < 0)
+                load = place.chapter
+        }
+        if (drawAsked || requested >= 0 || !ready || browseIntent !== "")
+            return
+        if (here.length > 0) {
+            drawAsked = true
+            flickable.webView.sendAsyncMessage("bookfish:drawPages", {
+                serial: serial, gen: gridGen, pages: here, width: flipGrid.cellWidth
+            })
+        } else if (load >= 0 && load !== chapter) {
+            browseIntent = "fill"
+            browseMoved = true
+            loadChapter(load, { fraction: 0 })
+        }
     }
 
-    function flipBackText() {
-        var origin = flipOrigin
-        if (!flipJumped || !origin)
+    // The printed page shown below a picture: mark is the frame script's
+    // (see pageMarkAt), -2 while the page is not drawn.
+    function tileLabel(c, k, mark) {
+        var pages = book.pages
+        if (!pages) {
+            var label = estimatedPage(c, k, pageCounts[c] || 1)
+            //: Estimated page of the printed book below a picture of the page flip view, e.g. "≈143"
+            return label ? qsTr("≈%1").arg(label) : ""
+        }
+        if (mark === -2)
             return ""
-        if (!origin.label)
-            //: Button of the page flip view: back to where it was opened, in the front matter
-            return qsTr("Back")
-        return origin.estimated
-                //: Button of the page flip view: back to where it was opened, e.g. "Back to page ≈ 120"
-                ? qsTr("Back to page ≈ %1").arg(origin.label)
-                //: Button of the page flip view: back to where it was opened, e.g. "Back to page 120"
-                : qsTr("Back to page %1").arg(origin.label)
+        var marks = pages.marks[c]
+        var entry = marks && mark >= 0 && mark < marks.length ? marks[mark].slice(1) : pages.start[c]
+        return entry ? entry[0] : ""
+    }
+
+    // The stop of the bar for the page in the middle, -1 until known.
+    function gridStop() {
+        if (!gridCenter || flipStops.length === 0)
+            return -1
+        var c = gridCenter.chapter
+        if (flipEstimated)
+            return currentStop(flipStops, c, -1, estimatedPage(c, gridCenter.page, pageCounts[c] || 1))
+        var hit = thumbCache[c + ":" + gridCenter.page]
+        return hit ? currentStop(flipStops, c, hit.mark, "") : -1
+    }
+
+    // Dragging the bar: the page of the stop to the middle; in the chapter
+    // laid out at once, else once the finger rests or lets go.
+    function dragStop(index) {
+        pendingStop = index
+        var stop = flipStops[index]
+        if (stop && stop.spine === chapter && ready && requested < 0)
+            centerOnStop()
+        else
+            holdTimer.restart()
+    }
+
+    function chooseStop(index) {
+        pendingStop = index
+        centerOnStop()
+    }
+
+    // One at a time: the page report goes on with the latest stop.
+    function centerOnStop() {
+        holdTimer.stop()
+        if (pendingStop < 0 || browseIntent === "center")
+            return
+        var stop = flipStops[pendingStop]
+        pendingStop = -1
+        if (!stop)
+            return
+        browseIntent = "center"
+        browseMoved = true
+        loadChapter(stop.spine, stopTarget(stop))
+    }
+
+    function gridStep(delta) {
+        if (!gridCenter || browseIntent === "center")
+            return
+        var place = gridLocate(gridCenter, delta)
+        if (!place)
+            return
+        if (place.page >= 0) {
+            gridCenter = place
+            fillGrid()
+            return
+        }
+        // A chapter not laid out yet: its first or last page.
+        browseIntent = "center"
+        browseMoved = true
+        loadChapter(place.chapter, delta > 0 ? { fraction: 0 } : { end: true })
+    }
+
+    // A page reported while browsing: the chapter's pages, and the middle
+    // if it was asked for.
+    function browsed(data) {
+        var counts = {}
+        for (var key in pageCounts)
+            counts[key] = pageCounts[key]
+        counts[chapter] = data.pages
+        pageCounts = counts
+        if (browseIntent === "center") {
+            browseIntent = ""
+            gridCenter = { chapter: chapter, page: data.page }
+            if (pendingStop >= 0) {
+                centerOnStop()
+                return
+            }
+        } else if (browseIntent === "fill") {
+            browseIntent = ""
+        }
+        fillGrid()
+    }
+
+    function thumbsDrawn(data) {
+        if (data.gen !== gridGen)
+            return
+        drawAsked = false
+        if (!browsing || data.serial !== serial) {
+            fillGrid()
+            return
+        }
+        var keep = {}
+        if (Object.keys(thumbCache).length > 60) {
+            // Only the pages shown stay.
+            gridTiles.forEach(function (tile) {
+                if (tile && tile.page >= 0)
+                    keep[tile.chapter + ":" + tile.page] = true
+            })
+        }
+        var cache = {}
+        for (var key in thumbCache) {
+            if (Object.keys(keep).length === 0 || keep[key])
+                cache[key] = thumbCache[key]
+        }
+        data.thumbs.forEach(function (thumb) {
+            cache[chapter + ":" + thumb.page] = { url: thumb.url, mark: thumb.mark }
+        })
+        thumbCache = cache
+        fillGrid()
     }
 
     function openGoToPage() {
         var dialog = pageStack.push(Qt.resolvedUrl("GoToPageDialog.qml"), {
-            stops: flipStops, current: Math.max(0, flipPanel.current), estimated: flipEstimated,
-            total: flipPanel.total
+            stops: flipStops, current: Math.max(0, flipGrid.current), estimated: flipEstimated,
+            total: flipGrid.total
         })
         dialog.accepted.connect(function () {
             pendingFlip = dialog.chosen
@@ -699,6 +960,15 @@ WebViewPage {
             ready = true
             if (covered && !uncoverTimer.running)
                 uncoverTimer.restart()
+            if (browsing) {
+                pixelRatio = data.pixelRatio
+                laidWidth = data.viewWidth
+                laidHeight = data.viewHeight
+                browsed(data)
+                if (laidOut !== layoutSettings() || relayoutWanted)
+                    relayout()
+                break
+            }
             pageIndex = data.page
             pageCount = data.pages
             firstId = data.firstId
@@ -733,6 +1003,9 @@ WebViewPage {
                 return
             uncoverTimer.stop()
             paintedTimer.restart()
+            break
+        case "bookfish:thumbs":
+            thumbsDrawn(data)
             break
         case "bookfish:edge":
             // Only the first of several quick turns past the end counts.
@@ -1480,7 +1753,8 @@ WebViewPage {
 
     function savePosition() {
         // Not before the first page is shown: its place is not known yet.
-        if (chapter < 0 || closed || topChapter < 0)
+        // Not while browsing: the page shown is not the one read.
+        if (chapter < 0 || closed || topChapter < 0 || browsing)
             return
         savedAt = Date.now()
         // The sentence heard, unless the reader paused and turned away; or
@@ -2084,28 +2358,39 @@ WebViewPage {
         }
     }
 
-    PageFlipPanel {
-        id: flipPanel
+    PageFlipGrid {
+        id: flipGrid
 
-        // Below the text, near the thumb; above the controls there.
-        z: 2
+        // Above the controls; clear of a notch above it.
+        z: 3
         visible: flipShown
         x: notchSide === "left" ? notchDepth : 0
+        y: notchSide === "top" ? notchDepth : 0
         width: page.width - (notchSide === "left" || notchSide === "right" ? notchDepth : 0)
-        y: (isPortrait && controls.atBottom ? controls.y
-                                            : page.height - (notchSide === "bottom" ? notchDepth : 0)) - height
+        height: page.height - (notchSide === "top" || notchSide === "bottom" ? notchDepth : 0)
+        tiles: gridTiles
         stops: flipStops
         estimated: flipEstimated
         total: flipEstimated ? flipStops.length : book.pages ? book.pages.total : 0
-        current: currentStop(flipStops, topChapter, pageMark, pageLabel)
+        current: gridStop()
         currentText: pageNumberText(true)
-        backText: flipBackText()
+        tileAspect: flickable.width > 0 ? flickable.height / flickable.width : 1.5
+        busy: browseIntent !== "" || requested >= 0
         pageColor: page.pageColor
         lineColor: lightPage ? "#8c8c8c" : "#808080"
-        onChosen: flipTo(index)
-        onBackRequested: flipBack()
+        onTileTapped: openTile(index)
+        onSwiped: gridStep(delta)
+        onDragged: dragStop(index)
+        onChosen: chooseStop(index)
         onGoToRequested: openGoToPage()
-        onCloseRequested: flipShown = false
+        onCloseRequested: closeFlip()
+    }
+
+    // Dragging the bar into another chapter: loaded once the finger rests.
+    Timer {
+        id: holdTimer
+        interval: 300
+        onTriggered: page.centerOnStop()
     }
 
     // The button pressed, large and with its name, beside it over the text:
@@ -2269,6 +2554,7 @@ WebViewPage {
             webView.addMessageListener("bookfish:found")
             webView.addMessageListener("bookfish:selected")
             webView.addMessageListener("bookfish:selectionTaken")
+            webView.addMessageListener("bookfish:thumbs")
             page.start()
         }
 
