@@ -15,7 +15,9 @@ Page {
     property var askedFor: []
 
     function askPages() {
-        var marks = reader ? reader.bookmarks : []
+        if (!reader || !reader.book)
+            return
+        var marks = reader.bookmarks
         askedFor = marks.map(function (mark) { return mark.id })
         pagesSerial = ++app.searchSerial
         py.call("bookfish.bridge.page_labels", [reader.book.root, marks.map(function (mark) {

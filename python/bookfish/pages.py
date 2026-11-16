@@ -136,12 +136,17 @@ class PageFinder(object):
 
     def label(self, spine, index):
         """The page at index in chapter spine's text: the last mark at or
-        before it, "" if none (before the first page of the list, or a
+        before it (or the spaces after it), "" if none (before the first page of the list, or a
         place not in the book)."""
         if not 0 <= spine < len(self._chapters):
             return ""
         if self.estimated:
             return str(self._estimate(spine, index))
+        # A mark often follows a heading's id after a line break: the page
+        # begins where the next text does.
+        text = self._chapters[spine].text
+        while index < len(text) and text[index].isspace():
+            index += 1
         before = None
         for at, label, k in self._marks[spine]:
             if at <= index:
@@ -182,7 +187,9 @@ class PageFinder(object):
                               "title": title_at(spine, places.get(k, 0))})
         first = linear[0]
         marks = self._marks[first]
-        if not stops or stops[0]["spine"] != first or not marks or marks[0][0] > 0 or marks[0][2] != 0:
+        # Only if there is text before the first page (spaces are none).
+        if (not stops or stops[0]["spine"] != first or not marks or marks[0][2] != 0
+                or self._chapters[first].text[:marks[0][0]].strip()):
             stops.insert(0, {"label": "", "counted": False, "spine": first, "mark": -1,
                              "title": title_at(first, 0)})
         return stops

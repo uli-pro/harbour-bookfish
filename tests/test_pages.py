@@ -242,7 +242,7 @@ class PageFinderListTest(unittest.TestCase):
         self.assertEqual(self.finder.label(1, 9), "3")
 
     def test_none_before_the_first_page(self):
-        self.assertEqual(self.finder.label(0, 6), "")
+        self.assertEqual(self.finder.label(0, 5), "")
 
     def test_chapter_without_marks_has_the_page_before(self):
         self.assertEqual(self.finder.label(2, 3), "3")
@@ -250,6 +250,17 @@ class PageFinderListTest(unittest.TestCase):
     def test_place_outside_the_book_has_none(self):
         self.assertEqual(self.finder.label(5, 0), "")
         self.assertEqual(self.finder.label(-1, 0), "")
+
+    def test_mark_after_spaces_counts(self):
+        # <h1 id="h">, a line break, then the page's anchor.
+        finder = PageFinder(info([[["pg1", "1", True], ["pg2", "2", True]]]),
+                            chapters(("One\n  Two", {"pg1": 0, "pg2": 6})), [True], "en")
+        self.assertEqual(finder.label(0, 3), "2")
+        self.assertEqual(finder.label(0, 2), "1")
+
+    def test_no_start_stop_for_spaces_before_the_first_page(self):
+        finder = PageFinder(info([[["pg1", "1", True]]]), chapters(("\n  Text", {"pg1": 3})), [True], "en")
+        self.assertEqual([s["mark"] for s in finder.stops(title_at)], [0])
 
     def test_marks_at_one_place_the_last_counts(self):
         # Pictures printed as pages of their own share the next text's place.

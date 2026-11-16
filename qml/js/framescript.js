@@ -1911,9 +1911,9 @@ function goFound(find) {
 // target: { id, offset, fraction } (any may be missing; the first one
 // found counts), { end: true }, { find } (see findRange), { pageMark } (an
 // index in state.pageMarks: the page where that printed page begins) or
-// { share } (estimated pages: the first page whose start is at least that
-// share of the chapter, as ReaderPage counts it); keep is only read by the
-// layout.
+// { share } (estimated pages: the page holding that share of the chapter,
+// where ReaderPage's corner then shows the page beginning there); keep is
+// only read by the layout.
 function go(target) {
     if (target.find) {
         goFound(target.find)
@@ -1926,7 +1926,7 @@ function go(target) {
     }
     if (typeof target.share === "number") {
         var pages = pageCount()
-        showPage(Math.min(pages - 1, Math.ceil(target.share * pages - 1e-6)))
+        showPage(Math.min(pages - 1, Math.floor(target.share * pages + 1e-9)))
         return
     }
     var el = target.id ? state.doc.getElementById(target.id) : null

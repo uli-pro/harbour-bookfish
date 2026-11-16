@@ -479,9 +479,12 @@ WebViewPage {
             total += chapterChars[i]
         }
         var length = book.spine[topChapter].linear ? chapterChars[topChapter] : 0
-        var share = pageCount > 0 ? pageIndex / pageCount : 0
+        // As with a page list, the last page beginning on the screen: the
+        // page of its last character. Going to a page (framescript.js go,
+        // share) shows the screen where it begins, which then says so.
+        var end = pageCount > 0 ? (pageIndex + 1) / pageCount : 0
         pageTotal = Math.max(1, Math.ceil(total / perPage))
-        pageLabel = String(Math.min(pageTotal, Math.floor((before + share * length) / perPage) + 1))
+        pageLabel = String(Math.max(1, Math.min(pageTotal, Math.floor((before + end * length - 1) / perPage) + 1)))
     }
 
     // wide: in landscape, with spaces.
@@ -2486,14 +2489,28 @@ WebViewPage {
         }
 
         // Only around the number: the rest of the strip still turns pages.
-        // Without a notch the margin is narrow: some of the text beside it.
+        // Without a notch it lies on the text's margin, where a swipe to
+        // the next page often begins: a swipe still turns.
         MouseArea {
-            x: spine.inStrip ? 0 : -Theme.paddingLarge
-            width: parent.width - x
+            property real startX
+            property real startY
+
+            width: parent.width
             height: Math.min(parent.height, Math.max(Theme.itemSizeSmall, spineLabel.width + 2 * Theme.paddingLarge))
             anchors.verticalCenter: parent.verticalCenter
             enabled: flipAllowed
-            onClicked: toggleFlip()
+            onPressed: {
+                startX = mouse.x
+                startY = mouse.y
+            }
+            onReleased: {
+                var dx = mouse.x - startX
+                var dy = mouse.y - startY
+                if (Math.abs(dx) > page.width / 8 && Math.abs(dx) > Math.abs(dy))
+                    turn(dx < 0 ? 1 : -1)
+                else if (Math.abs(dx) < Theme.startDragDistance && Math.abs(dy) < Theme.startDragDistance)
+                    toggleFlip()
+            }
         }
     }
 

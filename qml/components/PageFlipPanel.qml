@@ -85,10 +85,11 @@ Rectangle {
         color: panel.lineColor
     }
 
-    // Should the page not report a new place (a jump to where it is).
+    // Should the page not report a new place (a jump to where it is). Long
+    // enough for a large chapter to load on the phone.
     Timer {
         id: pendingTimer
-        interval: 3000
+        interval: 8000
         onTriggered: {
             panel.pending = -1
             panel.sync()

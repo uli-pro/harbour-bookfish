@@ -24,8 +24,8 @@ Dialog {
         if (name === "")
             return -1
         if (estimated) {
-            var n = Number(name)
-            return n >= 1 && n <= stops.length && Math.floor(n) === n ? n - 1 : -1
+            var n = /^[0-9]+$/.test(name) ? parseInt(name, 10) : 0
+            return n >= 1 && n <= stops.length ? n - 1 : -1
         }
         var first = -1
         for (var i = 0; i < stops.length; ++i) {
