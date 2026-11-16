@@ -14,3 +14,5 @@ __pycache__/
 
 # Never commit copyrighted books
 *.epub
+# except the guide, which is ours (see guide/README.md)
+!/guide/welcome-to-bookfish.epub

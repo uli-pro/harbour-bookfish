@@ -11,6 +11,11 @@ ApplicationWindow {
     property bool pythonReady: false
     // Chosen by the user; "" means Documents and all memory cards.
     readonly property string libraryFolder: libraryFolderSetting.value || ""
+    // The guide that comes with the app: always in the library, opened on
+    // the first start.
+    readonly property string guideFolder: decodeURIComponent(
+        Qt.resolvedUrl("../guide").toString().replace(/^file:\/\//, ""))
+    readonly property string guideFile: guideFolder + "/welcome-to-bookfish.epub"
     readonly property string cacheFolder: StandardPaths.cache + "/books"
     readonly property string positionsFile: StandardPaths.data + "/positions.json"
     readonly property string historyFile: StandardPaths.data + "/history.json"
@@ -20,6 +25,10 @@ ApplicationWindow {
     readonly property string audiobooksFolder: StandardPaths.cache + "/audiobooks"
     // Word lists of dict.cc are imported from Documents into databases here.
     readonly property string dictionaryFolder: StandardPaths.data + "/dictionaries"
+    // The folders looked through for books, given the default ones.
+    function libraryFolders(defaults) {
+        return (libraryFolder ? [libraryFolder] : defaults).concat([guideFolder])
+    }
     // The language words are looked up in; until chosen the phone's.
     readonly property string dictionaryLanguage: dictionaryLanguageSetting.value
                                                  || Qt.locale().name.split("_")[0]

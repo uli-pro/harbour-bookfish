@@ -12,6 +12,9 @@ Readalouds can be created from an EPUB and an audiobook with
 
 ## Using
 
+- **Guide:** a short readaloud, *Welcome to Bookfish*, opens on the first
+  start and stays in the library (author Finn Bookfish): each page explains
+  a feature and lets you try it.
 - **Library:** EPUB books and audiobooks in Documents and on memory cards,
   or in a folder chosen in the pull-down menu. An audiobook is an M4B file,
   an MP3 file next to EPUB books (a folder of an author's books), or a
