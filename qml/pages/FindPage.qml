@@ -55,7 +55,8 @@ Page {
         for (var i = 0; i < hits.length; ++i) {
             if (i === result.before)
                 rows.append(row("here", "", "", "", -1))
-            rows.append(row("hit", "", snippetText(hits[i].snippet), chapterName(hits[i]), i))
+            rows.append(row("hit", "", snippetText(hits[i].snippet), chapterName(hits[i]), i,
+                            app.pageText(hits[i].page, result.pagesEstimated)))
         }
         // The place after the last hit; not if hits after it were left out.
         if (hits.length > 0 && result.before === hits.length && result.total === hits.length)
@@ -94,8 +95,9 @@ Page {
         return chapter.title + " · " + time
     }
 
-    function row(type, info, html, chapter, hit) {
-        return { type: type, info: info, html: html, chapter: chapter, hit: hit }
+    // pageText: the printed page of a hit, "" for other rows.
+    function row(type, info, html, chapter, hit, pageText) {
+        return { type: type, info: info, html: html, chapter: chapter, hit: hit, pageText: pageText || "" }
     }
 
     function timeText(seconds) {
@@ -475,14 +477,30 @@ Page {
                     color: item.highlighted ? Theme.highlightColor : Theme.primaryColor
                 }
 
-                Label {
+                // The chapter, and a hit's page right beside it: never cut off.
+                Item {
                     width: parent.width
-                    truncationMode: TruncationMode.Fade
-                    font.pixelSize: Theme.fontSizeExtraSmall
-                    color: Theme.secondaryColor
-                    text: model.chapter
-                    // Text from the book, never markup.
-                    textFormat: Text.PlainText
+                    height: chapterLabel.height
+
+                    Label {
+                        id: chapterLabel
+
+                        width: parent.width - (model.pageText !== "" ? pageLabel.width + Theme.paddingMedium : 0)
+                        truncationMode: TruncationMode.Fade
+                        font.pixelSize: Theme.fontSizeExtraSmall
+                        color: Theme.secondaryColor
+                        text: model.chapter
+                        // Text from the book, never markup.
+                        textFormat: Text.PlainText
+                    }
+                    Label {
+                        id: pageLabel
+
+                        anchors.right: parent.right
+                        font.pixelSize: Theme.fontSizeExtraSmall
+                        color: Theme.secondaryColor
+                        text: model.pageText
+                    }
                 }
             }
 

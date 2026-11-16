@@ -1,7 +1,7 @@
 import unittest
 
 from bookfish.package import read_ncx_pages, read_nav_pages
-from bookfish.pages import RUN, PageTarget, page_numbers, parse_name
+from bookfish.pages import RUN, PageFinder, PageTarget, chars_per_page, page_numbers, parse_name
 
 from .helpers import TempDirTestCase, write_files
 from .test_package import CHAPTER, PackageTest
@@ -203,3 +203,139 @@ class ReadPagesTest(TempDirTestCase):
             manifest=CHAPTER + '<item id="n" href="toc.ncx" media-type="application/x-dtbncx+xml"/>',
             files={"OPS/toc.ncx": "<ncx"})
         self.assertEqual(book.pages, [])
+
+
+def chapters(*specs):
+    """search.Chapter for each (text, {id: index})."""
+    from bookfish.search import Chapter
+    return [Chapter(text, ids=ids) for text, ids in specs]
+
+
+def info(marks, total=0):
+    """page_numbers' result for marks per chapter ([fragment, label, counted])."""
+    start = []
+    current = None
+    for chapter_marks in marks:
+        start.append(current)
+        if chapter_marks:
+            current = chapter_marks[-1][1:]
+    return {"total": total, "marks": marks, "start": start}
+
+
+def title_at(spine, index):
+    return "%d:%d" % (spine, index)
+
+
+class PageFinderListTest(unittest.TestCase):
+
+    def setUp(self):
+        self.finder = PageFinder(
+            info([[["pg1", "1", True]], [["pg2", "2", True], ["pg3", "3", True]], []], 3),
+            chapters(("Title. One page", {"pg1": 7}),
+                     ("Two pages here", {"pg2": 0, "pg3": 9}),
+                     ("Notes", {})),
+            [True, True, False], "en")
+
+    def test_last_mark_at_or_before_the_place(self):
+        self.assertEqual(self.finder.label(0, 7), "1")
+        self.assertEqual(self.finder.label(1, 8), "2")
+        self.assertEqual(self.finder.label(1, 9), "3")
+
+    def test_none_before_the_first_page(self):
+        self.assertEqual(self.finder.label(0, 6), "")
+
+    def test_chapter_without_marks_has_the_page_before(self):
+        self.assertEqual(self.finder.label(2, 3), "3")
+
+    def test_place_outside_the_book_has_none(self):
+        self.assertEqual(self.finder.label(5, 0), "")
+        self.assertEqual(self.finder.label(-1, 0), "")
+
+    def test_marks_at_one_place_the_last_counts(self):
+        # Pictures printed as pages of their own share the next text's place.
+        finder = PageFinder(info([[["pg5", "5", True], ["pg6", "6", True], ["pg7", "7", True]]]),
+                            chapters(("Text", {"pg5": 0, "pg6": 0, "pg7": 0})), [True], "en")
+        self.assertEqual(finder.label(0, 2), "7")
+
+    def test_mark_not_in_the_text_is_passed_over(self):
+        finder = PageFinder(info([[["pg1", "1", True], ["gone", "2", True]]]),
+                            chapters(("Some text", {"pg1": 0})), [True], "en")
+        self.assertEqual(finder.label(0, 5), "1")
+
+    def test_stops_in_reading_order_with_the_start_of_the_book(self):
+        stops = self.finder.stops(title_at)
+        self.assertEqual([(s["label"], s["spine"], s["mark"]) for s in stops],
+                         [("", 0, -1), ("1", 0, 0), ("2", 1, 0), ("3", 1, 1)])
+        self.assertEqual([s["title"] for s in stops], ["0:0", "0:7", "1:0", "1:9"])
+        self.assertFalse(stops[0]["counted"])
+        self.assertTrue(stops[1]["counted"])
+
+    def test_no_start_stop_if_the_first_page_begins_the_book(self):
+        finder = PageFinder(info([[["", "1", True], ["pg2", "2", True]]]),
+                            chapters(("One. Two", {"pg2": 5})), [True], "en")
+        self.assertEqual([s["mark"] for s in finder.stops(title_at)], [0, 1])
+
+    def test_chapters_outside_the_reading_order_have_no_stops(self):
+        finder = PageFinder(info([[["n1", "1", True]], [["pg2", "2", True]]]),
+                            chapters(("Note", {"n1": 0}), ("Text", {"pg2": 0})), [False, True], "en")
+        self.assertEqual([(s["spine"], s["mark"]) for s in finder.stops(title_at)], [(1, 0)])
+
+    def test_stop_for_a_mark_python_does_not_find(self):
+        finder = PageFinder(info([[["", "1", True], ["gone", "2", True]]]),
+                            chapters(("Text", {})), [True], "en")
+        stops = finder.stops(title_at)
+        self.assertEqual([(s["label"], s["mark"], s["title"]) for s in stops],
+                         [("1", 0, "0:0"), ("2", 1, "0:0")])
+
+    def test_roman_pages_are_not_counted(self):
+        finder = PageFinder(info([[["", "vii", False], ["pg1", "1", True]]]),
+                            chapters(("Preface. Text", {"pg1": 9})), [True], "en")
+        self.assertEqual([s["counted"] for s in finder.stops(title_at)], [False, True])
+
+
+class PageFinderEstimateTest(unittest.TestCase):
+
+    def test_chars_per_page_by_language(self):
+        self.assertEqual(chars_per_page("de-DE"), 1600)
+        self.assertEqual(chars_per_page("DE"), 1600)
+        self.assertEqual(chars_per_page("en"), 1700)
+        self.assertEqual(chars_per_page(None), 1700)
+
+    def finder(self, *lengths, linear=None, language="de"):
+        texts = [("x" * n, {}) for n in lengths]
+        return PageFinder(None, chapters(*texts), linear or [True] * len(lengths), language)
+
+    def test_total_rounds_up(self):
+        self.assertEqual(self.finder(1600, 1601).total, 3)
+        self.assertEqual(self.finder(0).total, 1)
+
+    def test_label_counts_the_chapters_before(self):
+        finder = self.finder(2000, 3000)
+        self.assertEqual(finder.label(0, 0), "1")
+        self.assertEqual(finder.label(0, 1600), "2")
+        self.assertEqual(finder.label(1, 1200), "3")
+        self.assertEqual(finder.label(1, 3000), "4")
+
+    def test_spaces_are_folded_as_the_reading_page_counts(self):
+        finder = PageFinder(None, chapters(("a  \n  b" * 800, {})), [True], "de")
+        self.assertEqual(finder.lengths, [len("a b" * 800)])
+
+    def test_chapters_outside_the_reading_order_count_nothing(self):
+        finder = self.finder(1000, 5000, 1000, linear=[True, False, True])
+        self.assertEqual(finder.total, 2)
+        self.assertEqual(finder.label(1, 4000), "1")
+        self.assertEqual(finder.label(2, 900), "2")
+
+    def test_stops_where_pages_begin(self):
+        finder = self.finder(2400, 0, 2400)
+        stops = finder.stops(title_at)
+        self.assertEqual([(s["label"], s["spine"], s["share"]) for s in stops],
+                         [("1", 0, 0.0), ("2", 0, 1600 / 2400), ("3", 2, 800 / 2400)])
+        self.assertEqual(stops[1]["title"], "0:1600")
+
+    def test_stops_leave_out_chapters_outside_the_reading_order(self):
+        finder = self.finder(500, 1000, linear=[False, True])
+        self.assertEqual([s["spine"] for s in finder.stops(title_at)], [1])
+
+    def test_no_stops_without_reading_order(self):
+        self.assertEqual(self.finder(500, linear=[False]).stops(title_at), [])

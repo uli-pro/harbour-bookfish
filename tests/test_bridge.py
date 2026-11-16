@@ -419,6 +419,24 @@ class SearchTest(TempDirTestCase):
         calls = self.run_search("search", self.tmp, "x", None, 1)
         self.assertEqual(calls[0][0][2]["error"], "not_epub")
 
+    def test_page_labels_and_stops_come_as_pages(self):
+        with mock.patch.object(bridge, "_send") as send:
+            bridge._search("pages", self.root, 3, [{"spine": 0, "offset": 0}])
+            bridge._search("flip", self.root, 4)
+        (event, serial, labels), (event2, serial2, flip) = [c[0] for c in send.call_args_list]
+        self.assertEqual((event, serial, event2, serial2), ("pages", 3, "pages", 4))
+        # The test book has no page list.
+        self.assertEqual(labels, {"estimated": True, "labels": ["1"]})
+        self.assertTrue(flip["estimated"])
+        self.assertEqual(flip["stops"][0]["label"], "1")
+
+    def test_page_requests_go_to_the_thread(self):
+        with mock.patch.object(bridge._searcher, "submit") as submit:
+            bridge.page_labels(self.root, [], 5)
+            bridge.flip_stops(self.root, 6)
+        self.assertEqual([c[0] for c in submit.call_args_list],
+                         [("pages", self.root, 5, []), ("flip", self.root, 6)])
+
 
 class HistoryTest(TempDirTestCase):
 

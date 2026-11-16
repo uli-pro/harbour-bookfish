@@ -1741,12 +1741,32 @@ function firstTextOn(page) {
     return { offset: texts.starts[i] + c, onPage: pageOfBox(rects[0]) <= page }
 }
 
-// The printed page in effect on page (text: firstTextOn(page)): the index
-// in state.pageMarks of the last mark on an earlier page or on this one
-// before its first text, -1 if none. A mark on this page counts also if the
-// page holds no text: pictures printed as pages of their own. A mark's place
-// is its box; without one (hidden) the page of the first text after it.
-function pageMarkAt(page, text) {
+// The printed page shown for page: the index in state.pageMarks of the last
+// mark on this page or an earlier one, -1 if none. A page beginning on the
+// screen counts, though the lines above it belong to the one before: going
+// to page 143 shows the screen where it begins, which then says 143. A
+// mark's place is its box; without one (hidden) the page of the first text
+// after it, see markPage().
+function pageMarkAt(page) {
+    var found = -1
+    var foundPage = -1
+    for (var i = 0; i < state.pageMarks.length; ++i) {
+        var markPage = markPageOf(i)
+        if (markPage < 0 || markPage > page)
+            continue
+        // Several on one page: the last in the text. Pictures printed as
+        // pages of their own share the offset of the text after them.
+        if (found < 0 || markPage > foundPage
+                || (markPage === foundPage && state.pageMarkOffsets[i] >= state.pageMarkOffsets[found])) {
+            found = i
+            foundPage = markPage
+        }
+    }
+    return found
+}
+
+// The page of state.pageMarks[i], -1 if it is not in the chapter.
+function markPageOf(i) {
     if (!state.pageMarkOffsets) {
         var texts = textNodes()
         state.pageMarkOffsets = state.pageMarks.map(function (id) {
@@ -1770,25 +1790,15 @@ function pageMarkAt(page, text) {
             return lo < texts.nodes.length ? texts.starts[lo] : texts.all.length
         })
     }
-    var found = -1
-    var foundPage = -1
-    for (var i = 0; i < state.pageMarks.length; ++i) {
-        var offset = state.pageMarkOffsets[i]
-        if (offset < 0)
-            continue
-        var id = state.pageMarks[i]
-        // Not cached: pictures loading later move the pages.
-        var rects = id === "" ? [] : state.doc.getElementById(id).getClientRects()
-        var markPage = id === "" ? 0 : rects.length ? pageOfBox(rects[0]) : pageOfText(offset)
-        if (markPage > page || (markPage === page && text.onPage && offset > text.offset))
-            continue
-        if (found < 0 || markPage > foundPage
-                || (markPage === foundPage && offset >= state.pageMarkOffsets[found])) {
-            found = i
-            foundPage = markPage
-        }
-    }
-    return found
+    var offset = state.pageMarkOffsets[i]
+    if (!(offset >= 0))
+        return -1
+    var id = state.pageMarks[i]
+    if (id === "")
+        return 0
+    // Not cached: pictures loading later move the pages.
+    var rects = state.doc.getElementById(id).getClientRects()
+    return rects.length ? pageOfBox(rects[0]) : pageOfText(offset)
 }
 
 // The page of the first text shown at or after offset; the last page if
@@ -1899,11 +1909,24 @@ function goFound(find) {
 }
 
 // target: { id, offset, fraction } (any may be missing; the first one
-// found counts), { end: true } or { find } (see findRange); keep is only
-// read by the layout.
+// found counts), { end: true }, { find } (see findRange), { pageMark } (an
+// index in state.pageMarks: the page where that printed page begins) or
+// { share } (estimated pages: the first page whose start is at least that
+// share of the chapter, as ReaderPage counts it); keep is only read by the
+// layout.
 function go(target) {
     if (target.find) {
         goFound(target.find)
+        return
+    }
+    if (typeof target.pageMark === "number") {
+        var markPage = target.pageMark < state.pageMarks.length ? markPageOf(target.pageMark) : -1
+        showPage(markPage >= 0 ? markPage : 0)
+        return
+    }
+    if (typeof target.share === "number") {
+        var pages = pageCount()
+        showPage(Math.min(pages - 1, Math.ceil(target.share * pages - 1e-6)))
         return
     }
     var el = target.id ? state.doc.getElementById(target.id) : null
@@ -1932,7 +1955,7 @@ function showPage(page) {
         page: page,
         pages: pages,
         firstId: firstSentenceStartingOn(page),
-        pageMark: pageMarkAt(page, text),
+        pageMark: pageMarkAt(page),
         offset: text.offset,
         offsetOnPage: text.onPage,
         fraction: pages > 1 ? page / (pages - 1) : 0,

@@ -8,6 +8,35 @@ Page {
     // time in the book in ms, shown beside the title.
     property var toc: []
     property int currentChapter: -1
+    // The unpacked book: its printed pages are shown beside the titles
+    // (bridge.page_labels). "" for an audiobook.
+    property string bookRoot
+    property var pageLabels: []
+    property bool pagesEstimated: false
+    property int pagesSerial: -1
+
+    Component.onCompleted: {
+        if (bookRoot === "")
+            return
+        pagesSerial = ++app.searchSerial
+        py.call("bookfish.bridge.page_labels", [bookRoot, toc.map(function (entry) {
+            return { spine: entry.spine, fragment: entry.fragment || "" }
+        }), pagesSerial])
+    }
+
+    Connections {
+        target: app
+        onPagesFound: {
+            if (serial !== page.pagesSerial)
+                return
+            if (result.error) {
+                console.warn("Cannot read the pages", result.error, result.detail)
+                return
+            }
+            page.pagesEstimated = result.estimated
+            page.pageLabels = result.labels
+        }
+    }
 
     signal selected(int chapter, string fragment)
 
@@ -62,13 +91,19 @@ Page {
             Label {
                 id: timeLabel
 
-                visible: modelData.start !== undefined
+                readonly property string pageText: page.pageLabels[index] || ""
+
+                visible: modelData.start !== undefined || pageText !== ""
                 anchors {
                     right: parent.right
                     rightMargin: Theme.horizontalPageMargin
                     verticalCenter: parent.verticalCenter
                 }
-                text: visible ? page.clock(modelData.start) : ""
+                text: modelData.start !== undefined ? page.clock(modelData.start)
+                      : pageText === "" ? ""
+                      : page.pagesEstimated
+                        //: Estimated page of the printed book beside an entry of the contents, e.g. "≈143"
+                        ? qsTr("≈%1").arg(pageText) : pageText
                 font.pixelSize: Theme.fontSizeSmall
                 color: highlighted ? Theme.secondaryHighlightColor : Theme.secondaryColor
             }

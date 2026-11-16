@@ -80,6 +80,24 @@ WebViewPage {
     property int findIndex: -1
     property string findQuery: ""
     property bool findShown: false
+    // The page flip view (lernen/32): open; its bar's stops (see
+    // bridge.flip_stops), read once, and whether they are estimated; the
+    // place it was opened at ({spine, offset, fraction, label, estimated})
+    // and whether it has gone elsewhere since.
+    property bool flipShown: false
+    property var flipStops: []
+    property bool flipEstimated: false
+    property int flipSerial: -1
+    property var flipOrigin: null
+    property bool flipJumped: false
+    readonly property bool flipAllowed: controls.mode === "read" || controls.mode === "find"
+    onFlipAllowedChanged: {
+        if (!flipAllowed)
+            flipShown = false
+    }
+    // A stop of the page flip view typed in (GoToPageDialog), gone to
+    // once this page is back.
+    property int pendingFlip: -1
     // A hit chosen in the list, shown once this page is back.
     property int pendingHit: -1
     // An entry of the history chosen, likewise; see FindPage.
@@ -448,7 +466,8 @@ WebViewPage {
             return
         }
         // Measured on the library's page lists (lernen/31): German books
-        // print 1590 characters a page (median), English ones 1690.
+        // print 1590 characters a page (median), English ones 1690. As
+        // pages.chars_per_page, which counts the pages in lists.
         var perPage = (book.language || "").toLowerCase().indexOf("de") === 0 ? 1600 : 1700
         var before = 0
         var total = 0
@@ -480,6 +499,108 @@ WebViewPage {
         return wide ? qsTr("%1 / %2").arg(pageLabel).arg(pageTotal)
                       //: Page of the printed book, e.g. "30/295"
                     : qsTr("%1/%2").arg(pageLabel).arg(pageTotal)
+    }
+
+    // The stop of the page flip view for the page shown: the one of the
+    // printed page in the corner (pageMark in chapter), else the last one
+    // before it; for estimated pages the page's number.
+    function currentStop(stops, chapter, mark, label) {
+        if (stops.length === 0)
+            return -1
+        if (flipEstimated) {
+            var n = parseInt(label, 10)
+            return isNaN(n) ? 0 : Math.max(0, Math.min(stops.length - 1, n - 1))
+        }
+        var found = 0
+        for (var i = 0; i < stops.length; ++i) {
+            var stop = stops[i]
+            if (stop.spine > chapter || (stop.spine === chapter && stop.mark > mark))
+                break
+            found = i
+        }
+        return found
+    }
+
+    function toggleFlip() {
+        if (flipShown) {
+            flipShown = false
+            return
+        }
+        if (!ready || topChapter < 0 || !flipAllowed)
+            return
+        // The line in the middle of the page, as when laying out anew: Back
+        // shows this very page again.
+        flipOrigin = { spine: topChapter,
+                       offset: anchorChapter === topChapter && anchorOffset >= 0 ? anchorOffset
+                               : topOffsetOnPage ? topOffset : -1,
+                       fraction: fraction, label: pageLabel, estimated: pageEstimated }
+        flipJumped = false
+        flipShown = true
+        if (flipStops.length === 0 && flipSerial < 0) {
+            flipSerial = ++app.searchSerial
+            py.call("bookfish.bridge.flip_stops", [book.root, flipSerial])
+        }
+    }
+
+    function flipTo(index) {
+        var stop = flipStops[index]
+        if (!stop)
+            return
+        flipJumped = true
+        // As from the contents.
+        findShown = false
+        jumpTo(stop.spine, flipEstimated ? { share: stop.share }
+                                         : stop.mark >= 0 ? { pageMark: stop.mark } : { fraction: 0 })
+    }
+
+    function flipBack() {
+        var origin = flipOrigin
+        flipShown = false
+        if (!origin)
+            return
+        findShown = false
+        jumpTo(origin.spine, origin.offset >= 0 ? { offset: origin.offset, fraction: origin.fraction }
+                                                : { fraction: origin.fraction })
+    }
+
+    function flipBackText() {
+        var origin = flipOrigin
+        if (!flipJumped || !origin)
+            return ""
+        if (!origin.label)
+            //: Button of the page flip view: back to where it was opened, in the front matter
+            return qsTr("Back")
+        return origin.estimated
+                //: Button of the page flip view: back to where it was opened, e.g. "Back to page ≈ 120"
+                ? qsTr("Back to page ≈ %1").arg(origin.label)
+                //: Button of the page flip view: back to where it was opened, e.g. "Back to page 120"
+                : qsTr("Back to page %1").arg(origin.label)
+    }
+
+    function openGoToPage() {
+        var dialog = pageStack.push(Qt.resolvedUrl("GoToPageDialog.qml"), {
+            stops: flipStops, current: Math.max(0, flipPanel.current), estimated: flipEstimated,
+            total: flipPanel.total
+        })
+        dialog.accepted.connect(function () {
+            pendingFlip = dialog.chosen
+        })
+    }
+
+    Connections {
+        target: app
+        onPagesFound: {
+            if (serial !== page.flipSerial)
+                return
+            if (result.error) {
+                console.warn("Cannot read the pages", result.error, result.detail)
+                // Asked again on opening the view.
+                page.flipSerial = -1
+                return
+            }
+            page.flipEstimated = result.estimated
+            page.flipStops = result.stops
+        }
     }
 
     // How far into the book a place is, 0 to 1: the characters of the
@@ -1439,7 +1560,7 @@ WebViewPage {
         lookingUp = false
         // Turned while another page was on top: laid out now.
         geckoSettled.restart()
-        if (pendingHit >= 0 || pendingPlace || pendingPartner) {
+        if (pendingHit >= 0 || pendingPlace || pendingPartner || pendingFlip >= 0) {
             keyboardGone.restart()
             heightSettled.restart()
         } else if (ready) {
@@ -1469,6 +1590,10 @@ WebViewPage {
             pendingPartner = false
             findShown = false
             goToPartner()
+        } else if (pendingFlip >= 0) {
+            var stop = pendingFlip
+            pendingFlip = -1
+            flipTo(stop)
         }
     }
 
@@ -1945,6 +2070,39 @@ WebViewPage {
             color: palette.secondaryColor
             text: pageNumberText(false)
         }
+        // Opens the page flip view; also where no page is shown (the front
+        // matter), so it can be opened there too.
+        MouseArea {
+            x: controls.placeX(4)
+            width: controls.placeWidth(4)
+            height: controls.height
+            enabled: flipAllowed
+            onClicked: toggleFlip()
+        }
+    }
+
+    PageFlipPanel {
+        id: flipPanel
+
+        // Below the text, near the thumb; above the controls there.
+        z: 2
+        visible: flipShown
+        x: notchSide === "left" ? notchDepth : 0
+        width: page.width - (notchSide === "left" || notchSide === "right" ? notchDepth : 0)
+        y: (isPortrait && controls.atBottom ? controls.y
+                                            : page.height - (notchSide === "bottom" ? notchDepth : 0)) - height
+        stops: flipStops
+        estimated: flipEstimated
+        total: flipEstimated ? flipStops.length : book.pages ? book.pages.total : 0
+        current: currentStop(flipStops, topChapter, pageMark, pageLabel)
+        currentText: pageNumberText(true)
+        backText: flipBackText()
+        pageColor: page.pageColor
+        lineColor: lightPage ? "#8c8c8c" : "#808080"
+        onChosen: flipTo(index)
+        onBackRequested: flipBack()
+        onGoToRequested: openGoToPage()
+        onCloseRequested: flipShown = false
     }
 
     // The button pressed, large and with its name, beside it over the text:
@@ -2062,7 +2220,7 @@ WebViewPage {
                 text: qsTr("Contents")
                 onClicked: {
                     var toc = pageStack.push(Qt.resolvedUrl("TocPage.qml"),
-                                             { toc: book.toc, currentChapter: chapter })
+                                             { toc: book.toc, currentChapter: chapter, bookRoot: book.root })
                     toc.selected.connect(function (index, fragment) {
                         findShown = false
                         jumpTo(index, fragment ? { id: fragment } : { fraction: 0 })
@@ -2085,7 +2243,7 @@ WebViewPage {
         onWidthChanged: geckoSettled.restart()
         onHeightChanged: {
             geckoSettled.restart()
-            if (page.pendingHit >= 0 || page.pendingPlace)
+            if (page.pendingHit >= 0 || page.pendingPlace || page.pendingFlip >= 0)
                 heightSettled.restart()
             if (controlsSettled.running)
                 controlsSettled.restart()
@@ -2305,8 +2463,10 @@ WebViewPage {
 
         readonly property bool inStrip: notchSide === "left" || notchSide === "right"
 
-        visible: isLandscape && pageLabel !== ""
-        z: 1
+        visible: isLandscape
+        // Above the strip that turns pages: a tap on the number opens the
+        // page flip view.
+        z: 2
         x: notchSide === "left" ? 0 : page.width - width
         width: inStrip ? notchDepth : Math.round(24 * pixelRatio)
         // In landscape the notch's left end is at the bottom on the left side.
@@ -2315,12 +2475,25 @@ WebViewPage {
               : Math.round(page.height * 0.3)
 
         Label {
+            id: spineLabel
+
             anchors.centerIn: parent
             rotation: -90
             font.pixelSize: Math.round(0.85 * Theme.fontSizeTiny)
             // As the hints elsewhere: secondaryColor hardly shows on white.
             color: lightPage ? "#8c8c8c" : "#808080"
             text: pageNumberText(true)
+        }
+
+        // Only around the number: the rest of the strip still turns pages.
+        // Without a notch the margin is narrow: some of the text beside it.
+        MouseArea {
+            x: spine.inStrip ? 0 : -Theme.paddingLarge
+            width: parent.width - x
+            height: Math.min(parent.height, Math.max(Theme.itemSizeSmall, spineLabel.width + 2 * Theme.paddingLarge))
+            anchors.verticalCenter: parent.verticalCenter
+            enabled: flipAllowed
+            onClicked: toggleFlip()
         }
     }
 
