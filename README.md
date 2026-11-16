@@ -35,11 +35,16 @@ Readalouds can be created from an EPUB and an audiobook with
   matter and appendices move it.
 - **Turn pages** by swiping, or by tapping the left or right edge.
 - **Listen** by tapping a sentence: narration starts there. Tapping where
-  there is no sentence starts at the top of the page. When a book is opened
+  there is no sentence starts at the top of the page. Tapping the sentence
+  being spoken pauses; tapping it again goes on. When a book is opened
   again, the sentence heard last is marked; tap it to go on listening.
 - **Pictures:** press and hold a picture to see it on its own page. Pinch
   or double tap to zoom; the phone may be turned. Listening goes on. Small
   pictures such as ornaments do not open.
+- **Tables** too wide for the page get smaller text; those taller than a
+  page are broken into rows. The first cell of each table and its caption
+  are blue: press and hold them to see the table as the book made it, as a
+  picture to zoom.
 - **Notes and links:** links into the book are coloured. Press and hold a
   note's mark (also just beside it) to read the note on its own page, with
   the notes around it to scroll to; listening goes on. Press and hold any
@@ -66,8 +71,15 @@ Readalouds can be created from an EPUB and an audiobook with
   reading, also the page you left for the contents, a search hit or the
   history, like a back button. Tap an entry to go there.
 - **Sleep timer** (button in the playback bar or the player): stop after 15
-  to 60 minutes, fading out over the last 20 seconds, or at the end of the
+  to 90 minutes, fading out over the last 20 seconds, or at the end of the
   chapter.
+- **Turning the phone:** Bookfish turns with the phone, or keeps the
+  orientation chosen in the settings, also when the phone's orientation is
+  locked. In landscape the page shows text only, in one or two columns;
+  tap a sentence to start or pause narration.
+- **Settings** (pull-down menu of a book or the player): Text (size, line
+  and paragraph spacing, font, columns in landscape), Playback and timer,
+  Button bar (size, top or bottom), Dictionary, Orientation, Colour mode.
 - The place heard is saved whenever listening stops, also when the phone
   stops it (headphones out of reach, an alarm, a call). After an alarm or a
   call listening goes on by itself; after losing the headphones it does not.
