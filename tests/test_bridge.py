@@ -68,6 +68,24 @@ class BridgeTest(TempDirTestCase):
         make_epub(self.epub, [entry for entry in mini_entries() if entry[0] != "OEBPS/cover.svg"])
         self.assertIsNone(bridge.open_book(self.epub, self.cache_dir)["cover"])
 
+    def test_pages(self):
+        self.assertIsNone(bridge.open_book(self.epub, self.cache_dir)["pages"])
+        page_list = (b'<nav epub:type="page-list"><ol>'
+                     b'<li><a href="chapter.xhtml#chap01">1</a></li>'
+                     b'<li><a href="chapter.xhtml#chapter-s2">2</a></li></ol></nav>')
+        entries = [(name, data.replace(b"</body>", page_list + b"</body>"))
+                   if name == "OEBPS/nav.xhtml" else (name, data)
+                   for name, data in mini_entries()]
+        make_epub(self.epub, entries)
+        cache_dir = os.path.join(self.tmp, "cache2")
+        pages = bridge.open_book(self.epub, cache_dir)["pages"]
+        json.dumps(pages)
+        self.assertEqual(pages, {
+            "total": 2,
+            "marks": [[], [["chap01", "1", True], ["chapter-s2", "2", True]]],
+            "start": [None, None],
+        })
+
     def test_toc_entry_outside_spine(self):
         entries = [(name, data.replace(b'href="title.xhtml"', b'href="extra.xhtml"'))
                    if name == "OEBPS/nav.xhtml" else (name, data)

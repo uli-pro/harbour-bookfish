@@ -218,7 +218,11 @@ addMessageListener("bookfish:layout", function (message) {
         // See applyMarks().
         marks: [],
         // See textNodes().
-        texts: null
+        texts: null,
+        // Ids where the printed pages begin, "" for the chapter's start;
+        // see pageMarkAt().
+        pageMarks: o.pageMarks || [],
+        pageMarkOffsets: null
     }
     applyMarks(o.marks || [])
     evenColumns(doc)
@@ -1737,6 +1741,73 @@ function firstTextOn(page) {
     return { offset: texts.starts[i] + c, onPage: pageOfBox(rects[0]) <= page }
 }
 
+// The printed page in effect on page (text: firstTextOn(page)): the index
+// in state.pageMarks of the last mark on an earlier page or on this one
+// before its first text, -1 if none. A mark on this page counts also if the
+// page holds no text: pictures printed as pages of their own. A mark's place
+// is its box; without one (hidden) the page of the first text after it.
+function pageMarkAt(page, text) {
+    if (!state.pageMarkOffsets) {
+        var texts = textNodes()
+        state.pageMarkOffsets = state.pageMarks.map(function (id) {
+            if (!texts)
+                return -1
+            if (id === "")
+                return 0
+            var el = state.doc.getElementById(id)
+            if (!el)
+                return -1
+            // The first text node following the mark, or inside it.
+            var lo = 0
+            var hi = texts.nodes.length
+            while (lo < hi) {
+                var mid = (lo + hi) >> 1
+                if (el.compareDocumentPosition(texts.nodes[mid]) & 4)
+                    hi = mid
+                else
+                    lo = mid + 1
+            }
+            return lo < texts.nodes.length ? texts.starts[lo] : texts.all.length
+        })
+    }
+    var found = -1
+    var foundPage = -1
+    for (var i = 0; i < state.pageMarks.length; ++i) {
+        var offset = state.pageMarkOffsets[i]
+        if (offset < 0)
+            continue
+        var id = state.pageMarks[i]
+        // Not cached: pictures loading later move the pages.
+        var rects = id === "" ? [] : state.doc.getElementById(id).getClientRects()
+        var markPage = id === "" ? 0 : rects.length ? pageOfBox(rects[0]) : pageOfText(offset)
+        if (markPage > page || (markPage === page && text.onPage && offset > text.offset))
+            continue
+        if (found < 0 || markPage > foundPage
+                || (markPage === foundPage && offset >= state.pageMarkOffsets[found])) {
+            found = i
+            foundPage = markPage
+        }
+    }
+    return found
+}
+
+// The page of the first text shown at or after offset; the last page if
+// none is shown after it. For a hidden mark, whose next text may be hidden
+// too (display: none).
+function pageOfText(offset) {
+    var texts = textNodes()
+    for (var i = 0; texts && i < texts.nodes.length; ++i) {
+        if (texts.starts[i] + texts.nodes[i].length <= offset)
+            continue
+        var node = texts.nodes[i]
+        var from = Math.max(0, offset - texts.starts[i])
+        var rects = textBoxes(node, from, node.length)
+        if (rects.length)
+            return pageOfBox(rects[0])
+    }
+    return pageCount() - 1
+}
+
 // The first character of the line in the middle of the page shown, as an
 // offset in body.textContent (see findRange); -1 if there is none there.
 // Asked just inside the left margin: a short line (a paragraph's end,
@@ -1861,6 +1932,7 @@ function showPage(page) {
         page: page,
         pages: pages,
         firstId: firstSentenceStartingOn(page),
+        pageMark: pageMarkAt(page, text),
         offset: text.offset,
         offsetOnPage: text.onPage,
         fraction: pages > 1 ? page / (pages - 1) : 0,

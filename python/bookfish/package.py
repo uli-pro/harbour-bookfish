@@ -5,6 +5,7 @@ import math
 
 from .errors import EpubError
 from .overlay import parse_clock
+from .pages import PageTarget
 from .paths import local_path, resolve
 from .xmlutil import parse_xml
 
@@ -24,7 +25,7 @@ DEFAULT_ACTIVE_CLASS = "-epub-media-overlay-active"
 
 Book = collections.namedtuple(
     "Book", "identifier title authors language cover duration active_class "
-            "spine toc")
+            "spine toc pages")
 # overlay is the path of the chapter's SMIL file, or None.
 SpineItem = collections.namedtuple(
     "SpineItem", "path media_type overlay linear")
@@ -88,6 +89,20 @@ def read_package(root):
             except (EpubError, OSError):
                 pass
 
+    pages = []
+    if nav is not None:
+        try:
+            pages = read_nav_pages(root, nav.path)
+        except (EpubError, OSError):
+            pass
+    if not pages:
+        ncx = _ncx_item(opf, manifest)
+        if ncx is not None:
+            try:
+                pages = read_ncx_pages(root, ncx.path)
+            except (EpubError, OSError):
+                pass
+
     return Book(
         identifier=_identifier(opf, metadata),
         title=_first_text(metadata, _DC + "title"),
@@ -98,7 +113,8 @@ def read_package(root):
         active_class=(_meta(metadata, "media:active-class")
                       or DEFAULT_ACTIVE_CLASS),
         spine=spine,
-        toc=toc)
+        toc=toc,
+        pages=pages)
 
 
 def read_info(opf, opf_path):
@@ -183,6 +199,45 @@ def read_ncx(root, ncx_path):
                                 path, fragment, level))
         stack.append((iter(point.findall(_NCX + "navPoint")), level + 1))
     return entries
+
+
+def read_nav_pages(root, nav_path):
+    """The page list (PageTarget) of the navigation document nav_path."""
+    doc = parse_xml(local_path(root, nav_path))
+    nav = next((n for n in doc.iter(_XHTML + "nav")
+                if "page-list" in n.get(_EPUB + "type", "").split()), None)
+    if nav is None:
+        return []
+    return _page_targets(nav_path, ((_text(a), a.get("href"))
+                                    for a in nav.iter(_XHTML + "a")))
+
+
+def read_ncx_pages(root, ncx_path):
+    """The page list (PageTarget) of the EPUB 2 NCX file ncx_path."""
+    doc = parse_xml(local_path(root, ncx_path))
+    page_list = doc.find(_NCX + "pageList")
+    if page_list is None:
+        return []
+
+    def entries():
+        for target in page_list.iter(_NCX + "pageTarget"):
+            label = target.find(_NCX + "navLabel/" + _NCX + "text")
+            content = target.find(_NCX + "content")
+            yield (_text(label) if label is not None else "",
+                   content.get("src") if content is not None else None)
+    return _page_targets(ncx_path, entries())
+
+
+def _page_targets(referrer, entries):
+    targets = []
+    for name, href in entries:
+        try:
+            target = resolve(referrer, href) if href else None
+        except EpubError:
+            target = None
+        if target:
+            targets.append(PageTarget(target[0], target[1], name))
+    return targets
 
 
 def text_length(root, path):
