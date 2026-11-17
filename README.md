@@ -8,7 +8,29 @@ when you want to listen.
 Readalouds can be created from an EPUB and an audiobook with
 [Storyteller](https://storyteller-platform.dev/).
 
-**Status:** early development, not usable yet.
+**Status:** first release, 0.1. Tested on a Jolla Phone (Sailfish OS 5.2)
+and a Sony Xperia 10 III (Sailfish OS 5.0). The interface is in English.
+
+<p>
+<img src="screenshots/reading.png" width="24%" alt="A readaloud: the spoken sentence is marked">
+<img src="screenshots/library.png" width="24%" alt="The library">
+<img src="screenshots/page-flip.png" width="24%" alt="The page flip view">
+<img src="screenshots/player.png" width="24%" alt="The audiobook player">
+</p>
+
+## Installing
+
+Download the RPM of the latest
+[release](https://github.com/uli-pro/harbour-bookfish/releases) on the
+phone and open it in the file manager (Settings → Untrusted software must
+allow it), or with developer mode:
+
+```
+pkcon install-local harbour-bookfish-*.noarch.rpm
+```
+
+Start Bookfish from its icon the first time: Sailfish OS then asks for the
+permissions below.
 
 ## Using
 
@@ -97,6 +119,43 @@ Readalouds can be created from an EPUB and an audiobook with
   stops it (headphones out of reach, an alarm, a call). After an alarm or a
   call listening goes on by itself; after losing the headphones it does not.
 
+## Permissions and security
+
+Bookfish runs in the Sailfish OS sandbox with these permissions only:
+
+- **Documents** and **RemovableMedia**: to find and read books in Documents
+  and on memory cards. Bookfish never writes there.
+- **Audio**: to play narration and audiobooks, also on the lock screen and
+  the headphones.
+- **WebView**: to show the pages of a book.
+
+It has no network permission: a book cannot load anything from the
+internet, and Bookfish sends nothing anywhere. Books are unpacked into the
+app's cache with limits against crafted files (paths leaving the book,
+symbolic links, zip bombs, oversized or deeply nested files); scripts in
+books do not run. Positions, history, bookmarks and notes stay in the app's
+own folder on the phone.
+
+## Known limitations
+
+- Books with DRM cannot be opened.
+- In MP3 files with a variable bit rate, jumps to a time (30 seconds back,
+  the slider, a chapter inside a file) land a few seconds off; this comes
+  from GStreamer. M4B and MP3 files with a constant bit rate are exact.
+- Places are not synchronized between devices.
+
+## Translating
+
+The interface is English; every text goes through `qsTr()`, and building
+updates the template `translations/harbour-bookfish.ts`. To add a language,
+for example German:
+
+1. Add `TRANSLATIONS += translations/harbour-bookfish-de.ts` to
+   `harbour-bookfish.pro` and build once; this creates the file.
+2. Translate it with Qt Linguist (`linguist`), keeping the placeholders
+   (`%1`) and reading the translator comments.
+3. Open a pull request.
+
 ## Building
 
 Requires the [Sailfish SDK](https://docs.sailfishos.org/Tools/Sailfish_SDK/).
@@ -106,6 +165,9 @@ mkdir -p ~/build/bookfish && cd ~/build/bookfish
 sfdk config target=SailfishOS-5.1.0.11-aarch64
 sfdk build /path/to/harbour-bookfish
 ```
+
+GitHub Actions run the unit tests, build the RPM and check it with the
+Harbour validator for every pull request; a tag drafts a release.
 
 ## Running tests
 
