@@ -144,6 +144,19 @@ own folder on the phone.
   from GStreamer. M4B and MP3 files with a constant bit rate are exact.
 - Places are not synchronized between devices.
 
+## Feedback and maintenance
+
+Bookfish is a personal project, maintained in spare time. The maintainer
+reads and listens with it every day, so it will be kept working on new
+Sailfish OS releases.
+
+- Bug reports are welcome as
+  [issues](https://github.com/uli-pro/harbour-bookfish/issues); please
+  name your phone and Sailfish OS version.
+- Feature requests are welcome too, but there is no guaranteed response
+  or schedule. What gets added is what fits how the app is used.
+- Pull requests: please open an issue first, except for translations.
+
 ## Translating
 
 The interface is English; every text goes through `qsTr()`, and building
