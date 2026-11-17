@@ -29,6 +29,12 @@ allow it), or with developer mode:
 pkcon install-local harbour-bookfish-*.noarch.rpm
 ```
 
+Or with [Harpoon](https://github.com/JuhaniLehtimaeki/Harpoon), which
+installs apps from their releases and keeps them up to date: add this
+repository, or scan the code.
+
+<img src="add-to-harpoon.png" width="148" alt="QR code: https://github.com/uli-pro/harbour-bookfish">
+
 Start Bookfish from its icon the first time: Sailfish OS then asks for the
 permissions below.
 
@@ -135,6 +141,12 @@ app's cache with limits against crafted files (paths leaving the book,
 symbolic links, zip bombs, oversized or deeply nested files); scripts in
 books do not run. Positions, history, bookmarks and notes stay in the app's
 own folder on the phone.
+
+Release packages carry a GitHub build attestation: it proves that the RPM
+was built by this repository's workflow `build.yml` from a tag. Check it
+with `gh attestation verify <rpm> --repo uli-pro/harbour-bookfish`, or let
+Harpoon refuse unverified packages (Check build provenance: workflow
+`build.yml`, refs `refs/tags/.*`).
 
 ## Known limitations
 
