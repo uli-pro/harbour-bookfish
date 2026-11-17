@@ -1,9 +1,10 @@
 # Changelog
 
-## 0.1.0 – unreleased
+## 0.1.0 – 2026-11-17
 
 First release.
 
+- A guide, the readaloud *Welcome to Bookfish*, opens on the first start.
 - Library of EPUB books, audiobooks (M4B, MP3 files and folders) and
   readalouds in Documents and on memory cards, or in a chosen folder: by
   author, series in order, covers, search, the books read last on top.

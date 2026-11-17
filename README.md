@@ -11,6 +11,13 @@ Readalouds can be created from an EPUB and an audiobook with
 **Status:** first release, 0.1. Tested on a Jolla Phone (Sailfish OS 5.2)
 and a Sony Xperia 10 III (Sailfish OS 5.0). The interface is in English.
 
+<p>
+<img src="screenshots/reading.png" width="24%" alt="A readaloud: the spoken sentence is marked">
+<img src="screenshots/library.png" width="24%" alt="The library">
+<img src="screenshots/page-flip.png" width="24%" alt="The page flip view">
+<img src="screenshots/player.png" width="24%" alt="The audiobook player">
+</p>
+
 ## Installing
 
 Download the RPM of the latest
