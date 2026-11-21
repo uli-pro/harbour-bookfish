@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- New app icon: a goldfish reading a book and wearing headphones, drawn in
+  the Sailfish OS icon style.
+
 ## 0.1.0 – 2026-11-17
 
 First release.
