@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
 <!-- Bookfish app icon. Base shape after Jolla's Sailfish OS app icon template. -->
-<defs><linearGradient id="bg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#EB4A2C"/><stop offset="1" stop-color="#FF8F00"/></linearGradient><linearGradient id="fb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE485"/><stop offset="1" stop-color="#FFB300"/></linearGradient><clipPath id="c"><path d="M128.0,1.0 H250.8 A4.2,4.2 0 0 1 255.0,5.2 V128.0 A127.0,127.0 0 0 1 128.0,255.0 H5.2 A4.2,4.2 0 0 1 1.0,250.8 V128.0 A127.0,127.0 0 0 1 128.0,1.0 Z"/></clipPath></defs>
+<defs><linearGradient id="bg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#6FC3D9"/><stop offset="1" stop-color="#C8EEF2"/></linearGradient><linearGradient id="fb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFAE5A"/><stop offset="1" stop-color="#EE6F1C"/></linearGradient><clipPath id="c"><path d="M128.0,1.0 H250.8 A4.2,4.2 0 0 1 255.0,5.2 V128.0 A127.0,127.0 0 0 1 128.0,255.0 H5.2 A4.2,4.2 0 0 1 1.0,250.8 V128.0 A127.0,127.0 0 0 1 128.0,1.0 Z"/></clipPath></defs>
 <path d="M128.0,1.0 H250.8 A4.2,4.2 0 0 1 255.0,5.2 V128.0 A127.0,127.0 0 0 1 128.0,255.0 H5.2 A4.2,4.2 0 0 1 1.0,250.8 V128.0 A127.0,127.0 0 0 1 128.0,1.0 Z" fill="url(#bg)"/>
 <g clip-path="url(#c)"><g transform="translate(-14,-18) scale(0.4778666666666667)">
-<path d="M360,252 C400,226 450,206 515,204 C506,240 494,270 470,290 C430,291 394,282 360,272 Z" fill="#FFC93C"/>
-<path d="M360,300 C400,296 440,300 470,300 C495,322 506,356 510,392 C450,382 400,352 360,322 Z" fill="#FFB300"/>
-<path d="M200,172 C214,104 292,66 350,88 C366,122 362,162 350,200 Z" fill="#FFC93C"/>
+<path d="M360,252 C400,226 450,206 515,204 C506,240 494,270 470,290 C430,291 394,282 360,272 Z" fill="#F7923A"/>
+<path d="M360,300 C400,296 440,300 470,300 C495,322 506,356 510,392 C450,382 400,352 360,322 Z" fill="#E26A16"/>
+<path d="M200,172 C214,104 292,66 350,88 C366,122 362,162 350,200 Z" fill="#F7923A"/>
 <circle cx="240" cy="285" r="135" fill="url(#fb)"/>
 <path d="M90,236 C90,86 381,86 381,236" fill="none" stroke="#3A2C40" stroke-width="16" stroke-linecap="round"/>
 <rect x="62" y="222" width="56" height="106" rx="27" fill="#3A2C40"/>
@@ -19,7 +19,7 @@
 <path d="M108,402 L236,414 L364,402 L364,520 L236,526 L108,520 Z" fill="#4A2F6B"/>
 <path d="M118,392 L236,406 L236,510 L118,508 Z" fill="#FFFFFF"/>
 <path d="M236,406 L354,392 L354,508 L236,510 Z" fill="#EDE6F2"/>
-<path d="M152,424 C122,412 94,424 94,450 C99,472 130,472 152,462 Z" fill="#FFC93C"/>
-<path d="M320,424 C350,412 378,424 378,450 C373,472 342,472 320,462 Z" fill="#FFC93C"/>
+<path d="M152,424 C122,412 94,424 94,450 C99,472 130,472 152,462 Z" fill="#F7923A"/>
+<path d="M320,424 C350,412 378,424 378,450 C373,472 342,472 320,462 Z" fill="#F7923A"/>
 </g></g>
 </svg>
