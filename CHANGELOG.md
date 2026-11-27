@@ -8,8 +8,9 @@
 - Narration no longer stands silent at some changes from one audio file to
   the next (seen at chapter changes of readalouds); if it ever stands still
   while playing, it is loaded afresh at that place.
-- New app icon: a goldfish reading a book and wearing headphones, drawn in
-  the Sailfish OS icon style.
+- New app icon: an orange goldfish reading a book and wearing headphones,
+  on light turquoise water as in the guide, drawn in the Sailfish OS icon
+  style.
 - Development: the QML is checked for syntax errors and for JavaScript
   newer than ES5, which Qt 5.6 on the phone does not run, before the
   package is built (suggested by moWerk).
