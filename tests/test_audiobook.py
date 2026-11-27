@@ -168,13 +168,44 @@ class BridgeAudiobookTest(TempDirTestCase):
         # Not in the library cache yet: the tags tell.
         self.assertEqual((book["title"], book["authors"], book["cover"], book["complete"]),
                          ("Album", [], "", False))
-        worker.submit.assert_called_once_with(folder, self.paths["audio"])
+        worker.submit.assert_called_once_with(folder, self.paths["audio"], None)
         with mock.patch.object(bridge, "_send") as send:
             bridge._read_audiobook(folder, self.paths["audio"])
         event, path, result = send.call_args[0]
         self.assertEqual((event, path, result["complete"], result["chapters"][0]["title"]),
                          ("audiobook", folder, True, "One"))
         self.assertTrue(self.open(folder)[0]["complete"])
+
+    def test_album_of_a_folder(self):
+        folder = os.path.join(self.library, "Books")
+        write_files(folder, {
+            "a1.mp3": ad.mp3([ad.text("TALB", "Hobbit"), ad.text("TIT2", "One"), ad.apic(ad.JPEG)]),
+            "a2.mp3": ad.mp3([ad.text("TALB", "hobbit"), ad.text("TIT2", "Two")]),
+            "a3.mp3": ad.mp3([ad.text("TALB", "Hobbit"), ad.text("TIT2", "Three")]),
+            "b.mp3": ad.mp3([ad.text("TALB", "Emil")])})
+        path = library.album_path(folder, "hobbit")
+        for scanned in (False, True):
+            if scanned:
+                library.scan([self.library], self.paths["library"])
+            book, worker = self.open(path)
+            json.dumps(book)
+            self.assertEqual((book["path"], book["key"], book["title"], book["root"]),
+                             (path, "audio:Books//hobbit", "Hobbit", folder))
+            self.assertEqual([c["file"] for c in book["chapters"]], ["a1.mp3", "a2.mp3", "a3.mp3"])
+            files = [os.path.join(folder, name) for name in ("a1.mp3", "a2.mp3", "a3.mp3")]
+            worker.submit.assert_called_once_with(path, self.paths["audio"], files)
+        self.assertTrue(os.path.isfile(book["cover"]))
+        with mock.patch.object(bridge, "_send") as send:
+            bridge._read_audiobook(path, self.paths["audio"], files)
+        result = send.call_args[0][2]
+        self.assertEqual([c["title"] for c in result["chapters"]], ["One", "Two", "Three"])
+        self.assertTrue(self.open(path)[0]["complete"])
+        self.assertTrue(bridge.is_audiobook(path))
+        self.assertTrue(bridge.is_audiobook(library.album_path(folder, "x.epub")))
+        # Opened last: still in the list of books read last.
+        positions_file = os.path.join(self.tmp, "positions.json")
+        bridge.save_last_book(positions_file, path)
+        self.assertEqual(bridge.recent_books(positions_file), [path])
 
     def test_errors(self):
         write_files(self.library, {"x.mp3": b"junk"})

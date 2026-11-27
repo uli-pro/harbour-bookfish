@@ -132,7 +132,9 @@ other book.
   cards, or in a folder chosen in the pull-down menu. An audiobook is an M4B
   file, an MP3 file next to EPUB books (a folder of an author's books), or a
   folder of MP3 files without EPUB books, each file a chapter in the order
-  of the file names. An audiobook named like an EPUB book next to it (the
+  of the file names. If the files of such a folder name two albums or more
+  (tag `TALB`, any case), each album is an audiobook, and each file without
+  one. An audiobook named like an EPUB book next to it (the
   folder `Book/` or the file `Book.mp3` next to `Book.epub`) is listed with
   the title, author, series and cover of that book. Other audiobooks take
   their series from the tags `SERIES` and `SERIES-PART` (MP3: `TXXX`, M4B:

@@ -19,7 +19,7 @@ import traceback
 import unicodedata
 
 from . import (audiobook, bookmarks, cache, dictionary, history as history_store, library,
-               notes, positions, tableimage)
+               mp3, notes, positions, tableimage)
 from .errors import EpubError
 from .overlay import read_overlay
 from .package import read_package, text_length
@@ -95,7 +95,7 @@ def _send(*args):
 
 def cached_library(cache_file, folders):
     """The books below folders as last scanned, at once; see library_view."""
-    prefixes = tuple(os.path.join(folder, "") for folder in folders)
+    prefixes = tuple(os.path.join(os.path.normpath(folder), "") for folder in folders)
     return library_view([e for e in library.load_cached(cache_file)
                          if e["path"].startswith(prefixes)], folders)
 
@@ -225,8 +225,7 @@ def cover(path, cover_path, name, covers_dir):
         os.makedirs(covers_dir, exist_ok=True)
     except OSError:
         return ""
-    # Only files found as EPUBs end in .epub; a folder is an audiobook.
-    if path.lower().endswith(".epub") and not os.path.isdir(path):
+    if not is_audiobook(path):
         found = library.extract_cover(path, cover_path, target)
     else:
         found = library.extract_audio_cover(path, cover_path, target)
@@ -315,7 +314,9 @@ def open_audiobook(path, library_cache, folders, covers_dir, audio_cache):
     ("audiobook", path, result).
     """
     try:
-        book = audiobook.open_audiobook(path, audio_cache)
+        files = (library.album_files(path, library_cache)
+                 if library.split_album(path)[1] is not None else None)
+        book = audiobook.open_audiobook(path, audio_cache, files)
     except EpubError as e:
         return _error(e.code, e.detail)
     except OSError as e:
@@ -337,24 +338,31 @@ def open_audiobook(path, library_cache, folders, covers_dir, audio_cache):
     book.update(kind="audiobook", path=path, title=title, authors=authors, cover=cover_file,
                 key=_audio_key(path))
     if not book["complete"]:
-        _audiobooks.submit(path, audio_cache)
+        _audiobooks.submit(path, audio_cache, files)
     return book
 
 
 def _tags_info(path):
-    files = library.audio_files(path) if os.path.isdir(path) else [path]
-    name = os.path.basename(path)
-    if not os.path.isdir(path):
-        name = os.path.splitext(name)[0]
     try:
-        return library.audio_info(library.BookFile(path, name, "audiobook", tuple(files)))
+        if library.split_album(path)[1] is not None:
+            files = library.album_files(path)
+            # The album as most files name it, like the library.
+            album = collections.Counter(mp3.album(f) for f in files).most_common(1)[0][0]
+            book = library.BookFile(path, album, "audiobook", tuple(files), album)
+        elif os.path.isdir(path):
+            book = library.BookFile(path, os.path.basename(path), "audiobook",
+                                    tuple(library.audio_files(path)))
+        else:
+            book = library.BookFile(path, os.path.splitext(os.path.basename(path))[0],
+                                    "audiobook", (path,))
+        return library.audio_info(book)
     except Exception:
         return library.broken_info(path, "audiobook")
 
 
-def _read_audiobook(path, audio_cache):
+def _read_audiobook(path, audio_cache, files=None):
     try:
-        result = audiobook.read_folder(path, audio_cache)
+        result = audiobook.read_folder(path, audio_cache, files)
     except EpubError as e:
         result = _error(e.code, e.detail)
     except OSError as e:
@@ -367,8 +375,10 @@ def _read_audiobook(path, audio_cache):
 
 def is_audiobook(path):
     """Whether the book at path, as the library found it, is an audiobook:
-    the library lists only EPUB files, audio files and audio folders."""
-    return os.path.isdir(path) or not path.lower().endswith(".epub")
+    the library lists only EPUB files, audio files, audio folders and
+    albums."""
+    return (library.split_album(path)[1] is not None or os.path.isdir(path)
+            or not path.lower().endswith(".epub"))
 
 
 def audio_history(path, key):
@@ -555,6 +565,9 @@ def _epub_key(identifier, epub_path):
 
 
 def _audio_key(path):
+    folder, album = library.split_album(path)
+    if album is not None:
+        return _position_key("audio:" + os.path.basename(folder) + "//" + album)
     return _position_key("audio:" + os.path.basename(path))
 
 

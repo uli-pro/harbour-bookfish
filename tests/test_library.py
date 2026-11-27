@@ -11,7 +11,7 @@ from bookfish.library import (BookFile, book_info, broken_info, card_folders, ex
                                prune_covers, scan, without_replaced)
 
 from . import audiodata as ad
-from .helpers import TempDirTestCase, make_epub, write_files
+from .helpers import TempDirTestCase, make_epub, mini_entries, write_files
 
 
 class ListBooksTest(TempDirTestCase):
@@ -461,6 +461,129 @@ def audio_entry(path, title="T", authors=(), kind="audiobook", **info):
         "index": None, "cover": None, "audio": False, "broken": False, "kind": kind}}
     entry["info"].update(info)
     return entry
+
+
+class AlbumsTest(TempDirTestCase):
+    """A folder of MP3 files without EPUBs holding several albums."""
+
+    def path(self, name):
+        return os.path.join(self.tmp, *name.split("/"))
+
+    def write(self, albums, folder="Lib/Books"):
+        """albums: {file name: album or None}."""
+        write_files(self.tmp, {folder + "/" + name: ad.mp3(
+            [ad.text("TIT2", name)] + ([ad.text("TALB", album)] if album is not None else []))
+            for name, album in albums.items()})
+
+    def books(self):
+        cache = os.path.join(self.tmp, "library.json")
+        return list_books([self.path("Lib")], library._Albums(library._load_store(cache)["albums"]))
+
+    def test_one_album_and_files_without_one_are_one_book(self):
+        self.write({"01.mp3": "Kopf schlägt Kapital", "02.mp3": " kopf  Schlägt kapital",
+                    "03.mp3": None, "04.mp3": ""})
+        self.assertEqual(self.books(), [BookFile(self.path("Lib/Books"), "Books", "audiobook", tuple(
+            self.path("Lib/Books/0%d.mp3" % n) for n in (1, 2, 3, 4)))])
+
+    def test_each_album_a_book(self):
+        self.write({"a1.mp3": "Hobbit", "a2.mp3": "hobbit", "a3.mp3": "Hobbit", "b.mp3": "Emil",
+                    "c1.mp3": "AC/DC Live", "c2.mp3": "AC DC  Live", "d.mp3": None,
+                    "cover.jpg": None})
+        folder = self.path("Lib/Books")
+        self.assertEqual(self.books(), [
+            BookFile(library.album_path(folder, "ac dc live"), "AC/DC Live", "audiobook",
+                     (self.path("Lib/Books/c1.mp3"), self.path("Lib/Books/c2.mp3")), "AC/DC Live"),
+            BookFile(self.path("Lib/Books/b.mp3"), "b", "audiobook", (self.path("Lib/Books/b.mp3"),),
+                     "Emil"),
+            BookFile(self.path("Lib/Books/d.mp3"), "d", "audiobook", (self.path("Lib/Books/d.mp3"),)),
+            BookFile(library.album_path(folder, "hobbit"), "Hobbit", "audiobook",
+                     tuple(self.path("Lib/Books/a%d.mp3" % n) for n in (1, 2, 3)), "Hobbit")])
+
+    def test_entries_of_albums(self):
+        write_files(self.tmp, {
+            "Lib/Books/a1.mp3": ad.mp3([ad.text("TALB", "Hobbit"), ad.text("TIT2", "Chapter 1"),
+                                        ad.text("TPE1", "Tolkien"), ad.apic(ad.JPEG)]),
+            "Lib/Books/a2.mp3": ad.mp3([ad.text("TALB", "Hobbit")]),
+            "Lib/Books/b.mp3": ad.mp3([ad.text("TALB", "Emil"), ad.text("TIT2", "Kapitel 1")]),
+            "Lib/Books/cover.jpg": ad.JPEG})
+        cache = os.path.join(self.tmp, "library.json")
+        entries, _ = scan([self.path("Lib")], cache)
+        infos = {e["path"]: e["info"] for e in entries}
+        hobbit = infos[library.album_path(self.path("Lib/Books"), "hobbit")]
+        # The picture beside the files belongs to no album.
+        self.assertEqual((hobbit["title"], hobbit["authors"], hobbit["cover"]),
+                         ("Hobbit", ["Tolkien"], "embedded.jpg"))
+        self.assertEqual(infos[self.path("Lib/Books/b.mp3")]["title"], "Emil")
+        target = os.path.join(self.tmp, "cover.jpg")
+        self.assertTrue(library.extract_audio_cover(
+            library.album_path(self.path("Lib/Books"), "hobbit"), "embedded.jpg", target))
+
+    def test_album_tags_read_once(self):
+        self.write({"a.mp3": "A", "b.mp3": "B"})
+        cache = os.path.join(self.tmp, "library.json")
+        first, _ = scan([self.path("Lib")], cache)
+        with mock.patch.object(library.mp3, "album", side_effect=AssertionError("read again")):
+            entries, changed = scan([self.path("Lib")], cache)
+        self.assertEqual((sorted(e["path"] for e in entries), changed),
+                         (sorted(e["path"] for e in first), False))
+        # A file changed: read again, and the folder is one book now.
+        self.write({"b.mp3": "a"})
+        entries, changed = scan([self.path("Lib")], cache)
+        self.assertEqual(([e["path"] for e in entries], changed), ([self.path("Lib/Books")], True))
+        # Of a folder of one album only that is kept.
+        self.assertEqual(library._load_store(cache)["albums"][self.path("Lib/Books")][2], [])
+
+    def test_title_follows_an_epub_put_beside(self):
+        write_files(self.tmp, {"Lib/Books/a.mp3": ad.mp3([ad.text("TALB", "Alpha Album"),
+                                                          ad.text("TIT2", "A")]),
+                               "Lib/Books/b.mp3": ad.mp3([ad.text("TALB", "Beta")])})
+        cache = os.path.join(self.tmp, "library.json")
+        titles = lambda: {os.path.basename(e["path"]): e["info"]["title"]
+                          for e in scan([self.path("Lib")], cache)[0]}
+        self.assertEqual(titles()["a.mp3"], "Alpha Album")
+        make_epub(self.path("Lib/Books/x.epub"), mini_entries())
+        self.assertEqual(titles()["a.mp3"], "A")
+
+    def test_library_folder_with_slashes_and_unicode_forms(self):
+        import unicodedata
+        self.write({"a.mp3": unicodedata.normalize("NFD", "Höhle"), "b.mp3": "Höhle"})
+        self.assertEqual([b.path for b in list_books([self.path("Lib") + "//"], library._Albums({}))],
+                         [self.path("Lib/Books")])
+
+    def test_unreadable_tags_leave_the_folder_whole(self):
+        self.write({"a.mp3": "A", "b.mp3": "B"})
+        with mock.patch.object(library.mp3, "album", side_effect=OSError("hangs")):
+            self.assertEqual([b.path for b in self.books()], [self.path("Lib/Books")])
+        # A broken file is a book of its own; it tells what is wrong.
+        with open(self.path("Lib/Books/c.mp3"), "wb") as f:
+            f.write(b"junk")
+        self.assertEqual([b.path for b in self.books()], [self.path("Lib/Books/" + name)
+                                                          for name in ("a.mp3", "b.mp3", "c.mp3")])
+
+    def test_library_folder_itself_and_folders_beside_epubs_not_split(self):
+        self.write({"a.mp3": "A", "b.mp3": "B"}, folder="Lib")
+        self.write({"c.mp3": "C", "d.mp3": "D", "e.epub": None}, folder="Lib/Author")
+        self.assertEqual([b.album for b in self.books()], ["", "", "", "", ""])
+
+    def test_album_files_and_paths(self):
+        self.write({"a1.mp3": "Hobbit", "a2.mp3": "HOBBIT", "b.mp3": "Emil"})
+        folder = self.path("Lib/Books")
+        path = library.album_path(folder, "hobbit")
+        self.assertEqual(library.split_album(path), (folder, "hobbit"))
+        self.assertEqual(library.split_album(folder), (folder, None))
+        self.assertEqual(library.split_album("/a//b/c.mp3"), ("/a//b/c.mp3", None))
+        self.assertEqual(library.album_files(path), [self.path("Lib/Books/a1.mp3"),
+                                                     self.path("Lib/Books/a2.mp3")])
+        self.assertTrue(library.exists(path))
+        self.assertFalse(library.exists(library.album_path(self.path("Lib/Gone"), "hobbit")))
+
+    def test_arranged_without_partner_or_neighbours(self):
+        self.write({"Books.mp3": None, "x.epub": None}, folder="Lib")
+        self.write({"a.mp3": "A", "b.mp3": "B", "b2.mp3": "B"})
+        entries, _ = scan([self.path("Lib")], os.path.join(self.tmp, "library.json"))
+        album = library.album_path(self.path("Lib/Books"), "b")
+        shown = {e["path"]: partner for e, _, partner in library.arranged(entries)}
+        self.assertIsNone(shown[album])
 
 
 class ArrangedTest(unittest.TestCase):
