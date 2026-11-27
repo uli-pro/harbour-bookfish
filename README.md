@@ -4,7 +4,7 @@ E-books and audiobooks in one app for Sailfish OS: a library for both, an
 audiobook player with a sleep timer, and an EPUB reader. It also plays
 readalouds, books with synchronized narration.
 
-**Status:** first release, 0.1. Tested on a Jolla Phone (Sailfish OS 5.2)
+**Status:** version 0.2. Tested on a Jolla Phone (Sailfish OS 5.2)
 and a Sony Xperia 10 III (Sailfish OS 5.0). The interface is in English.
 
 <p>
