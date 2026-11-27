@@ -349,11 +349,14 @@ class AudiobookTest(TempDirTestCase):
         tune = ad.mp3([ad.text("TIT2", "x")])
         self.write({"Books/a.epub": "", "Books/Audio/b.mp3": tune, "Books/Audio/c/1.mp3": tune,
                     "Books/Audio/c/2.mp3": tune})
-        books = list_books([self.path("Books/Audio"), self.path("Books")])
-        self.assertEqual(sorted(b.path for b in books), [
-            self.path("Books/Audio/b.mp3"), self.path("Books/Audio/c"), self.path("Books/a.epub")])
-        cache = os.path.join(self.tmp, "library.json")
-        self.assertEqual(len(scan([self.path("Books"), self.path("Books/Audio")], cache)[0]), 3)
+        self.write({"Books/Audio/d.mp3": tune})
+        expected = [self.path("Books/Audio/b.mp3"), self.path("Books/Audio/c"),
+                    self.path("Books/Audio/d.mp3"), self.path("Books/a.epub")]
+        for folders in ([self.path("Books/Audio"), self.path("Books")],
+                        [self.path("Books"), self.path("Books/Audio")]):
+            self.assertEqual(sorted(b.path for b in list_books(folders)), expected, folders)
+            cache = os.path.join(self.tmp, "library.json")
+            self.assertEqual(sorted(e["path"] for e in scan(folders, cache)[0]), expected, folders)
 
     def test_mp3s_in_the_library_folder_itself_are_books(self):
         tune = ad.mp3([ad.text("TIT2", "x")])

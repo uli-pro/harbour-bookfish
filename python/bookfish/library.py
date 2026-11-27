@@ -110,9 +110,11 @@ def list_books(folders, albums=None):
     """
     books = []
     seen = set()
+    # "Lib//" would walk "Lib//Book", taken for an album path.
+    folders = [os.path.normpath(folder) for folder in folders]
+    # A library folder inside another counts as one, whichever comes first.
+    roots = set(folders)
     for folder in folders:
-        # "Lib//" would walk "Lib//Book", taken for an album path.
-        folder = os.path.normpath(folder)
         for dirpath, dirnames, filenames in os.walk(folder):
             # os.walk recurses before Python 3.12: 1000 levels raised
             # RecursionError on Sailfish OS, and no book was listed.
@@ -143,7 +145,7 @@ def list_books(folders, albums=None):
                     mp3s.append(path)
             # Beside EPUBs each MP3 is a book: an author's folder. So in
             # the library folder itself, which is no audiobook.
-            if epubs or dirpath == folder:
+            if epubs or dirpath in roots:
                 books.extend(BookFile(path, os.path.splitext(os.path.basename(path))[0],
                                       "audiobook", (path,)) for path in mp3s)
             elif mp3s:

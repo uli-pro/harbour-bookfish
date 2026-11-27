@@ -341,7 +341,7 @@ ApplicationWindow {
             if (!value)
                 return
             if (app.chosenFolders.length === 0)
-                app.setChosenFolders([value])
+                app.setChosenFolders([value.replace(/\/+$/, "") || "/"])
             value = ""
         }
     }

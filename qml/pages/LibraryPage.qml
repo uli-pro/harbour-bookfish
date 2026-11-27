@@ -223,7 +223,9 @@ Page {
     Connections {
         target: app
         onPythonReadyChanged: page.start()
-        onChosenFoldersChanged: page.showLibrary()
+        // Before start() the book read last opens first; start() reads the
+        // folders as they are then.
+        onChosenFoldersChanged: if (page.resumed) page.showLibrary()
     }
 
     SilicaListView {
@@ -242,8 +244,7 @@ Page {
 
             MenuItem {
                 text: qsTr("Book folders")
-                onClicked: pageStack.push(Qt.resolvedUrl("BookFoldersPage.qml"),
-                                          { defaultFolders: page.defaultFolders })
+                onClicked: pageStack.push(Qt.resolvedUrl("BookFoldersPage.qml"))
             }
             MenuItem {
                 text: qsTr("Refresh")

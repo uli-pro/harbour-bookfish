@@ -2,6 +2,40 @@
 <!DOCTYPE TS>
 <TS version="2.1">
 <context>
+    <name>AddFolderPage</name>
+    <message>
+        <location filename="../qml/pages/AddFolderPage.qml" line="23"/>
+        <source>Documents</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/AddFolderPage.qml" line="25"/>
+        <source>Music</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/AddFolderPage.qml" line="30"/>
+        <source>Memory card</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/AddFolderPage.qml" line="49"/>
+        <source>Add folder</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/AddFolderPage.qml" line="50"/>
+        <source>Choose where the folder is</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/AddFolderPage.qml" line="107"/>
+        <source>Book folder</source>
+        <extracomment>Title of the folder picker: tap to go into a folder, accept to choose the one shown</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>AudiobookPage</name>
     <message>
         <location filename="../qml/pages/AudiobookPage.qml" line="65"/>
@@ -102,35 +136,34 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
 <context>
     <name>BookFoldersPage</name>
     <message>
-        <location filename="../qml/pages/BookFoldersPage.qml" line="66"/>
-        <location filename="../qml/pages/BookFoldersPage.qml" line="131"/>
+        <location filename="../qml/pages/BookFoldersPage.qml" line="62"/>
         <source>Add folder</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/BookFoldersPage.qml" line="73"/>
+        <location filename="../qml/pages/BookFoldersPage.qml" line="69"/>
         <source>Book folders</source>
         <extracomment>Title of the page listing the folders the library looks in</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/BookFoldersPage.qml" line="78"/>
+        <location filename="../qml/pages/BookFoldersPage.qml" line="74"/>
         <source>Documents, Music and memory cards</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/BookFoldersPage.qml" line="79"/>
-        <source>Bookfish looks for books in all of them. Pull down to choose your own book folders instead.</source>
+        <location filename="../qml/pages/BookFoldersPage.qml" line="75"/>
+        <source>Bookfish looks for books in all of them. Swipe left to choose your own book folders instead.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/BookFoldersPage.qml" line="90"/>
+        <location filename="../qml/pages/BookFoldersPage.qml" line="86"/>
         <source>Remove</source>
         <extracomment>Takes a folder off the list of book folders; nothing is deleted</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/BookFoldersPage.qml" line="94"/>
+        <location filename="../qml/pages/BookFoldersPage.qml" line="90"/>
         <source>Removing</source>
         <translation type="unfinished"></translation>
     </message>
@@ -650,22 +683,22 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
 <context>
     <name>LibraryPage</name>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="244"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="246"/>
         <source>Book folders</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="249"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="250"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="258"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="259"/>
         <source>Library</source>
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location filename="../qml/pages/LibraryPage.qml" line="263"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="264"/>
         <source>%n folders</source>
         <extracomment>Library header when several book folders are chosen, e.g. &quot;3 folders&quot;</extracomment>
         <translation type="unfinished">
@@ -673,50 +706,50 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
         </translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="264"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="265"/>
         <source>Documents, Music and memory cards</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="270"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="271"/>
         <source>Author, title or series</source>
         <extracomment>Search field of the library</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="283"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="284"/>
         <source>Continue</source>
         <extracomment>Books and audiobooks opened last</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="300"/>
-        <location filename="../qml/pages/LibraryPage.qml" line="320"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="301"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="321"/>
         <source>Unknown author</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="354"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="355"/>
         <source>Nothing found</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="354"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="355"/>
         <source>No books</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="356"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="357"/>
         <source>Copy EPUB books or audiobooks (MP3, M4B) to Documents, Music or a memory card, or choose your book folders in the pulley menu</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="376"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="377"/>
         <source>Searching for books</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="371"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="372"/>
         <source>Opening book</source>
         <translation type="unfinished"></translation>
     </message>

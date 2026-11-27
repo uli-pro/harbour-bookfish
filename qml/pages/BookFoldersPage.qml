@@ -1,19 +1,15 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
-import Sailfish.Pickers 1.0
 
 // The book folders chosen (LibraryPage). With none chosen the library looks
-// in Documents, Music and every memory card.
+// in Documents, Music and every memory card. The places to add one from are
+// attached: a swipe to the left.
 Page {
     id: page
 
-    // Where the library looks without a choice (bridge.default_folders).
-    property var defaultFolders: []
-
     // Rows are changed where they are, not the whole list replaced: a row
     // rebuilt while its removal counts down would be removed at once
-    // (Silica). Folders are only added at the end, so the rows left are in
-    // the order of the setting.
+    // (Silica).
     function sync() {
         var folders = app.chosenFolders
         for (var i = rows.count - 1; i >= 0; --i) {
@@ -24,12 +20,17 @@ Page {
             if (j >= rows.count || rows.get(j).path !== folders[j])
                 rows.insert(j, { path: folders[j] })
         }
+        // Left over if the setting changed its order.
+        while (rows.count > folders.length)
+            rows.remove(rows.count - 1)
     }
 
+    // Called by AddFolderPage. Read when it is written: a removal may have
+    // ended meanwhile.
     function add(path) {
-        py.call("bookfish.bridge.book_folders", [app.chosenFolders, path], function (folders) {
-            app.setChosenFolders(folders)
-        })
+        path = path.replace(/\/+$/, "") || "/"
+        if (app.chosenFolders.indexOf(path) < 0)
+            app.setChosenFolders(app.chosenFolders.concat([path]))
     }
 
     function remove(path) {
@@ -38,14 +39,9 @@ Page {
         }))
     }
 
-    // The folder picker starts in the folder chosen last, else on the last
-    // memory card, else in Documents.
-    function startPath() {
-        var chosen = app.chosenFolders
-        if (chosen.length > 0)
-            return chosen[chosen.length - 1]
-        return defaultFolders.length > 2 ? defaultFolders[defaultFolders.length - 1]
-                                         : StandardPaths.documents
+    onStatusChanged: {
+        if (status === PageStatus.Active && !pageStack.nextPage(page))
+            pageStack.pushAttached(Qt.resolvedUrl("AddFolderPage.qml"), { foldersPage: page })
     }
 
     Component.onCompleted: sync()
@@ -64,7 +60,7 @@ Page {
         PullDownMenu {
             MenuItem {
                 text: qsTr("Add folder")
-                onClicked: pageStack.push(folderPicker, { path: page.startPath() })
+                onClicked: pageStack.navigateForward()
             }
         }
 
@@ -76,7 +72,7 @@ Page {
         ViewPlaceholder {
             enabled: list.count === 0
             text: qsTr("Documents, Music and memory cards")
-            hintText: qsTr("Bookfish looks for books in all of them. Pull down to choose your own book folders instead.")
+            hintText: qsTr("Bookfish looks for books in all of them. Swipe left to choose your own book folders instead.")
         }
 
         delegate: ListItem {
@@ -109,7 +105,7 @@ Page {
                     width: parent.width
                     truncationMode: TruncationMode.Fade
                     color: item.highlighted ? Theme.highlightColor : Theme.primaryColor
-                    text: model.path.replace(/\/+$/, "").split("/").pop() || "/"
+                    text: model.path.split("/").pop() || "/"
                 }
                 Label {
                     width: parent.width
@@ -122,14 +118,5 @@ Page {
         }
 
         VerticalScrollDecorator { }
-    }
-
-    Component {
-        id: folderPicker
-
-        FolderPickerDialog {
-            title: qsTr("Add folder")
-            onAccepted: page.add(selectedPath)
-        }
     }
 }
