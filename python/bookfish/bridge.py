@@ -95,7 +95,7 @@ def _send(*args):
 
 def cached_library(cache_file, folders):
     """The books below folders as last scanned, at once; see library_view."""
-    prefixes = tuple(os.path.join(folder, "") for folder in folders)
+    prefixes = tuple(os.path.join(os.path.normpath(folder), "") for folder in folders)
     return library_view([e for e in library.load_cached(cache_file)
                          if e["path"].startswith(prefixes)], folders)
 

@@ -18,6 +18,7 @@ import os
 import re
 import stat
 import struct
+import unicodedata
 import zipfile
 
 from . import mp3, mp4
@@ -69,8 +70,9 @@ else ""."""
 
 
 def album_key(album):
-    """album as albums are told apart: any case and spacing, and "/"
-    taken as a space, which would end the album path's folder."""
+    """album as albums are told apart: any case, spacing and Unicode form,
+    and "/" taken as a space, which would end the album path's folder."""
+    album = unicodedata.normalize("NFC", album)
     return " ".join(album.replace("/", " ").split()).casefold()
 
 
@@ -109,6 +111,8 @@ def list_books(folders, albums=None):
     books = []
     seen = set()
     for folder in folders:
+        # "Lib//" would walk "Lib//Book", taken for an album path.
+        folder = os.path.normpath(folder)
         for dirpath, dirnames, filenames in os.walk(folder):
             # os.walk recurses before Python 3.12: 1000 levels raised
             # RecursionError on Sailfish OS, and no book was listed.
@@ -282,12 +286,13 @@ def _without_series(title, series, index):
     return match.group(1) if match else title
 
 
-def broken_info(path, kind="epub"):
-    """The entry of a book that cannot be read: listed by its file or
-    folder name, so that opening it explains what is wrong."""
-    name = os.path.basename(path)
-    if not os.path.isdir(path):
-        name = os.path.splitext(name)[0]
+def broken_info(path, kind="epub", name=None):
+    """The entry of a book that cannot be read: listed by name, else by its
+    file or folder name, so that opening it explains what is wrong."""
+    if name is None:
+        name = os.path.basename(path)
+        if not os.path.isdir(path):
+            name = os.path.splitext(name)[0]
     return {"identifier": "", "title": name,
             "authors": [], "sort": "", "series": "", "index": None, "cover": None,
             "audio": False, "broken": True, "kind": kind}
@@ -303,6 +308,7 @@ def scan(folders, cache_file):
     missing now, e.g. a memory card taken out. changed is false if the
     entries are those of the cache.
     """
+    folders = [os.path.normpath(folder) for folder in folders]
     stored = _load_store(cache_file)
     cached = stored["books"]
     walked = tuple(os.path.join(folder, "") for folder in folders if os.path.isdir(folder))
@@ -315,18 +321,23 @@ def scan(folders, cache_file):
         if stamp is None:
             continue
         old = known.get(book.path)
-        if old is not None and old["stamp"] == stamp and old["info"]["kind"] == book.kind:
+        # A file titled by its album is titled otherwise beside EPUBs.
+        if (old is not None and old["stamp"] == stamp and old["info"]["kind"] == book.kind
+                and old.get("album", "") == book.album):
             info = old["info"]
         else:
             changed = True
             try:
                 info = book_info(book.path) if book.kind == "epub" else audio_info(book)
             except _BOOK_ERRORS:
-                info = broken_info(book.path, book.kind)
+                info = broken_info(book.path, book.kind, book.name)
             except Exception:
-                info = broken_info(book.path, book.kind)
+                info = broken_info(book.path, book.kind, book.name)
                 stamp = _UNREAD
-        entries.append({"path": book.path, "stamp": stamp, "info": info})
+        entry = {"path": book.path, "stamp": stamp, "info": info}
+        if book.album:
+            entry["album"] = book.album
+        entries.append(entry)
     # A folder gone during the walk, e.g. a card pulled out: what was seen
     # of it may be incomplete, so its books stay as they were.
     gone = tuple(folder for folder in walked if not os.path.isdir(folder))
@@ -335,8 +346,10 @@ def scan(folders, cache_file):
                    + [e for e in known.values() if e["path"].startswith(gone)])
     changed = changed or {e["path"] for e in entries} != set(known)
     kept = tuple(set(walked) - set(gone))
-    album_tags = {path: tag for path, tag in stored["albums"].items() if not path.startswith(kept)}
-    album_tags.update((path, tag) for path, tag in albums.read.items() if not path.startswith(gone))
+    album_tags = {folder: tag for folder, tag in stored["albums"].items()
+                  if not folder.startswith(kept)}
+    album_tags.update((folder, tag) for folder, tag in albums.read.items()
+                      if not folder.startswith(gone))
     if changed or album_tags != stored["albums"]:
         others = [e for e in cached if e["path"] not in known]
         _save_cache(cache_file, others + entries, album_tags)
@@ -344,33 +357,37 @@ def scan(folders, cache_file):
 
 
 class _Albums:
-    """The album tags of MP3 files (see list_books), each read once and kept
-    with the file's size and time: tags read from a memory card again at
-    every start would take long."""
+    """The album tags of the MP3 files of a folder (see list_books), read
+    once and kept per folder with its stamp: tags read from a memory card
+    again at every start would take long. Of a folder of one album only
+    that is kept, as [] for its names."""
 
     def __init__(self, cached):
         self.cached = cached
         self.read = {}
 
     def __call__(self, files):
-        names = []
-        for path in files:
-            try:
-                st = os.stat(path)
-                old = self.cached.get(path)
-                if old is not None and old[:2] == [st.st_size, st.st_mtime_ns]:
-                    name = old[2]
-                else:
-                    try:
-                        name = mp3.album(path)
-                    except (AudioError, ValueError):
-                        name = ""  # an unusable file: a book of its own, as it says why
-            except OSError:
-                # Maybe a card that hangs: not split this time, read again next time.
-                return None
-            self.read[path] = [st.st_size, st.st_mtime_ns, name]
-            names.append(name)
-        return names
+        folder = os.path.dirname(files[0])
+        stamp = _stamp(BookFile(folder, "", "audiobook", tuple(files)))
+        if stamp is None:
+            return None
+        old = self.cached.get(folder)
+        if old is not None and old[:2] == stamp:
+            names = old[2]
+        else:
+            names = []
+            for path in files:
+                try:
+                    names.append(mp3.album(path))
+                except (AudioError, ValueError):
+                    names.append("")  # an unusable file: a book of its own, as it says why
+                except OSError:
+                    # Maybe a card that hangs: not split this time, read again next time.
+                    return None
+            if len({album_key(name) for name in names} - {""}) < 2:
+                names = []
+        self.read[folder] = stamp + [names]
+        return names or [""] * len(files)
 
 
 def album_files(path, cache_file=None):
@@ -412,8 +429,8 @@ def load_cached(cache_file):
 
 
 def _load_store(cache_file):
-    """{books, albums}: the entries and the album tags (see _Albums) of the
-    last scan. Album tags came later than the cache version, so a cache
+    """{books, albums}: the entries and the album tags by folder (see
+    _Albums) of the last scan. Album tags came later than the cache version, so a cache
     without them is still used."""
     empty = {"books": [], "albums": {}}
     try:
@@ -644,7 +661,7 @@ def _save_cache(cache_file, entries, albums=None):
 
 def _valid_album(tag):
     return (isinstance(tag, list) and len(tag) == 3 and all(isinstance(n, int) for n in tag[:2])
-            and isinstance(tag[2], str))
+            and isinstance(tag[2], list) and all(isinstance(name, str) for name in tag[2]))
 
 
 def _valid_entry(entry):

@@ -11,7 +11,7 @@ from bookfish.library import (BookFile, book_info, broken_info, card_folders, ex
                                prune_covers, scan, without_replaced)
 
 from . import audiodata as ad
-from .helpers import TempDirTestCase, make_epub, write_files
+from .helpers import TempDirTestCase, make_epub, mini_entries, write_files
 
 
 class ListBooksTest(TempDirTestCase):
@@ -530,7 +530,25 @@ class AlbumsTest(TempDirTestCase):
         self.write({"b.mp3": "a"})
         entries, changed = scan([self.path("Lib")], cache)
         self.assertEqual(([e["path"] for e in entries], changed), ([self.path("Lib/Books")], True))
-        self.assertEqual(library._load_store(cache)["albums"][self.path("Lib/Books/b.mp3")][2], "a")
+        # Of a folder of one album only that is kept.
+        self.assertEqual(library._load_store(cache)["albums"][self.path("Lib/Books")][2], [])
+
+    def test_title_follows_an_epub_put_beside(self):
+        write_files(self.tmp, {"Lib/Books/a.mp3": ad.mp3([ad.text("TALB", "Alpha Album"),
+                                                          ad.text("TIT2", "A")]),
+                               "Lib/Books/b.mp3": ad.mp3([ad.text("TALB", "Beta")])})
+        cache = os.path.join(self.tmp, "library.json")
+        titles = lambda: {os.path.basename(e["path"]): e["info"]["title"]
+                          for e in scan([self.path("Lib")], cache)[0]}
+        self.assertEqual(titles()["a.mp3"], "Alpha Album")
+        make_epub(self.path("Lib/Books/x.epub"), mini_entries())
+        self.assertEqual(titles()["a.mp3"], "A")
+
+    def test_library_folder_with_slashes_and_unicode_forms(self):
+        import unicodedata
+        self.write({"a.mp3": unicodedata.normalize("NFD", "Höhle"), "b.mp3": "Höhle"})
+        self.assertEqual([b.path for b in list_books([self.path("Lib") + "//"], library._Albums({}))],
+                         [self.path("Lib/Books")])
 
     def test_unreadable_tags_leave_the_folder_whole(self):
         self.write({"a.mp3": "A", "b.mp3": "B"})
