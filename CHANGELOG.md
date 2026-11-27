@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 – 2026-11-28
 
 - The library also looks for books and audiobooks in the music folder
   (new permission Music); Sailfish OS asks for it on the next start.
