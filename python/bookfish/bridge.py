@@ -36,12 +36,14 @@ _MEDIA_ROOT = "/run/media"
 def default_folders(documents, music):
     """Where books are looked for unless the user chose a folder: the
     documents and music folders and every memory card. Many keep their
-    audiobooks with their music."""
+    audiobooks with their music. An empty path is left out: as a prefix
+    it would match every book in the cache."""
+    standard = [folder for folder in (documents, music) if folder]
     try:
         user = getpass.getuser()
     except (KeyError, OSError):
-        return [documents, music]
-    return [documents, music] + library.card_folders(os.path.join(_MEDIA_ROOT, user))
+        return standard
+    return standard + library.card_folders(os.path.join(_MEDIA_ROOT, user))
 
 
 # SVG left out: QtSvg may load files an image names.

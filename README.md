@@ -129,8 +129,8 @@ other book.
   start and stays in the library (author Finn Bookfish): each page explains
   a feature and lets you try it.
 - **Library:** EPUB books and audiobooks in Documents, Music and on memory
-  cards, or in a folder chosen in the pull-down menu. An audiobook is an M4B file,
-  an MP3 file next to EPUB books (a folder of an author's books), or a
+  cards, or in a folder chosen in the pull-down menu. An audiobook is an M4B
+  file, an MP3 file next to EPUB books (a folder of an author's books), or a
   folder of MP3 files without EPUB books, each file a chapter in the order
   of the file names. An audiobook named like an EPUB book next to it (the
   folder `Book/` or the file `Book.mp3` next to `Book.epub`) is listed with
@@ -218,8 +218,8 @@ Bookfish runs in the Sailfish OS sandbox with these permissions only:
 
 - **Documents** and **RemovableMedia**: to find and read books in Documents
   and on memory cards. Bookfish never writes there.
-- **Music**: to find audiobooks in the music folder. Bookfish never writes
-  there.
+- **Music**: to find books and audiobooks in the music folder. Bookfish
+  never writes there.
 - **Audio**: to play narration and audiobooks, also on the lock screen and
   the headphones.
 - **WebView**: to show the pages of a book.

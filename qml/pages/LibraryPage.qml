@@ -243,8 +243,10 @@ Page {
 
             MenuItem {
                 text: qsTr("Book folder")
+                // Without a choice it starts on the last memory card, if any.
                 onClicked: pageStack.push(folderPicker, {
-                    path: app.libraryFolder || defaultFolders[defaultFolders.length - 1]
+                    path: app.libraryFolder
+                          || (defaultFolders.length > 2 ? defaultFolders[defaultFolders.length - 1] : "")
                           || StandardPaths.documents
                 })
             }
