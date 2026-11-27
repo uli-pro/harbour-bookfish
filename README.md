@@ -17,9 +17,9 @@ and a Sony Xperia 10 III (Sailfish OS 5.0). The interface is in English.
 ## Highlights
 
 - **One library for e-books and audiobooks:** EPUB books, M4B files and MP3
-  files or folders, in Documents and on memory cards; by author, series in
-  order, with covers and search, the last three books opened on top. An
-  audiobook named like its EPUB is listed with the book.
+  files or folders, in Documents, Music and on memory cards; by author,
+  series in order, with covers and search, the last three books opened on
+  top. An audiobook named like its EPUB is listed with the book.
 - **An audiobook player with a sleep timer built in:** stop after 15, 30,
   45, 60 or 90 minutes, fading out gently, or at the end of the chapter.
   Play, pause and 30 seconds back or forward also from the lock screen and
@@ -128,8 +128,8 @@ other book.
 - **Guide:** a short readaloud, *Welcome to Bookfish*, opens on the first
   start and stays in the library (author Finn Bookfish): each page explains
   a feature and lets you try it.
-- **Library:** EPUB books and audiobooks in Documents and on memory cards,
-  or in a folder chosen in the pull-down menu. An audiobook is an M4B file,
+- **Library:** EPUB books and audiobooks in Documents, Music and on memory
+  cards, or in a folder chosen in the pull-down menu. An audiobook is an M4B file,
   an MP3 file next to EPUB books (a folder of an author's books), or a
   folder of MP3 files without EPUB books, each file a chapter in the order
   of the file names. An audiobook named like an EPUB book next to it (the
@@ -218,6 +218,8 @@ Bookfish runs in the Sailfish OS sandbox with these permissions only:
 
 - **Documents** and **RemovableMedia**: to find and read books in Documents
   and on memory cards. Bookfish never writes there.
+- **Music**: to find audiobooks in the music folder. Bookfish never writes
+  there.
 - **Audio**: to play narration and audiobooks, also on the lock screen and
   the headphones.
 - **WebView**: to show the pages of a book.

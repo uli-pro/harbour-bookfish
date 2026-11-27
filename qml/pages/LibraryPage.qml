@@ -46,7 +46,8 @@ Page {
     function showLibrary() {
         var serial = ++scanSerial
         scanning = true
-        py.call("bookfish.bridge.default_folders", [StandardPaths.documents], function (folders) {
+        var standard = [StandardPaths.documents, StandardPaths.music]
+        py.call("bookfish.bridge.default_folders", standard, function (folders) {
             if (serial !== scanSerial)
                 return
             defaultFolders = folders
@@ -264,7 +265,7 @@ Page {
             PageHeader {
                 title: qsTr("Library")
                 description: app.libraryFolder ? app.libraryFolder.replace(/\/+$/, "").split("/").pop()
-                                               : qsTr("Documents and memory cards")
+                                               : qsTr("Documents, Music and memory cards")
             }
 
             SearchField {
@@ -356,7 +357,7 @@ Page {
             enabled: page.loaded && !scanning && listView.count === 0
             text: page.filter !== "" ? qsTr("Nothing found") : qsTr("No books")
             hintText: page.filter !== "" ? ""
-                      : qsTr("Copy EPUB books or audiobooks (MP3, M4B) to Documents or a memory card, or choose another book folder in the pulley menu")
+                      : qsTr("Copy EPUB books or audiobooks (MP3, M4B) to Documents, Music or a memory card, or choose another book folder in the pulley menu")
         }
 
         VerticalScrollDecorator { }

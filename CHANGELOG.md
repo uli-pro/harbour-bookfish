@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- The library also looks for books and audiobooks in the music folder
+  (new permission Music); Sailfish OS asks for it on the next start.
 - The guide *Welcome to Bookfish* is reordered like the app: reading first,
   then audiobooks, then readalouds; a new chapter on audiobooks and the
   sleep timer; the practice footnote is now an endnote.

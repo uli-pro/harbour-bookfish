@@ -33,14 +33,15 @@ _MAX_KEY_LENGTH = 200
 _MEDIA_ROOT = "/run/media"
 
 
-def default_folders(documents):
+def default_folders(documents, music):
     """Where books are looked for unless the user chose a folder: the
-    documents folder and every memory card."""
+    documents and music folders and every memory card. Many keep their
+    audiobooks with their music."""
     try:
         user = getpass.getuser()
     except (KeyError, OSError):
-        return [documents]
-    return [documents] + library.card_folders(os.path.join(_MEDIA_ROOT, user))
+        return [documents, music]
+    return [documents, music] + library.card_folders(os.path.join(_MEDIA_ROOT, user))
 
 
 # SVG left out: QtSvg may load files an image names.
