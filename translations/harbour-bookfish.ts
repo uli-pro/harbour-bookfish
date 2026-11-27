@@ -2,6 +2,40 @@
 <!DOCTYPE TS>
 <TS version="2.1">
 <context>
+    <name>AddFolderPage</name>
+    <message>
+        <location filename="../qml/pages/AddFolderPage.qml" line="23"/>
+        <source>Documents</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/AddFolderPage.qml" line="25"/>
+        <source>Music</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/AddFolderPage.qml" line="30"/>
+        <source>Memory card</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/AddFolderPage.qml" line="49"/>
+        <source>Add folder</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/AddFolderPage.qml" line="50"/>
+        <source>Choose where the folder is</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/AddFolderPage.qml" line="107"/>
+        <source>Book folder</source>
+        <extracomment>Title of the folder picker: tap to go into a folder, accept to choose the one shown</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>AudiobookPage</name>
     <message>
         <location filename="../qml/pages/AudiobookPage.qml" line="65"/>
@@ -96,6 +130,41 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
     <message>
         <location filename="../qml/pages/AuthorPage.qml" line="44"/>
         <source>Opening book</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>BookFoldersPage</name>
+    <message>
+        <location filename="../qml/pages/BookFoldersPage.qml" line="62"/>
+        <source>Add folder</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/BookFoldersPage.qml" line="69"/>
+        <source>Book folders</source>
+        <extracomment>Title of the page listing the folders the library looks in</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/BookFoldersPage.qml" line="74"/>
+        <source>Documents, Music and memory cards</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/BookFoldersPage.qml" line="75"/>
+        <source>Bookfish looks for books in all of them. Swipe left to choose your own book folders instead.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/BookFoldersPage.qml" line="86"/>
+        <source>Remove</source>
+        <extracomment>Takes a folder off the list of book folders; nothing is deleted</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/BookFoldersPage.qml" line="90"/>
+        <source>Removing</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -614,71 +683,73 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
 <context>
     <name>LibraryPage</name>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="245"/>
-        <location filename="../qml/pages/LibraryPage.qml" line="387"/>
-        <source>Book folder</source>
+        <location filename="../qml/pages/LibraryPage.qml" line="246"/>
+        <source>Book folders</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="253"/>
-        <source>All folders</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="257"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="250"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="266"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="259"/>
         <source>Library</source>
         <translation type="unfinished"></translation>
     </message>
+    <message numerus="yes">
+        <location filename="../qml/pages/LibraryPage.qml" line="264"/>
+        <source>%n folders</source>
+        <extracomment>Library header when several book folders are chosen, e.g. &quot;3 folders&quot;</extracomment>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+        </translation>
+    </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="268"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="265"/>
         <source>Documents, Music and memory cards</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="274"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="271"/>
         <source>Author, title or series</source>
         <extracomment>Search field of the library</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="287"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="284"/>
         <source>Continue</source>
         <extracomment>Books and audiobooks opened last</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="304"/>
-        <location filename="../qml/pages/LibraryPage.qml" line="324"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="301"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="321"/>
         <source>Unknown author</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="358"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="355"/>
         <source>Nothing found</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="358"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="355"/>
         <source>No books</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="360"/>
-        <source>Copy EPUB books or audiobooks (MP3, M4B) to Documents, Music or a memory card, or choose another book folder in the pulley menu</source>
+        <location filename="../qml/pages/LibraryPage.qml" line="357"/>
+        <source>Copy EPUB books or audiobooks (MP3, M4B) to Documents, Music or a memory card, or choose your book folders in the pulley menu</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="380"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="377"/>
         <source>Searching for books</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="375"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="372"/>
         <source>Opening book</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1293,210 +1364,210 @@ Search hit shown and number of hits, e.g. &quot;3 / 39&quot;</extracomment>
 <context>
     <name>harbour-bookfish</name>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="180"/>
+        <location filename="../qml/harbour-bookfish.qml" line="192"/>
         <source>Not enough free space for the dictionary.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="181"/>
+        <location filename="../qml/harbour-bookfish.qml" line="193"/>
         <source>The dictionary could not be imported.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="189"/>
+        <location filename="../qml/harbour-bookfish.qml" line="201"/>
         <source>Bulgarian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="190"/>
+        <location filename="../qml/harbour-bookfish.qml" line="202"/>
         <source>Bosnian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="191"/>
+        <location filename="../qml/harbour-bookfish.qml" line="203"/>
         <source>Czech</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="192"/>
+        <location filename="../qml/harbour-bookfish.qml" line="204"/>
         <source>Danish</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="193"/>
+        <location filename="../qml/harbour-bookfish.qml" line="205"/>
         <source>German</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="194"/>
+        <location filename="../qml/harbour-bookfish.qml" line="206"/>
         <source>Greek</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="195"/>
+        <location filename="../qml/harbour-bookfish.qml" line="207"/>
         <source>English</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="196"/>
+        <location filename="../qml/harbour-bookfish.qml" line="208"/>
         <source>Esperanto</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="197"/>
+        <location filename="../qml/harbour-bookfish.qml" line="209"/>
         <source>Spanish</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="198"/>
+        <location filename="../qml/harbour-bookfish.qml" line="210"/>
         <source>Finnish</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="199"/>
+        <location filename="../qml/harbour-bookfish.qml" line="211"/>
         <source>French</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="200"/>
+        <location filename="../qml/harbour-bookfish.qml" line="212"/>
         <source>Croatian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="201"/>
+        <location filename="../qml/harbour-bookfish.qml" line="213"/>
         <source>Hungarian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="202"/>
+        <location filename="../qml/harbour-bookfish.qml" line="214"/>
         <source>Icelandic</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="203"/>
+        <location filename="../qml/harbour-bookfish.qml" line="215"/>
         <source>Italian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="204"/>
+        <location filename="../qml/harbour-bookfish.qml" line="216"/>
         <source>Latin</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="205"/>
+        <location filename="../qml/harbour-bookfish.qml" line="217"/>
         <source>Dutch</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="206"/>
+        <location filename="../qml/harbour-bookfish.qml" line="218"/>
         <source>Norwegian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="207"/>
+        <location filename="../qml/harbour-bookfish.qml" line="219"/>
         <source>Polish</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="208"/>
+        <location filename="../qml/harbour-bookfish.qml" line="220"/>
         <source>Portuguese</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="209"/>
+        <location filename="../qml/harbour-bookfish.qml" line="221"/>
         <source>Romanian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="210"/>
+        <location filename="../qml/harbour-bookfish.qml" line="222"/>
         <source>Russian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="211"/>
+        <location filename="../qml/harbour-bookfish.qml" line="223"/>
         <source>Slovak</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="212"/>
+        <location filename="../qml/harbour-bookfish.qml" line="224"/>
         <source>Albanian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="213"/>
+        <location filename="../qml/harbour-bookfish.qml" line="225"/>
         <source>Serbian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="214"/>
+        <location filename="../qml/harbour-bookfish.qml" line="226"/>
         <source>Swedish</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="215"/>
+        <location filename="../qml/harbour-bookfish.qml" line="227"/>
         <source>Turkish</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="222"/>
+        <location filename="../qml/harbour-bookfish.qml" line="234"/>
         <source>%1–%2</source>
         <extracomment>Two languages of a dictionary, e.g. &quot;English–German&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="271"/>
+        <location filename="../qml/harbour-bookfish.qml" line="283"/>
         <source>≈ p. %1</source>
         <extracomment>Estimated page of the printed book in a list, e.g. &quot;≈ p. 143&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="273"/>
+        <location filename="../qml/harbour-bookfish.qml" line="285"/>
         <source>p. %1</source>
         <extracomment>Page of the printed book in a list, e.g. &quot;p. 143&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="280"/>
+        <location filename="../qml/harbour-bookfish.qml" line="292"/>
         <source>This file is not an EPUB book.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="283"/>
+        <location filename="../qml/harbour-bookfish.qml" line="295"/>
         <source>This book is too large or damaged.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="285"/>
+        <location filename="../qml/harbour-bookfish.qml" line="297"/>
         <source>Not enough free space to open this book.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="287"/>
+        <location filename="../qml/harbour-bookfish.qml" line="299"/>
         <source>This book contains unsafe file names and was not opened.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="289"/>
+        <location filename="../qml/harbour-bookfish.qml" line="301"/>
         <source>This book is protected by DRM and cannot be opened.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="291"/>
+        <location filename="../qml/harbour-bookfish.qml" line="303"/>
         <source>The book could not be read.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="293"/>
+        <location filename="../qml/harbour-bookfish.qml" line="305"/>
         <source>This audiobook cannot be played.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="295"/>
+        <location filename="../qml/harbour-bookfish.qml" line="307"/>
         <source>This book is damaged.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="409"/>
+        <location filename="../qml/harbour-bookfish.qml" line="435"/>
         <source>Internal error. Please report it with the log.</source>
         <translation type="unfinished"></translation>
     </message>

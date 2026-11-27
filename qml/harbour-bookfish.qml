@@ -9,8 +9,9 @@ ApplicationWindow {
     id: app
 
     property bool pythonReady: false
-    // Chosen by the user; "" means Documents, Music and all memory cards.
-    readonly property string libraryFolder: libraryFolderSetting.value || ""
+    // The book folders chosen by the user; none means Documents, Music and
+    // all memory cards.
+    readonly property var chosenFolders: folderList(libraryFoldersSetting.value)
     // The guide that comes with the app: always in the library, opened on
     // the first start.
     readonly property string guideFolder: decodeURIComponent(
@@ -27,7 +28,18 @@ ApplicationWindow {
     readonly property string dictionaryFolder: StandardPaths.data + "/dictionaries"
     // The folders looked through for books, given the default ones.
     function libraryFolders(defaults) {
-        return (libraryFolder ? [libraryFolder] : defaults).concat([guideFolder])
+        return (chosenFolders.length > 0 ? chosenFolders : defaults).concat([guideFolder])
+    }
+    // The paths in a setting, whatever dconf holds there.
+    function folderList(value) {
+        var list = []
+        if (value && typeof value === "object") {
+            for (var i = 0; i < value.length; ++i) {
+                if (typeof value[i] === "string" && value[i] !== "")
+                    list.push(value[i])
+            }
+        }
+        return list
     }
     // The language words are looked up in; until chosen the phone's.
     readonly property string dictionaryLanguage: dictionaryLanguageSetting.value
@@ -123,8 +135,8 @@ ApplicationWindow {
     // the lock screen.
     property var reader: null
 
-    function setLibraryFolder(folder) {
-        libraryFolderSetting.value = folder
+    function setChosenFolders(folders) {
+        libraryFoldersSetting.value = folders
     }
 
     function setFontFamily(family) {
@@ -315,9 +327,23 @@ ApplicationWindow {
     }
 
     ConfigurationValue {
-        id: libraryFolderSetting
+        id: libraryFoldersSetting
+        key: "/apps/harbour-bookfish/libraryFolders"
+        defaultValue: []
+    }
+
+    // Until 0.1 one folder could be chosen; taken over once.
+    ConfigurationValue {
+        id: oldLibraryFolderSetting
         key: "/apps/harbour-bookfish/libraryFolder"
         defaultValue: ""
+        Component.onCompleted: {
+            if (!value)
+                return
+            if (app.chosenFolders.length === 0)
+                app.setChosenFolders([value.replace(/\/+$/, "") || "/"])
+            value = ""
+        }
     }
 
     ConfigurationValue {

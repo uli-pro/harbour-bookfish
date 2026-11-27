@@ -1,6 +1,5 @@
 import QtQuick 2.0
 import Sailfish.Silica 1.0
-import Sailfish.Pickers 1.0
 import "../components"
 
 Page {
@@ -180,7 +179,7 @@ Page {
     function openAudiobook(path, resuming) {
         // Starting, the folders are not known yet; then all books of the
         // cache count.
-        var folders = app.libraryFolder || defaultFolders.length > 0
+        var folders = app.chosenFolders.length > 0 || defaultFolders.length > 0
                 ? app.libraryFolders(defaultFolders) : []
         py.call("bookfish.bridge.open_audiobook",
                 [path, app.libraryCache, folders, app.coversFolder, app.audiobooksFolder],
@@ -224,7 +223,9 @@ Page {
     Connections {
         target: app
         onPythonReadyChanged: page.start()
-        onLibraryFolderChanged: page.showLibrary()
+        // Before start() the book read last opens first; start() reads the
+        // folders as they are then.
+        onChosenFoldersChanged: if (page.resumed) page.showLibrary()
     }
 
     SilicaListView {
@@ -242,18 +243,8 @@ Page {
             busy: scanning
 
             MenuItem {
-                text: qsTr("Book folder")
-                // Without a choice it starts on the last memory card, if any.
-                onClicked: pageStack.push(folderPicker, {
-                    path: app.libraryFolder
-                          || (defaultFolders.length > 2 ? defaultFolders[defaultFolders.length - 1] : "")
-                          || StandardPaths.documents
-                })
-            }
-            MenuItem {
-                visible: app.libraryFolder !== ""
-                text: qsTr("All folders")
-                onClicked: app.setLibraryFolder("")
+                text: qsTr("Book folders")
+                onClicked: pageStack.push(Qt.resolvedUrl("BookFoldersPage.qml"))
             }
             MenuItem {
                 text: qsTr("Refresh")
@@ -266,8 +257,12 @@ Page {
 
             PageHeader {
                 title: qsTr("Library")
-                description: app.libraryFolder ? app.libraryFolder.replace(/\/+$/, "").split("/").pop()
-                                               : qsTr("Documents, Music and memory cards")
+                description: app.chosenFolders.length === 1
+                             ? app.chosenFolders[0].replace(/\/+$/, "").split("/").pop()
+                             : app.chosenFolders.length > 1
+                               //: Library header when several book folders are chosen, e.g. "3 folders"
+                               ? qsTr("%n folders", "", app.chosenFolders.length)
+                               : qsTr("Documents, Music and memory cards")
             }
 
             SearchField {
@@ -359,7 +354,7 @@ Page {
             enabled: page.loaded && !scanning && listView.count === 0
             text: page.filter !== "" ? qsTr("Nothing found") : qsTr("No books")
             hintText: page.filter !== "" ? ""
-                      : qsTr("Copy EPUB books or audiobooks (MP3, M4B) to Documents, Music or a memory card, or choose another book folder in the pulley menu")
+                      : qsTr("Copy EPUB books or audiobooks (MP3, M4B) to Documents, Music or a memory card, or choose your book folders in the pulley menu")
         }
 
         VerticalScrollDecorator { }
@@ -380,15 +375,5 @@ Page {
     BusyLabel {
         running: scanning && !opening && listView.count === 0
         text: qsTr("Searching for books")
-    }
-
-    Component {
-        id: folderPicker
-
-        FolderPickerDialog {
-            title: qsTr("Book folder")
-            // The new setting starts a search.
-            onAccepted: app.setLibraryFolder(selectedPath)
-        }
     }
 }

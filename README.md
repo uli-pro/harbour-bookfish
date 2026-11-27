@@ -129,12 +129,15 @@ other book.
   start and stays in the library (author Finn Bookfish): each page explains
   a feature and lets you try it.
 - **Library:** EPUB books and audiobooks in Documents, Music and on memory
-  cards, or in a folder chosen in the pull-down menu. An audiobook is an M4B
-  file, an MP3 file next to EPUB books (a folder of an author's books), or a
-  folder of MP3 files without EPUB books, each file a chapter in the order
-  of the file names. If the files of such a folder name two albums or more
-  (tag `TALB`, any case), each album is an audiobook, and each file without
-  one. An audiobook named like an EPUB book next to it (the
+  cards, with all their subfolders, or in the folders chosen under Book
+  folders in the pull-down menu (one or several; e-books and audiobooks may
+  lie in different ones). An audiobook is an M4B file, an MP3 file next to
+  EPUB books (a folder of an author's books), or a folder of MP3 files
+  without EPUB books, each file a chapter in the order of the file names.
+  If the files of such a folder name two albums or more (tag `TALB`, any
+  case), each album is an audiobook, and each file without one. Music
+  albums listed as audiobooks? Choose your book folders in the pull-down
+  menu. An audiobook named like an EPUB book next to it (the
   folder `Book/` or the file `Book.mp3` next to `Book.epub`) is listed with
   the title, author, series and cover of that book. Other audiobooks take
   their series from the tags `SERIES` and `SERIES-PART` (MP3: `TXXX`, M4B:

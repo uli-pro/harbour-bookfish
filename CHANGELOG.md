@@ -7,6 +7,12 @@
 - A folder holding several MP3 audiobooks is no longer listed as one: if
   its files name two albums or more, each album is an audiobook of its own.
   Folders of one album stay as they are, with their places.
+- Several book folders can be chosen, e.g. one for e-books and one for
+  audiobooks: Book folders in the library's pull-down menu lists them; a
+  swipe to the left (or Add folder) offers Documents, Music and each memory
+  card to pick a folder in; a long press removes one. With none chosen the
+  library looks in Documents, Music and on memory cards; a folder chosen
+  before is taken over.
 - The guide *Welcome to Bookfish* is reordered like the app: reading first,
   then audiobooks, then readalouds; a new chapter on audiobooks and the
   sleep timer; the practice footnote is now an endnote.
