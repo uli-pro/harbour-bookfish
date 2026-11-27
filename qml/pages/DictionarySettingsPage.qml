@@ -193,9 +193,9 @@ Page {
                             font.pixelSize: Theme.fontSizeExtraSmall
                             color: Theme.secondaryColor
                             text: fileItem.done
-                                  //: A word list in Documents already imported, e.g. "dictcc.zip, imported; the file may be deleted"
+                                  //: A dictionary file in Documents already imported, e.g. "dictcc.zip, imported; the file may be deleted"
                                   ? qsTr("%1, imported; the file may be deleted").arg(modelData.name)
-                                  //: A word list in Documents, with its date, e.g. "dictcc.zip of 2026-11-15"
+                                  //: A dictionary file in Documents, with its date, e.g. "dictcc.zip of 2026-11-15"
                                   : modelData.date ? qsTr("%1 of %2").arg(modelData.name).arg(modelData.date)
                                                    : modelData.name
                         }
@@ -207,7 +207,7 @@ Page {
                             minimumValue: 0
                             maximumValue: 1
                             value: fileItem.importing ? app.dictionaryImport.share : 0
-                            //: While a word list is imported
+                            //: While a dictionary file is imported
                             label: qsTr("Importing")
                         }
                         Button {
@@ -237,7 +237,7 @@ Page {
                 color: Theme.highlightColor
                 linkColor: Theme.primaryColor
                 //: How to get a dictionary; %1 is a link to the page of dict.cc
-                text: qsTr("To look up words, request the word list of your languages from %1, put the file into Documents and import it here.")
+                text: qsTr("To look up words, request the dictionary of your languages from %1, put the file into Documents and import it here.")
                       .arg("<a href=\"https://www1.dict.cc/translation_file_request.php\">dict.cc</a>")
                 onLinkActivated: Qt.openUrlExternally(link)
             }

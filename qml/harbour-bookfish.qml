@@ -9,7 +9,7 @@ ApplicationWindow {
     id: app
 
     property bool pythonReady: false
-    // Chosen by the user; "" means Documents and all memory cards.
+    // Chosen by the user; "" means Documents, Music and all memory cards.
     readonly property string libraryFolder: libraryFolderSetting.value || ""
     // The guide that comes with the app: always in the library, opened on
     // the first start.

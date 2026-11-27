@@ -284,7 +284,7 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
     </message>
     <message>
         <location filename="../qml/pages/DictionaryPage.qml" line="162"/>
-        <source>Import a word list of dict.cc in the settings.</source>
+        <source>Import a dictionary of dict.cc in the settings.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -333,19 +333,19 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
     <message>
         <location filename="../qml/pages/DictionarySettingsPage.qml" line="197"/>
         <source>%1, imported; the file may be deleted</source>
-        <extracomment>A word list in Documents already imported, e.g. &quot;dictcc.zip, imported; the file may be deleted&quot;</extracomment>
+        <extracomment>A dictionary file in Documents already imported, e.g. &quot;dictcc.zip, imported; the file may be deleted&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/pages/DictionarySettingsPage.qml" line="199"/>
         <source>%1 of %2</source>
-        <extracomment>A word list in Documents, with its date, e.g. &quot;dictcc.zip of 2026-11-15&quot;</extracomment>
+        <extracomment>A dictionary file in Documents, with its date, e.g. &quot;dictcc.zip of 2026-11-15&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/pages/DictionarySettingsPage.qml" line="211"/>
         <source>Importing</source>
-        <extracomment>While a word list is imported</extracomment>
+        <extracomment>While a dictionary file is imported</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -360,7 +360,7 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
     </message>
     <message>
         <location filename="../qml/pages/DictionarySettingsPage.qml" line="240"/>
-        <source>To look up words, request the word list of your languages from %1, put the file into Documents and import it here.</source>
+        <source>To look up words, request the dictionary of your languages from %1, put the file into Documents and import it here.</source>
         <extracomment>How to get a dictionary; %1 is a link to the page of dict.cc</extracomment>
         <translation type="unfinished"></translation>
     </message>
@@ -614,71 +614,71 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
 <context>
     <name>LibraryPage</name>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="244"/>
-        <location filename="../qml/pages/LibraryPage.qml" line="386"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="245"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="387"/>
         <source>Book folder</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="252"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="253"/>
         <source>All folders</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="256"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="257"/>
         <source>Refresh</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="265"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="266"/>
         <source>Library</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="267"/>
-        <source>Documents and memory cards</source>
+        <location filename="../qml/pages/LibraryPage.qml" line="268"/>
+        <source>Documents, Music and memory cards</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="273"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="274"/>
         <source>Author, title or series</source>
         <extracomment>Search field of the library</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="286"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="287"/>
         <source>Continue</source>
         <extracomment>Books and audiobooks opened last</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="303"/>
-        <location filename="../qml/pages/LibraryPage.qml" line="323"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="304"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="324"/>
         <source>Unknown author</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="357"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="358"/>
         <source>Nothing found</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="357"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="358"/>
         <source>No books</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="359"/>
-        <source>Copy EPUB books or audiobooks (MP3, M4B) to Documents or a memory card, or choose another book folder in the pulley menu</source>
+        <location filename="../qml/pages/LibraryPage.qml" line="360"/>
+        <source>Copy EPUB books or audiobooks (MP3, M4B) to Documents, Music or a memory card, or choose another book folder in the pulley menu</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="379"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="380"/>
         <source>Searching for books</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/LibraryPage.qml" line="374"/>
+        <location filename="../qml/pages/LibraryPage.qml" line="375"/>
         <source>Opening book</source>
         <translation type="unfinished"></translation>
     </message>

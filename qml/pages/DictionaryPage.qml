@@ -159,7 +159,7 @@ Page {
                   //: Nothing found in the dictionary, e.g. "No entry for “bucket”"
                   : qsTr("No entry for “%1”").arg(page.words.replace(/</g, "\u2039"))
             hintText: result && result.error === "no_dictionary"
-                      ? qsTr("Import a word list of dict.cc in the settings.") : ""
+                      ? qsTr("Import a dictionary of dict.cc in the settings.") : ""
         }
 
         VerticalScrollDecorator { }

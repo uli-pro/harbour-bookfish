@@ -40,9 +40,14 @@ class BridgeTest(TempDirTestCase):
         user = getpass.getuser()
         write_files(self.tmp, {"media/" + user + "/card/x": ""})
         with mock.patch.object(bridge, "_MEDIA_ROOT", os.path.join(self.tmp, "media")):
-            self.assertEqual(bridge.default_folders("/home/user/Documents"),
-                             ["/home/user/Documents",
+            self.assertEqual(bridge.default_folders("/home/user/Documents", "/home/user/Music"),
+                             ["/home/user/Documents", "/home/user/Music",
                               os.path.join(self.tmp, "media", user, "card")])
+
+    def test_default_folders_without_user_or_path(self):
+        with mock.patch.object(bridge.getpass, "getuser", side_effect=KeyError("uid")):
+            self.assertEqual(bridge.default_folders("/home/user/Documents", ""),
+                             ["/home/user/Documents"])
 
     def test_open_book(self):
         book = bridge.open_book(self.epub, self.cache_dir)
