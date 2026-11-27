@@ -191,8 +191,25 @@ sfdk config target=SailfishOS-5.1.0.11-aarch64
 sfdk build /path/to/harbour-bookfish
 ```
 
-GitHub Actions run the unit tests, build the RPM and check it with the
-Harbour validator for every pull request; a tag drafts a release.
+GitHub Actions run the unit tests and the QML check, build the RPM and
+check it with the Harbour validator for every pull request; a tag drafts a
+release.
+
+## Checking the QML
+
+The build does not parse the QML, so a syntax error would only show on the
+phone. `tools/check_qml.py` runs `qmllint` from Qt 5 on every QML file and
+looks for JavaScript newer than ES5, which Qt 5.6 on the phone does not run
+(`let`, `=>`, `findIndex` and the like; comments and strings are skipped),
+and for QML newer than Qt 5.6 (`required property`, inline components).
+A line that is fine on Qt 5.6 but looks newer (a Canvas `ctx.fill()`, say)
+can be marked with `// es5-ok`. The check needs the Qt 5 QML tools
+(`qt5-qtdeclarative-devel` on Fedora, `qtdeclarative5-dev-tools` on Debian
+and Ubuntu).
+
+```
+python3 tools/check_qml.py
+```
 
 ## Running tests
 

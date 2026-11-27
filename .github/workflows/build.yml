@@ -24,10 +24,19 @@ jobs:
         env:
           PYTHONPATH: python
 
+  qml:
+    name: QML check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      # qmllint from Qt 5; the Sailfish SDK image has none.
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends qtdeclarative5-dev-tools
+      - run: python3 tools/check_qml.py
+
   rpm:
     name: RPM
     runs-on: ubuntu-24.04
-    needs: tests
+    needs: [tests, qml]
     env:
       # coderus/sailfishos-platform-sdk-aarch64:5.1.0.11: the target of local
       # builds (Sailfish SDK 3.13.5); the package is noarch.
