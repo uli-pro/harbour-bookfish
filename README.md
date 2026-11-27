@@ -1,22 +1,51 @@
 # Bookfish
 
-Read e-books and listen to audiobooks and readalouds on Sailfish OS.
-Readalouds are EPUB 3 books with synchronized narration (EPUB Media Overlays):
-read where you want to read, and continue listening at exactly that sentence
-when you want to listen.
-
-Readalouds can be created from an EPUB and an audiobook with
-[Storyteller](https://storyteller-platform.dev/).
+E-books and audiobooks in one app for Sailfish OS: a library for both, an
+audiobook player with a sleep timer, and an EPUB reader. It also plays
+readalouds, books with synchronized narration.
 
 **Status:** first release, 0.1. Tested on a Jolla Phone (Sailfish OS 5.2)
 and a Sony Xperia 10 III (Sailfish OS 5.0). The interface is in English.
 
 <p>
-<img src="screenshots/reading.png" width="24%" alt="A readaloud: the spoken sentence is marked">
 <img src="screenshots/library.png" width="24%" alt="The library">
-<img src="screenshots/page-flip.png" width="24%" alt="The page flip view">
 <img src="screenshots/player.png" width="24%" alt="The audiobook player">
+<img src="screenshots/footnote.png" width="24%" alt="A footnote on its own page">
+<img src="screenshots/readaloud.png" width="24%" alt="A readaloud: the spoken sentence is marked">
 </p>
+
+## Highlights
+
+- **One library for e-books and audiobooks:** EPUB books, M4B files and MP3
+  files or folders, in Documents and on memory cards; by author, series in
+  order, with covers and search, the last three books opened on top. An
+  audiobook named like its EPUB is listed with the book.
+- **An audiobook player with a sleep timer built in:** stop after 15, 30,
+  45, 60 or 90 minutes, fading out gently, or at the end of the chapter.
+  Play, pause and 30 seconds back or forward also from the lock screen and
+  the headphones.
+- **It keeps your place:** saved every 20 seconds while playing and
+  whenever playback stops, also when Sailfish OS stops it (Bluetooth
+  headphones out of range, a call, an alarm). The history notes where you
+  were every five minutes, so you find your place again, also after falling
+  asleep.
+- **An EPUB reader that keeps its settings:** serif or sans serif font,
+  text size, line and paragraph spacing; light or dark page; portrait, or
+  landscape in one or two columns; printed page numbers where the book has
+  them.
+- **Flip through the book:** nine pages at a glance, across chapters, to
+  find a place by how it looks.
+- **Pictures, tables and notes in their own views:** zoom a picture or a
+  table; read a footnote without losing your page. Useful for scholarly
+  books with many notes and tables.
+- **Dictionary and history:** look up a word offline in a dict.cc word list
+  (request the free list from dict.cc); select text to copy, bookmark or
+  note it; go back to where you read or listened.
+- **Readalouds:** EPUB 3 books with synchronized narration. Tap a sentence
+  to listen from there. The built-in guide is a readaloud, so you can try it
+  at once.
+- **Private:** no network permission; Bookfish runs in the Sailfish OS
+  sandbox and sends nothing anywhere.
 
 ## Installing
 
@@ -38,7 +67,69 @@ repository, or scan the code.
 Start Bookfish from its icon the first time: Sailfish OS then asks for the
 permissions below.
 
-## Using
+## A tidy library
+
+Bookfish shows what the files say, and many EPUBs, bought or downloaded,
+are messy: one book has the author's sort name "Twain, Mark", the next has
+none and is listed under M; the series is missing or written into the
+title. The library looks as tidy as the metadata of your books. In practice
+that means tidying them yourself, for example with
+[calibre](https://calibre-ebook.com/) or a script.
+
+What Bookfish reads:
+
+- **EPUB books:** the title (`dc:title`); the authors (`dc:creator`),
+  grouped by the first author's sort name (the EPUB 3 `file-as` refinement
+  or `opf:file-as`, such as "Twain, Mark"; without one, the name as
+  written, so "Mark Twain" is listed under M); the series and its number
+  (`calibre:series` and `calibre:series_index`, or EPUB 3
+  `belongs-to-collection` with `group-position`); the cover in the book.
+- **Audiobooks without an EPUB of the same name:** the title from the tag
+  `album` (a single file: the shorter of `title` and `album`), the author
+  from `albumartist`, else `artist` (in a folder of one author's EPUB books,
+  that author), the series as described under All features → Library, the
+  cover from `cover.jpg` or `cover.png` in a folder, else the picture in the
+  file.
+
+Tips:
+
+- In calibre, set the author sort, title and series with its number, then
+  write them into the files themselves, for example with Polish books →
+  Update metadata in the book files: until then calibre keeps them only in
+  its own database.
+- Audiobooks have no sort name: write the author in their tags as
+  "Twain, Mark" to have them listed with the author's books.
+- Put an audiobook next to its EPUB under the same name (the folder `Book/`
+  or the file `Book.mp3` or `Book.m4b` next to `Book.epub`): it then takes
+  the title, author, series and cover of the book.
+- A single M4B or MP3 file with chapter marks gives a chapter list with
+  titles; in a folder, each MP3 file is a chapter. M4B files jump exactly
+  to a time, MP3 files may not (see below).
+
+## Readalouds
+
+A readaloud is an EPUB 3 book with synchronized narration (EPUB Media
+Overlays): the sentence being spoken is marked, and you can switch between
+reading and listening at any sentence. To see one, open *Welcome to
+Bookfish*, the guide that comes with the app.
+
+Making your own needs the EPUB and the audiobook of the same edition and an
+aligner such as [Storyteller](https://storyteller-platform.dev/), which you
+host yourself and which runs speech recognition over the audio. This takes
+some setup and computing time; Bookfish then opens the result like any
+other book.
+
+## All features
+
+<p>
+<img src="screenshots/sleep-timer.png" width="32%" alt="Playback speed and sleep timer">
+<img src="screenshots/page-flip.png" width="32%" alt="The page flip view">
+<img src="screenshots/reading.png" width="32%" alt="A dark page with a picture">
+</p>
+<p>
+<img src="screenshots/picture.png" width="32%" alt="A picture on its own page">
+<img src="screenshots/table.png" width="32%" alt="A table as the book made it">
+</p>
 
 - **Guide:** a short readaloud, *Welcome to Bookfish*, opens on the first
   start and stays in the library (author Finn Bookfish): each page explains
@@ -54,11 +145,18 @@ permissions below.
   `----:com.apple.iTunes:`), else from iTunes' movement tags (`MVNM`/`MVIN`,
   `©mvn`/`©mvi`). Icons tell books, audiobooks and readalouds apart.
 - **Audiobooks** open a player: chapter, place in it and time left in the
-  book; back and forward by chapter or 30 seconds, also on the lock screen
-  and the headphones. Contents lists the chapters with their start times,
-  History where you listened. The place is saved to the second. A folder
-  opens at once; until its files have been read once, chapter lengths are
-  estimated from the file sizes.
+  book; back and forward by chapter or 30 seconds (the lock screen and the
+  headphones: 30 seconds, as a chapter can last an hour). Contents lists the
+  chapters with their start times, History where you listened. The place is
+  saved to the second. A folder opens at once; until its files have been
+  read once, chapter lengths are estimated from the file sizes.
+- **Sleep timer** (button in the playback bar or the player): stop after 15
+  to 90 minutes, fading out over the last 20 seconds, or at the end of the
+  chapter.
+- The place heard is saved whenever listening stops, also when the phone
+  stops it (Bluetooth headphones out of range, an alarm, a call). After an
+  alarm or a call listening goes on by itself; after losing the headphones
+  it does not.
 - **Book and audiobook of the same title** (not a readaloud) keep their own
   places. Opening one after the other was used later offers to go to about
   the same share of the book ("Listened to 43 %", "Go there"); the top of
@@ -75,10 +173,6 @@ permissions below.
   move through the book, also across chapters. Tap a page to read on there,
   or close the view to return to where you were. "Go to page…" takes a page
   number.
-- **Listen** by tapping a sentence: narration starts there. Tapping where
-  there is no sentence starts at the top of the page. Tapping the sentence
-  being spoken pauses; tapping it again goes on. When a book is opened
-  again, the sentence heard last is marked; tap it to go on listening.
 - **Pictures:** press and hold a picture to see it on its own page. Pinch
   or double tap to zoom; the phone may be turned. Listening goes on. Small
   pictures such as ornaments do not open.
@@ -111,9 +205,6 @@ permissions below.
   listened: where it started, every five minutes, and where it ended. When
   reading, also the page you left for the contents, a search hit or the
   history, like a back button. Tap an entry to go there.
-- **Sleep timer** (button in the playback bar or the player): stop after 15
-  to 90 minutes, fading out over the last 20 seconds, or at the end of the
-  chapter.
 - **Turning the phone:** Bookfish turns with the phone, or keeps the
   orientation chosen in the settings, also when the phone's orientation is
   locked. In landscape the page shows text only, in one or two columns;
@@ -121,9 +212,11 @@ permissions below.
 - **Settings** (pull-down menu of a book or the player): Text (size, line
   and paragraph spacing, font, columns in landscape), Playback and timer,
   Button bar (size, top or bottom), Dictionary, Orientation, Colour mode.
-- The place heard is saved whenever listening stops, also when the phone
-  stops it (headphones out of reach, an alarm, a call). After an alarm or a
-  call listening goes on by itself; after losing the headphones it does not.
+- **Readalouds:** listen by tapping a sentence: narration starts there.
+  Tapping where there is no sentence starts at the top of the page. Tapping
+  the sentence being spoken pauses; tapping it again goes on. When a book is
+  opened again, the sentence heard last is marked; tap it to go on
+  listening.
 
 ## Permissions and security
 
@@ -148,13 +241,17 @@ with `gh attestation verify <rpm> --repo uli-pro/harbour-bookfish`, or let
 Harpoon refuse unverified packages (Check build provenance: workflow
 `build.yml`, refs `refs/tags/.*`).
 
-## Known limitations
+## What Bookfish is not
 
+- No synchronization: places, bookmarks and notes stay on the phone.
+- EPUB, M4B and MP3 only: no PDF, MOBI, comics or other formats.
 - Books with DRM cannot be opened.
-- In MP3 files with a variable bit rate, jumps to a time (30 seconds back,
-  the slider, a chapter inside a file) land a few seconds off; this comes
-  from GStreamer. M4B and MP3 files with a constant bit rate are exact.
-- Places are not synchronized between devices.
+- The interface is English; translations are welcome (see Translating).
+- Not in a store yet: install it from the releases or with Harpoon.
+- In MP3 files, jumps to a time (30 seconds back, the slider, a chapter
+  inside a file) can land several seconds early, more in long files; this
+  comes from GStreamer, which finds the place from a rough table in the
+  file. M4B files are exact.
 
 ## Feedback and maintenance
 
