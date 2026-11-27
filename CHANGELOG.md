@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- The guide *Welcome to Bookfish* is reordered like the app: reading first,
+  then audiobooks, then readalouds; a new chapter on audiobooks and the
+  sleep timer; the practice footnote is now an endnote.
 - Narration no longer stands silent at some changes from one audio file to
   the next (seen at chapter changes of readalouds); if it ever stands still
   while playing, it is loaded afresh at that place.
