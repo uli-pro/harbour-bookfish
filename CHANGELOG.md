@@ -4,6 +4,9 @@
 
 - New app icon: a goldfish reading a book and wearing headphones, drawn in
   the Sailfish OS icon style.
+- Development: the QML is checked for syntax errors and for JavaScript
+  newer than ES5, which Qt 5.6 on the phone does not run, before the
+  package is built (suggested by moWerk).
 
 ## 0.1.0 – 2026-11-17
 
