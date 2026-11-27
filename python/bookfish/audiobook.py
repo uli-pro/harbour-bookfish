@@ -24,9 +24,10 @@ _CACHE_VERSION = 1
 _FALLBACK_BYTES_PER_MS = 16
 
 
-def open_audiobook(path, cache_dir):
+def open_audiobook(path, cache_dir, files=None):
     """The audiobook at path, a file or a folder: {root, chapters, duration,
-    complete}.
+    complete}. files are the audio files of an album in a folder (see
+    library.album_files); path then names that album.
 
     root is the folder of the audio files. chapters are in order, each
     {title, file, begin, end, length, start}: file is the name of its audio
@@ -39,22 +40,22 @@ def open_audiobook(path, cache_dir):
     Raises AudioError if there is nothing to play, OSError if the files
     cannot be read.
     """
-    if not os.path.isdir(path):
+    if files is None and not os.path.isdir(path):
         info = _read(path, True)
         return _assemble(os.path.dirname(path), [os.path.basename(path)], [info], True, True)
-    files = _files(path)
+    root, files = _files(path, files)
     stamps = _stamps(files)
     cached = _load_cache(_cache_file(cache_dir, path), stamps)
     if cached is not None:
-        return _assemble(path, _names(files), cached, False, True)
-    return _assemble(path, _names(files), _estimated(files, stamps), False, False)
+        return _assemble(root, _names(files), cached, False, True)
+    return _assemble(root, _names(files), _estimated(files, stamps), False, False)
 
 
-def read_folder(path, cache_dir):
+def read_folder(path, cache_dir, files=None):
     """The audiobook folder at path as open_audiobook gives it, with every
     file read; the result is kept in the cache. A file that cannot be read
     is a chapter of unknown length named by the file."""
-    files = _files(path)
+    root, files = _files(path, files)
     stamps = _stamps(files)
     infos = []
     for file in files:
@@ -65,14 +66,17 @@ def read_folder(path, cache_dir):
             # error here would leave the folder unread at every opening.
             infos.append({"title": "", "duration": None})
     _save_cache(_cache_file(cache_dir, path), stamps, infos)
-    return _assemble(path, _names(files), infos, False, True)
+    return _assemble(root, _names(files), infos, False, True)
 
 
-def _files(folder):
-    files = audio_files(folder)
+def _files(path, files):
+    """(folder, files) of the audiobook at path: the given files of an
+    album, else those of the folder path."""
+    if files is None:
+        files = audio_files(path)
     if not files:
         raise AudioError("not_audio", "no audio files")
-    return files
+    return os.path.dirname(files[0]), list(files)
 
 
 def _names(files):

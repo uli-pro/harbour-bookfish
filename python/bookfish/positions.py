@@ -21,14 +21,13 @@ compare both to offer going to the place of the one used last.
 File format: {"books": {key: position}, "last": path of the EPUB file,
 "unshown": that path until the book was shown, "recent": paths of the books
 opened last, newest first}; a book's path is that of its EPUB or audio file,
-or of the folder of an audiobook.
+or of the folder of an audiobook, or an album's (see library.album_path).
 """
 
 import json
 import math
-import os
 
-from . import jsonfile
+from . import jsonfile, library
 
 MAX_SIZE = 1024 * 1024
 RECENT = 3
@@ -113,7 +112,7 @@ def load_recent(path):
 
 
 def _exists(path):
-    return os.path.isfile(path) or os.path.isdir(path)
+    return library.exists(path)
 
 
 def _read_all(path):

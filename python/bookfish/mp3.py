@@ -67,6 +67,26 @@ def read(path, chapters=True):
     return info
 
 
+def album(path):
+    """The album tag of the MP3 at path, "" if it has none. Reads only up to
+    that frame, not the picture or the audio: the library reads it from
+    every file of a folder. Raises OSError or AudioError if the file cannot
+    be read."""
+    with open_regular(path) as f:
+        size = _file_size(f)
+        tag = _Tag(f, size)
+        for frame_id, offset, frame_size in tag.frames():
+            if frame_id in ("TALB", "TAL") and frame_size <= MAX_TEXT:
+                text = clean_text(_text(tag._content(offset, frame_size)))
+                if text:
+                    return text
+        if tag.version:
+            return ""
+        info = {}
+        _read_v1(f, size, info)
+        return info.get("album", "")
+
+
 def picture(path):
     """The bytes of the picture in the MP3's tag (the front cover if there
     are several), or None."""

@@ -38,6 +38,18 @@ class Mp3Test(TempDirTestCase):
         info = mp3.read(path)
         self.assertEqual((info["title"], info["album"]), ("One", "A B"))
 
+    def test_album_alone(self):
+        for version in (2, 3, 4):
+            frame = "TAL" if version == 2 else "TALB"
+            path = self.write(ad.mp3([ad.text(frame, "", version), ad.apic(ad.JPEG, version=version)
+                                      if version > 2 else ad.text("TT2", "x", 2),
+                                      ad.text(frame, "Book\0Other", version)], version=version))
+            self.assertEqual(mp3.album(path), "Book", version)
+        self.assertEqual(mp3.album(self.write(ad.mp3([ad.text("TIT2", "x")]))), "")
+        v1 = b"TAG" + b"Title".ljust(30, b"\0") + b"Artist".ljust(30, b"\0") + b"Album".ljust(30, b"\0")
+        self.assertEqual(mp3.album(self.write(ad.audio(10) + v1.ljust(128, b"\0"))), "Album")
+        self.assertEqual(mp3.album(self.write(b"junk")), "")
+
     def test_long_text_cut(self):
         path = self.write(ad.mp3([ad.text("TIT2", "x" * 2000)]))
         self.assertEqual(len(mp3.read(path)["title"]), 500)
