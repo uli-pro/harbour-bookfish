@@ -8,7 +8,8 @@ library (author "Finn Bookfish") and opens on the first start.
   picture, the table, the link and the parts that are not narrated.
 - `welcome-to-bookfish.epub`: the readaloud built from it. The narration is
   an AI voice (Google Gemini text to speech, voice Zephyr), aligned with the
-  text sentence by sentence by [Storyteller](https://storyteller-platform.dev/).
+  text sentence by sentence by the maintainer's own aligner, which works like
+  [Storyteller](https://storyteller-platform.dev/) with speech recognition.
   The pictures were made with Google Gemini (goldfish) and ImageMagick
   (folder tree).
 
