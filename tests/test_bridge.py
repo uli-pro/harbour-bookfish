@@ -49,6 +49,12 @@ class BridgeTest(TempDirTestCase):
             self.assertEqual(bridge.default_folders("/home/user/Documents", ""),
                              ["/home/user/Documents"])
 
+    def test_book_folders(self):
+        self.assertEqual(bridge.book_folders([], "/a/b/"), ["/a/b"])
+        self.assertEqual(bridge.book_folders(["/a/b", "", None, "/c"], "/a//b"), ["/a/b", "/c"])
+        self.assertEqual(bridge.book_folders(["/c", "/a"]), ["/c", "/a"])
+        self.assertEqual(bridge.book_folders([]), [])
+
     def test_open_book(self):
         book = bridge.open_book(self.epub, self.cache_dir)
         json.dumps(book)  # QML gets only plain values

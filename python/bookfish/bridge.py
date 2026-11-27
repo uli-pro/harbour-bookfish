@@ -46,6 +46,19 @@ def default_folders(documents, music):
     return standard + library.card_folders(os.path.join(_MEDIA_ROOT, user))
 
 
+def book_folders(folders, added=None):
+    """The book folders chosen, with added if given: each once, normalised,
+    in the order chosen. A folder inside another chosen one stays listed;
+    its books are found once (see library.list_books)."""
+    result = []
+    for folder in list(folders) + ([added] if added else []):
+        if isinstance(folder, str) and folder:
+            folder = os.path.normpath(folder)
+            if folder not in result:
+                result.append(folder)
+    return result
+
+
 # SVG left out: QtSvg may load files an image names.
 _COVER_TYPES = (".jpg", ".jpeg", ".png", ".gif")
 _MAX_WAITING_COVERS = 50

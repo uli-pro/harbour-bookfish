@@ -345,6 +345,16 @@ class AudiobookTest(TempDirTestCase):
             BookFile(self.path("Follett/b.mp3"), "b", "audiobook", (self.path("Follett/b.mp3"),)),
             BookFile(self.path("Follett/c.M4B"), "c", "audiobook", (self.path("Follett/c.M4B"),))])
 
+    def test_folder_inside_another_counts_once(self):
+        tune = ad.mp3([ad.text("TIT2", "x")])
+        self.write({"Books/a.epub": "", "Books/Audio/b.mp3": tune, "Books/Audio/c/1.mp3": tune,
+                    "Books/Audio/c/2.mp3": tune})
+        books = list_books([self.path("Books/Audio"), self.path("Books")])
+        self.assertEqual(sorted(b.path for b in books), [
+            self.path("Books/Audio/b.mp3"), self.path("Books/Audio/c"), self.path("Books/a.epub")])
+        cache = os.path.join(self.tmp, "library.json")
+        self.assertEqual(len(scan([self.path("Books"), self.path("Books/Audio")], cache)[0]), 3)
+
     def test_mp3s_in_the_library_folder_itself_are_books(self):
         tune = ad.mp3([ad.text("TIT2", "x")])
         self.write({"one.mp3": tune, "two.mp3": tune})
