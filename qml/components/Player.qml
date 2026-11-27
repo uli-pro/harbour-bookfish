@@ -64,7 +64,16 @@ Item {
     property bool skipping: false
     // A file is being loaded; the stop that comes with it is ours.
     property bool loading: false
+    // The file loading has reported a status of its own; a stop before
+    // that still belongs to the previous file.
+    property bool loadSeen: false
     property bool stoppedOutside: false
+    // Watchdog: the last position seen while playing, and for how many
+    // seconds it has not moved.
+    property int watchedPosition: -1
+    property int stillSeconds: 0
+    property int restarts: 0
+    property int restartedAt: -1
 
     // In ms within the audio file, also while a seek waits for the file;
     // read when needed, the property binding of Audio is only updated once
@@ -87,12 +96,24 @@ Item {
         } else {
             pendingSeek = ms
             if (path !== loadedPath || reload) {
-                loadedPath = path
                 loading = true
-                audio.source = ""
-                audio.playbackRate = rate
+                loadSeen = false
+                if (path === loadedPath) {
+                    // The same file again (a new rate, the watchdog): only
+                    // an empty source makes Qt load it afresh. This gives up
+                    // the grant as below; it is rare, and the sound plays.
+                    audio.source = ""
+                    audio.playbackRate = rate
+                    audio.source = fileUrl(path)
+                } else {
+                    // No empty source in between: that gives up Sailfish's
+                    // audio grant, and the new one may get lost (Qt source),
+                    // which leaves the player reporting Stalled or silent.
+                    audio.source = fileUrl(path)
+                    audio.playbackRate = rate
+                }
+                loadedPath = path
                 loadedRate = rate
-                audio.source = fileUrl(path)
             }
         }
         if (playing)
@@ -291,13 +312,23 @@ Item {
     // device). Which of the two signals comes last may vary. Only while
     // loading: a file stopped by Sailfish must not start again.
     function retryPlay() {
-        if (playing && loading && !waiting && audio.playbackState === Audio.StoppedState
-                && (audio.status === Audio.Loaded || audio.status === Audio.Buffered))
+        if (playing && loading && loadSeen && !waiting && audio.playbackState === Audio.StoppedState
+                && readable(audio.status)) {
+            console.log("Narration restarted after loading, status", audio.status)
             audio.play()
+        }
+    }
+
+    // Stalled: playing without Sailfish's audio grant (Qt source).
+    function readable(status) {
+        return status === Audio.Loaded || status === Audio.Stalled
+                || status === Audio.Buffering || status === Audio.Buffered
     }
 
     // The user (or the page) acts: an interruption is over.
     function taken() {
+        restarts = 0
+        restartedAt = -1
         interrupted = false
         busy = false
         stoppedOutside = false
@@ -366,6 +397,8 @@ Item {
             }
         }
         onStatusChanged: {
+            if (player.loading)
+                player.loadSeen = true
             if (status === Audio.EndOfMedia && player.playing && player.index >= 0
                     && player.pendingSeek < 0) {
                 player.advance()
@@ -389,10 +422,14 @@ Item {
             default:
                 // At the end of a file the stop may come before the status
                 // EndOfMedia; that one moves on to the next clip or chapter.
-                if (player.playing && !player.loading && !player.waiting)
+                if (player.playing && !player.loading && !player.waiting) {
                     stopCheck.restart()
-                else
+                } else {
                     player.retryPlay()
+                    // In case no further signal comes to start it.
+                    if (player.loading)
+                        loadWatch.restart()
+                }
             }
         }
         onAvailabilityChanged: {
@@ -425,6 +462,51 @@ Item {
             if (audio.playbackState === Audio.PlayingState)
                 player.loading = false
         }
+    }
+
+    // Whatever the cause, the narration must not stand silent while it is
+    // meant to play: if the position has not moved for three seconds, the
+    // file is loaded afresh at that place, at most twice in a row.
+    Timer {
+        interval: 1000
+        repeat: true
+        running: player.playing && player.index >= 0 && !player.waiting
+        onRunningChanged: {
+            player.watchedPosition = -1
+            player.stillSeconds = 0
+            player.restarts = 0
+            player.restartedAt = -1
+        }
+        onTriggered: {
+            // Also a seek that never happens counts as standing still.
+            var position = player.currentPosition()
+            if (position !== player.watchedPosition) {
+                // Moving again, and not just for a moment after a reload.
+                if (position - player.restartedAt > 2000)
+                    player.restarts = 0
+                player.watchedPosition = position
+                player.stillSeconds = 0
+                return
+            }
+            // A load from a slow memory card gets more time.
+            if (++player.stillSeconds < (player.pendingSeek >= 0 ? 10 : 3) || player.restarts > 2)
+                return
+            player.stillSeconds = 0
+            if (player.restarts++ === 2) {
+                console.warn("Narration stands still at", position, "in", player.loadedPath)
+                return
+            }
+            console.log("Narration stood still at", position, "status", audio.status,
+                        "state", audio.playbackState, "- loading afresh")
+            player.restartedAt = position
+            player.load(player.loadedPath, position, true)
+        }
+    }
+
+    Timer {
+        id: loadWatch
+        interval: 1500
+        onTriggered: player.retryPlay()
     }
 
     Timer {
