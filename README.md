@@ -38,8 +38,8 @@ and a Sony Xperia 10 III (Sailfish OS 5.0). The interface is in English.
 - **Pictures, tables and notes in their own views:** zoom a picture or a
   table; read a footnote without losing your page. Useful for scholarly
   books with many notes and tables.
-- **Dictionary and history:** look up a word offline in a dict.cc word list
-  (request the free list from dict.cc); select text to copy, bookmark or
+- **Dictionary and history:** look up a word offline in a dictionary of
+  dict.cc (request it free from dict.cc); select text to copy, bookmark or
   note it; go back to where you read or listened.
 - **Readalouds:** EPUB 3 books with synchronized narration. Tap a sentence
   to listen from there. The built-in guide is a readaloud, so you can try it
@@ -57,12 +57,6 @@ allow it), or with developer mode:
 ```
 pkcon install-local harbour-bookfish-*.noarch.rpm
 ```
-
-Or with [Harpoon](https://github.com/JuhaniLehtimaeki/Harpoon), which
-installs apps from their releases and keeps them up to date: add this
-repository, or scan the code.
-
-<img src="add-to-harpoon.png" width="148" alt="QR code: https://github.com/uli-pro/harbour-bookfish">
 
 Start Bookfish from its icon the first time: Sailfish OS then asks for the
 permissions below.
@@ -189,14 +183,14 @@ other book.
   leading to a place that is no chapter.
 - **Select text:** press and hold a word, drag the handles to select more.
   The buttons copy the text, make a bookmark or a note, or look it up.
-- **Dictionary:** a selected word or phrase is looked up in a word list of
-  [dict.cc](https://www.dict.cc/) on the phone, without network. Bookfish
-  brings no word list: request the one of your languages from
+- **Dictionary:** a selected word or phrase is looked up in a dictionary
+  of [dict.cc](https://www.dict.cc/) on the phone, without network.
+  Bookfish brings no dictionary: request the one for your languages from
   [dict.cc](https://www1.dict.cc/translation_file_request.php) (free for
   personal use), put the file you get into Documents and import it in the
   settings. The file may be deleted afterwards. The book's language chooses
-  the word list, the settings the language to translate into (the phone's,
-  unless chosen). Inflected English words and phrases find their base form
+  the dictionary, the settings the language to translate into (the
+  phone's, unless chosen). Inflected English words and phrases find their base form
   ("went", "kicked the bucket", "gave him the cold shoulder").
 - **Find & history** (pull-down menu) searches the book for paragraphs
   holding all words typed, in any order. A line in the hits shows where you
@@ -237,9 +231,7 @@ own folder on the phone.
 
 Release packages carry a GitHub build attestation: it proves that the RPM
 was built by this repository's workflow `build.yml` from a tag. Check it
-with `gh attestation verify <rpm> --repo uli-pro/harbour-bookfish`, or let
-Harpoon refuse unverified packages (Check build provenance: workflow
-`build.yml`, refs `refs/tags/.*`).
+with `gh attestation verify <rpm> --repo uli-pro/harbour-bookfish`.
 
 ## What Bookfish is not
 
@@ -247,7 +239,7 @@ Harpoon refuse unverified packages (Check build provenance: workflow
 - EPUB, M4B and MP3 only: no PDF, MOBI, comics or other formats.
 - Books with DRM cannot be opened.
 - The interface is English; translations are welcome (see Translating).
-- Not in a store yet: install it from the releases or with Harpoon.
+- Not in a store yet: install it from the releases.
 - In MP3 files, jumps to a time (30 seconds back, the slider, a chapter
   inside a file) can land several seconds early, more in long files; this
   comes from GStreamer, which finds the place from a rough table in the
@@ -256,8 +248,8 @@ Harpoon refuse unverified packages (Check build provenance: workflow
 ## Feedback and maintenance
 
 Bookfish is a personal project, maintained in spare time. The maintainer
-reads and listens with it every day, so it will be kept working on new
-Sailfish OS releases.
+reads and listens with it every day; it is currently the app he uses most
+on his phone. So it will be kept working on new Sailfish OS releases.
 
 - Bug reports are welcome as
   [issues](https://github.com/uli-pro/harbour-bookfish/issues); please
@@ -347,7 +339,7 @@ Bookfish is made by one person working with an AI assistant (Claude by Anthropic
 
 GPL-3.0-or-later, see [LICENSE](LICENSE).
 
-The dictionary uses word lists of dict.cc, whose terms require programs
-using them to be under the GPL; so Bookfish went back from MIT to the GPL.
-Bookfish contains no data of dict.cc, not even for its tests: each user
-requests the word list from dict.cc.
+The dictionary feature uses dictionaries of dict.cc, whose terms require
+programs using them to be under the GPL; so Bookfish went back from MIT to
+the GPL. Bookfish contains no data of dict.cc, not even for its tests: each
+user requests the dictionary from dict.cc.
