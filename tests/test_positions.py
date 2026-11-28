@@ -138,6 +138,23 @@ class LastBookTest(TempDirTestCase):
         positions.shown(self.path)
         self.assertEqual(positions.load_last(self.path), self.epub)
 
+    def test_closed_for_the_library(self):
+        positions.save(self.path, "book", POSITION)
+        positions.save_last(self.path, self.epub)
+        positions.shown(self.path)
+        positions.close_last(self.path)
+        self.assertIsNone(positions.load_last(self.path))
+        self.assertEqual(positions.load_recent(self.path), [self.epub])
+        self.assertEqual(positions.load(self.path, "book"), POSITION)
+        # Opened again: reopened at the next start, as before.
+        positions.save_last(self.path, self.epub)
+        positions.shown(self.path)
+        self.assertEqual(positions.load_last(self.path), self.epub)
+
+    def test_close_without_a_file(self):
+        positions.close_last(self.path)
+        self.assertIsNone(positions.load_last(self.path))
+
     def test_kept_next_to_positions(self):
         positions.save(self.path, "book", POSITION)
         positions.save_last(self.path, self.epub)

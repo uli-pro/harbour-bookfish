@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Library in the pull-down menu of a book or audiobook now closes it: the
+  next start shows the library instead of that book. A book left open
+  opens again at the next start, as before. Asked for by projectmoon on
+  the forum.
+- The README tells how to install and update Bookfish with Harpoon.
+
 ## 0.2.2 – 2026-11-28
 
 - The last page of a chapter is no longer shifted to the right, without
