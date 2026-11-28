@@ -1,6 +1,6 @@
 Name:       harbour-bookfish
 Summary:    Read e-books and listen to audiobooks and readalouds
-Version:    0.2.0
+Version:    0.2.1
 Release:    1
 License:    GPL-3.0-or-later
 BuildArch:  noarch
