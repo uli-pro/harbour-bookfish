@@ -79,6 +79,9 @@ ApplicationWindow {
     }
     // "sans" or "serif"; the book's own fonts are not used.
     readonly property string fontFamily: fontFamilySetting.value === "serif" ? "serif" : "sans"
+    // "left" or "justify"; justified with hyphenation where the book names
+    // its language.
+    readonly property string textAlign: textAlignSetting.value === "justify" ? "justify" : "left"
     // "light" or "dark" once chosen; "" follows the ambience.
     readonly property string pageColors: pageColorsSetting.value || ""
     // Until chosen the reading page follows the ambience.
@@ -141,6 +144,10 @@ ApplicationWindow {
 
     function setFontFamily(family) {
         fontFamilySetting.value = family
+    }
+
+    function setTextAlign(align) {
+        textAlignSetting.value = align
     }
 
     function setPageColors(colors) {
@@ -350,6 +357,12 @@ ApplicationWindow {
         id: fontFamilySetting
         key: "/apps/harbour-bookfish/fontFamily"
         defaultValue: "sans"
+    }
+
+    ConfigurationValue {
+        id: textAlignSetting
+        key: "/apps/harbour-bookfish/textAlign"
+        defaultValue: "left"
     }
 
     ConfigurationValue {

@@ -345,7 +345,7 @@ WebViewPage {
 
     function layoutSettings() {
         return [app.fontSize, app.fontFamily, app.lineHeight, app.paragraphSpacing,
-                lightPage, app.controlsAtBottom, app.controlsScale].join("|")
+                app.textAlign, lightPage, app.controlsAtBottom, app.controlsScale].join("|")
     }
 
     function layout(target) {
@@ -382,6 +382,8 @@ WebViewPage {
             fontFamily: app.fontFamily === "serif" ? "serif" : "sans-serif",
             lineHeight: app.lineHeight,
             paragraphSpacing: app.paragraphSpacing,
+            justify: app.textAlign === "justify",
+            language: book.language || "",
             color: light ? "black" : "white",
             background: light ? "white" : "black"
         })
@@ -1861,6 +1863,7 @@ WebViewPage {
         onFontFamilyChanged: settingsTimer.restart()
         onLineHeightChanged: settingsTimer.restart()
         onParagraphSpacingChanged: settingsTimer.restart()
+        onTextAlignChanged: settingsTimer.restart()
         // The text's height changes too (not beside a notch): laid out once
         // it has settled, or pages would be counted at the old height.
         onControlsAtBottomChanged: controlsSettled.restart()

@@ -10,6 +10,7 @@ Page {
 
     // Chosen here, stored when leaving.
     property bool serif: app.fontFamily === "serif"
+    property bool justify: app.textAlign === "justify"
     property int columns: app.landscapeColumns
     readonly property bool sampleBeside: isLandscape && columns > 1
 
@@ -18,6 +19,7 @@ Page {
         if (status === PageStatus.Deactivating) {
             app.setFontSize(fontSlider.value)
             app.setFontFamily(serif ? "serif" : "sans")
+            app.setTextAlign(justify ? "justify" : "left")
             app.setLineHeight(lineSlider.value)
             app.setParagraphSpacing(spacingSlider.value)
             app.setLandscapeColumns(columns)
@@ -101,6 +103,18 @@ Page {
             }
 
             ChoiceRow {
+                //: How the lines of a paragraph end: ragged, or justified to both margins
+                label: qsTr("Text alignment")
+                //: Lines aligned to the left margin only, ending raggedly
+                options: [qsTr("Left"),
+                          //: Lines stretched to both margins, words hyphenated
+                          qsTr("Justified")]
+                picture: Component { AlignmentPicture { } }
+                currentIndex: page.justify ? 1 : 0
+                onChosen: page.justify = index === 1
+            }
+
+            ChoiceRow {
                 //: How many columns of text the reading page has in landscape
                 label: qsTr("Columns in landscape")
                 //: One column of text in landscape
@@ -123,7 +137,8 @@ Page {
         id: sampleComponent
 
         // Two paragraphs as the book shows them: font, size, line and
-        // paragraph spacing, or the indent that replaces the latter.
+        // paragraph spacing, or the indent that replaces the latter, and the
+        // alignment (without the book's hyphenation).
         Rectangle {
             readonly property real sampleHeight: sample.height + 2 * Theme.paddingLarge
 
@@ -159,6 +174,7 @@ Page {
                         lineHeight: lineSlider.value * sample.size
                         font.family: page.serif ? "serif" : "sans-serif"
                         font.pixelSize: sample.size
+                        horizontalAlignment: page.justify ? Text.AlignJustify : Text.AlignLeft
                         color: app.lightPage ? "black" : "white"
                         // An em space stands for the indent of 1em.
                         text: (sample.indent ? "\u2003" : "") + modelData

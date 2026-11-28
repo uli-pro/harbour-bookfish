@@ -110,6 +110,8 @@ addMessageListener("bookfish:layout", function (message) {
         "body, body h|* { font-family: " + o.fontFamily + bookFonts(doc) + "; }" +
         "body h|pre, body h|pre h|*, body h|code, body h|code h|*, body h|kbd, body h|kbd h|*," +
         "  body h|samp, body h|samp h|*, body h|tt, body h|tt h|* { font-family: monospace; }" +
+        // Justified paragraphs are hyphenated; code and names typed must not be.
+        "body h|pre, body h|code, body h|kbd, body h|samp, body h|tt { hyphens: manual; }" +
         "body img, body svg { display: block; margin: 0 auto; max-width: 100%; max-height: 70vh;" +
         "  break-inside: avoid; }" +
         "body a, body a:link, body a:visited { color: inherit; text-decoration: none; }" +
@@ -1072,6 +1074,10 @@ function override(element, property, value) {
     element.style.setProperty(property, value, "important")
 }
 
+// The language given to a chapter that names none, from the book's
+// metadata: hyphenation needs it. [element] while set.
+var langGiven = []
+
 function restore() {
     // Backwards: an element changed twice gets its first value back.
     for (var i = overridden.length - 1; i >= 0; --i) {
@@ -1095,6 +1101,9 @@ function restore() {
 //   several in a row stay: a scene break;
 // - justified text leaves wide gaps on a narrow screen, but "center" must
 //   stay, and a centred paragraph must not be pushed aside by the indent.
+//   Chosen in the app, all paragraphs are justified instead, hyphenated
+//   (where the book names its language) to narrow the gaps; not in tables,
+//   whose fitting would change.
 // All reads come before all writes: mixing them would recompute the styles
 // every time. Only XHTML elements: MathML and SVG size their parts
 // themselves.
@@ -1108,6 +1117,13 @@ function normalize(doc, o) {
         // Elements of a chapter already closed.
     }
     overridden = []
+    langGiven.forEach(function (element) {
+        try {
+            if (element.ownerDocument === doc)
+                element.removeAttribute("lang")
+        } catch (e) { }
+    })
+    langGiven = []
     if (!doc.body)
         return
     // Ours only: a book's own element of that class keeps it.
@@ -1154,7 +1170,9 @@ function normalize(doc, o) {
                     && !element.querySelector(blocks))) {
                 paragraphs.push({ element: element,
                                   keepTop: parseFloat(style.marginTop) > 1.5 * size,
-                                  keepBottom: parseFloat(style.marginBottom) > 1.5 * size })
+                                  keepBottom: parseFloat(style.marginBottom) > 1.5 * size,
+                                  justify: o.justify && !/center|right|end/.test(style.textAlign)
+                                           && !element.closest("table") && !element.querySelector("table") })
             }
             var parentSize = sizes.get(element.parentElement)
             if (parentSize && size < parentSize * 0.9 && !smallTags[element.localName]
@@ -1175,6 +1193,10 @@ function normalize(doc, o) {
         if (!paragraph.keepBottom)
             override(paragraph.element, "margin-bottom", spacing)
         override(paragraph.element, "text-indent", indent)
+        if (paragraph.justify) {
+            override(paragraph.element, "text-align", "justify")
+            override(paragraph.element, "hyphens", "auto")
+        }
     }
     // Single blank lines between paragraphs go, runs stay: a scene break.
     // Only in books that use them between paragraphs at all; a book with a
@@ -1195,8 +1217,20 @@ function normalize(doc, o) {
             override(single[b], "margin-bottom", "0")
         }
     }
-    for (var j = 0; j < justified.length; ++j)
-        override(justified[j], "text-align", "start")
+    if (!o.justify) {
+        for (var j = 0; j < justified.length; ++j)
+            override(justified[j], "text-align", "start")
+    } else {
+        var root = doc.documentElement
+        // "en_US" is common in books, though not a language tag.
+        var language = (o.language || "").replace(/_/g, "-")
+        if (root.namespaceURI === xhtml && !root.hasAttribute("lang")
+                && !root.getAttributeNS("http://www.w3.org/XML/1998/namespace", "lang")
+                && /^[a-z]{2,3}(-[a-z0-9]{1,8})*$/i.test(language) && !/^und\b/i.test(language)) {
+            root.setAttribute("lang", language)
+            langGiven.push(root)
+        }
+    }
     for (var c = 0; c < centred.length; ++c)
         override(centred[c], "text-indent", "0")
     // A book's odd table must not cost the whole chapter: without the layout

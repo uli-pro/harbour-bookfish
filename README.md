@@ -30,7 +30,8 @@ and a Sony Xperia 10 III (Sailfish OS 5.0). The interface is in English.
   were every five minutes, so you find your place again, also after falling
   asleep.
 - **An EPUB reader that keeps its settings:** serif or sans serif font,
-  text size, line and paragraph spacing; light or dark page; portrait, or
+  text size, line and paragraph spacing, left-aligned or justified with
+  hyphenation; light or dark page; portrait, or
   landscape in one or two columns; printed page numbers where the book has
   them.
 - **Flip through the book:** nine pages at a glance, across chapters, to
@@ -209,7 +210,7 @@ other book.
   locked. In landscape the page shows text only, in one or two columns;
   tap a sentence to start or pause narration.
 - **Settings** (pull-down menu of a book or the player): Text (size, line
-  and paragraph spacing, font, columns in landscape), Playback and timer,
+  and paragraph spacing, font, alignment, columns in landscape), Playback and timer,
   Button bar (size, top or bottom), Dictionary, Orientation, Colour mode.
 - **Readalouds:** listen by tapping a sentence: narration starts there.
   Tapping where there is no sentence starts at the top of the page. Tapping
