@@ -862,124 +862,124 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
 <context>
     <name>ReaderPage</name>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2006"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2009"/>
         <source>The narration could not be played.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2566"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2569"/>
         <source>Settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2598"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2601"/>
         <source>Find &amp; history</source>
         <extracomment>Opens the search in the book and its history of reading and listening</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2237"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2240"/>
         <source>%1×</source>
         <extracomment>Playback speed on the button that opens the page for speed and sleep timer, e.g. &quot;1.25×&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1422"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1424"/>
         <source>The bookmark could not be saved.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1421"/>
-        <location filename="../qml/pages/ReaderPage.qml" line="1439"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1423"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1441"/>
         <source>The note could not be saved.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="549"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="551"/>
         <source>≈ %1 / %2</source>
         <extracomment>Estimated page of the printed book in landscape, e.g. &quot;≈ 30 / 295&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="551"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="553"/>
         <source>≈%1/%2</source>
         <extracomment>Estimated page of the printed book, e.g. &quot;≈30/295&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1493"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1495"/>
         <source>Deleting bookmark</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1493"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1495"/>
         <source>Deleting note</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2188"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2191"/>
         <source>Find</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2199"/>
-        <location filename="../qml/pages/ReaderPage.qml" line="2220"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2202"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2223"/>
         <source>Play</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2210"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2213"/>
         <source>Previous sentence</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2220"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2223"/>
         <source>Pause</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2229"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2232"/>
         <source>Next sentence</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2239"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2242"/>
         <source>Speed</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2251"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2254"/>
         <source>Chapter</source>
         <extracomment>Sleep timer button while it waits for the end of the chapter</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2253"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2256"/>
         <source>%1 min</source>
         <extracomment>Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2255"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2258"/>
         <source>Sleep timer</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2267"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2270"/>
         <source>Previous hit</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="553"/>
-        <location filename="../qml/pages/ReaderPage.qml" line="2276"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="555"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2279"/>
         <source>%1 / %2</source>
         <extracomment>Page of the printed book in landscape, e.g. &quot;30 / 295&quot;
 ----------
@@ -987,121 +987,121 @@ Search hit shown and number of hits, e.g. &quot;3 / 39&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="779"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="781"/>
         <source>≈%1</source>
         <extracomment>Estimated page of the printed book below a picture of the page flip view, e.g. &quot;≈143&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2278"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2281"/>
         <source>All hits</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2288"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2291"/>
         <source>Next hit</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2297"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2300"/>
         <source>Close search</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2312"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2315"/>
         <source>Copy</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2324"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2327"/>
         <source>Delete bookmark</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2326"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2329"/>
         <source>Bookmark</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2341"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2344"/>
         <source>Dictionary</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2352"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2355"/>
         <source>Note</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2366"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2369"/>
         <source>Cancel</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2384"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2387"/>
         <source>Listened to %1 %</source>
         <extracomment>Offer on opening a book whose audiobook was listened to later, e.g. &quot;Listened to 43 %&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2403"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2406"/>
         <source>Dismiss</source>
         <extracomment>Name of a button of the reading page, shown while it is pressed</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="555"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="557"/>
         <source>%1/%2</source>
         <extracomment>Page of the printed book, e.g. &quot;30/295&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2393"/>
-        <location filename="../qml/pages/ReaderPage.qml" line="2394"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2396"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2397"/>
         <source>Go there</source>
         <extracomment>Goes to the place in the book or audiobook offered</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2570"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2573"/>
         <source>Library</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2593"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2596"/>
         <source>Bookmarks</source>
         <extracomment>Opens the list of bookmarks and notes</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2737"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2740"/>
         <source>Bookmark added</source>
         <extracomment>Shown briefly after a bookmark was made</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2752"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2755"/>
         <source>Copied</source>
         <extracomment>Shown briefly after the selected text was copied</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="1791"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="1793"/>
         <source>Chapter %1</source>
         <extracomment>Chapter without a title in the contents, e.g. &quot;Chapter 12&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/ReaderPage.qml" line="2581"/>
+        <location filename="../qml/pages/ReaderPage.qml" line="2584"/>
         <source>Contents</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1114,7 +1114,7 @@ Search hit shown and number of hits, e.g. &quot;3 / 39&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="106"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="108"/>
         <source>Dictionary</source>
         <extracomment>Settings for looking up words</extracomment>
         <translation type="unfinished"></translation>
@@ -1144,121 +1144,127 @@ Search hit shown and number of hits, e.g. &quot;3 / 39&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="79"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="65"/>
+        <source>justified</source>
+        <extracomment>In the summary of the text settings: lines justified to both margins</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/SettingsPage.qml" line="81"/>
         <source>Sleep timer: end of chapter</source>
         <extracomment>In the summary: the sleep timer waits for the end of the chapter</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="87"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="89"/>
         <source>Button bar</source>
         <extracomment>Settings of the reading page&apos;s bar of buttons</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="92"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="94"/>
         <source>Only in portrait</source>
         <extracomment>Why the button bar settings are dimmed in landscape</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="133"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="135"/>
         <source>Orientation</source>
         <extracomment>How the app is turned: with the phone, or always the same way</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="136"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="138"/>
         <source>Automatic</source>
         <extracomment>Orientation: the app turns with the phone</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="138"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="140"/>
         <source>Portrait</source>
         <extracomment>Orientation: always upright</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="140"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="142"/>
         <source>Landscape, top left</source>
         <extracomment>Orientation: always landscape, the phone&apos;s top (with the camera) on the left</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="142"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="144"/>
         <source>Landscape, top right</source>
         <extracomment>Orientation: always landscape, the phone&apos;s top (with the camera) on the right</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="144"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="146"/>
         <source>Upside down</source>
         <extracomment>Orientation: always upright, but upside down</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="153"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="155"/>
         <source>Colour mode</source>
         <extracomment>Colours of the reading page: black on white or white on black</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="155"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="157"/>
         <source>Light</source>
         <extracomment>Colour mode of the reading page: black text on white</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="157"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="159"/>
         <source>Dark</source>
         <extracomment>Colour mode of the reading page: white text on black</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="95"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="97"/>
         <source>%1 %</source>
         <extracomment>Size of the reading page&apos;s buttons, e.g. &quot;130 %&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="69"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="71"/>
         <source>Playback and timer</source>
         <extracomment>Title of the page for the playback speed and the sleep timer</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="72"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="74"/>
         <source>%1×</source>
         <extracomment>In the summary: the playback speed, e.g. &quot;1.25×&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="76"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="78"/>
         <source>Sleep timer %1 min left</source>
         <extracomment>In the summary: the sleep timer runs, with the time left, e.g. &quot;Sleep timer 23 min left&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="110"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="112"/>
         <source>None</source>
         <extracomment>In the summary of the dictionary settings: no dictionary imported</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="115"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="117"/>
         <source>%1 · into %2</source>
         <extracomment>The dictionaries and the language words are translated into, e.g. &quot;English–German · into German&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="100"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="102"/>
         <source>Top</source>
         <extracomment>In the summary: the reading page&apos;s bar of buttons above the text</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/SettingsPage.qml" line="98"/>
+        <location filename="../qml/pages/SettingsPage.qml" line="100"/>
         <source>Bottom</source>
         <extracomment>In the summary: the reading page&apos;s bar of buttons below the text</extracomment>
         <translation type="unfinished"></translation>
@@ -1267,76 +1273,94 @@ Search hit shown and number of hits, e.g. &quot;3 / 39&quot;</extracomment>
 <context>
     <name>TextSettingsPage</name>
     <message>
-        <location filename="../qml/pages/TextSettingsPage.qml" line="46"/>
+        <location filename="../qml/pages/TextSettingsPage.qml" line="48"/>
         <source>Text</source>
         <extracomment>Settings of the text: font, size, spacing</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/TextSettingsPage.qml" line="105"/>
+        <location filename="../qml/pages/TextSettingsPage.qml" line="107"/>
+        <source>Text alignment</source>
+        <extracomment>How the lines of a paragraph end: ragged, or justified to both margins</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/TextSettingsPage.qml" line="109"/>
+        <source>Left</source>
+        <extracomment>Lines aligned to the left margin only, ending raggedly</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/TextSettingsPage.qml" line="111"/>
+        <source>Justified</source>
+        <extracomment>Lines stretched to both margins, words hyphenated</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/TextSettingsPage.qml" line="119"/>
         <source>Columns in landscape</source>
         <extracomment>How many columns of text the reading page has in landscape</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/TextSettingsPage.qml" line="107"/>
+        <location filename="../qml/pages/TextSettingsPage.qml" line="121"/>
         <source>One</source>
         <extracomment>One column of text in landscape</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/TextSettingsPage.qml" line="109"/>
+        <location filename="../qml/pages/TextSettingsPage.qml" line="123"/>
         <source>Two</source>
         <extracomment>Two columns of text in landscape</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/TextSettingsPage.qml" line="148"/>
+        <location filename="../qml/pages/TextSettingsPage.qml" line="163"/>
         <source>High above the city, on a tall column, stood the statue of the Happy Prince.</source>
         <extracomment>Sample text showing the chosen text settings, first paragraph</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/TextSettingsPage.qml" line="150"/>
+        <location filename="../qml/pages/TextSettingsPage.qml" line="165"/>
         <source>He was gilded all over with thin leaves of fine gold, for eyes he had two bright sapphires, and a large red ruby glowed on his sword-hilt.</source>
         <extracomment>Sample text showing the chosen text settings, second paragraph</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/TextSettingsPage.qml" line="95"/>
+        <location filename="../qml/pages/TextSettingsPage.qml" line="97"/>
         <source>Font</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/TextSettingsPage.qml" line="97"/>
+        <location filename="../qml/pages/TextSettingsPage.qml" line="99"/>
         <source>Sans serif</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/TextSettingsPage.qml" line="97"/>
+        <location filename="../qml/pages/TextSettingsPage.qml" line="99"/>
         <source>Serif</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/TextSettingsPage.qml" line="66"/>
+        <location filename="../qml/pages/TextSettingsPage.qml" line="68"/>
         <source>Text size %1</source>
         <extracomment>Text size in pixels on the screen, with its value, e.g. &quot;Text size 36&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/TextSettingsPage.qml" line="77"/>
+        <location filename="../qml/pages/TextSettingsPage.qml" line="79"/>
         <source>Line spacing %1</source>
         <extracomment>Line spacing with its value, e.g. &quot;Line spacing 1.30&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/TextSettingsPage.qml" line="89"/>
+        <location filename="../qml/pages/TextSettingsPage.qml" line="91"/>
         <source>Paragraph spacing %1 lines</source>
         <extracomment>Space between paragraphs, counted in lines of text, with its value, e.g. &quot;Paragraph spacing 0.5 lines&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/pages/TextSettingsPage.qml" line="91"/>
+        <location filename="../qml/pages/TextSettingsPage.qml" line="93"/>
         <source>Paragraph spacing: indent</source>
         <extracomment>No space between paragraphs: the first lines are indented instead</extracomment>
         <translation type="unfinished"></translation>
@@ -1364,210 +1388,210 @@ Search hit shown and number of hits, e.g. &quot;3 / 39&quot;</extracomment>
 <context>
     <name>harbour-bookfish</name>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="192"/>
+        <location filename="../qml/harbour-bookfish.qml" line="199"/>
         <source>Not enough free space for the dictionary.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="193"/>
+        <location filename="../qml/harbour-bookfish.qml" line="200"/>
         <source>The dictionary could not be imported.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="201"/>
+        <location filename="../qml/harbour-bookfish.qml" line="208"/>
         <source>Bulgarian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="202"/>
+        <location filename="../qml/harbour-bookfish.qml" line="209"/>
         <source>Bosnian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="203"/>
+        <location filename="../qml/harbour-bookfish.qml" line="210"/>
         <source>Czech</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="204"/>
+        <location filename="../qml/harbour-bookfish.qml" line="211"/>
         <source>Danish</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="205"/>
+        <location filename="../qml/harbour-bookfish.qml" line="212"/>
         <source>German</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="206"/>
+        <location filename="../qml/harbour-bookfish.qml" line="213"/>
         <source>Greek</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="207"/>
+        <location filename="../qml/harbour-bookfish.qml" line="214"/>
         <source>English</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="208"/>
+        <location filename="../qml/harbour-bookfish.qml" line="215"/>
         <source>Esperanto</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="209"/>
+        <location filename="../qml/harbour-bookfish.qml" line="216"/>
         <source>Spanish</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="210"/>
+        <location filename="../qml/harbour-bookfish.qml" line="217"/>
         <source>Finnish</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="211"/>
+        <location filename="../qml/harbour-bookfish.qml" line="218"/>
         <source>French</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="212"/>
+        <location filename="../qml/harbour-bookfish.qml" line="219"/>
         <source>Croatian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="213"/>
+        <location filename="../qml/harbour-bookfish.qml" line="220"/>
         <source>Hungarian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="214"/>
+        <location filename="../qml/harbour-bookfish.qml" line="221"/>
         <source>Icelandic</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="215"/>
+        <location filename="../qml/harbour-bookfish.qml" line="222"/>
         <source>Italian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="216"/>
+        <location filename="../qml/harbour-bookfish.qml" line="223"/>
         <source>Latin</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="217"/>
+        <location filename="../qml/harbour-bookfish.qml" line="224"/>
         <source>Dutch</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="218"/>
+        <location filename="../qml/harbour-bookfish.qml" line="225"/>
         <source>Norwegian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="219"/>
+        <location filename="../qml/harbour-bookfish.qml" line="226"/>
         <source>Polish</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="220"/>
+        <location filename="../qml/harbour-bookfish.qml" line="227"/>
         <source>Portuguese</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="221"/>
+        <location filename="../qml/harbour-bookfish.qml" line="228"/>
         <source>Romanian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="222"/>
+        <location filename="../qml/harbour-bookfish.qml" line="229"/>
         <source>Russian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="223"/>
+        <location filename="../qml/harbour-bookfish.qml" line="230"/>
         <source>Slovak</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="224"/>
+        <location filename="../qml/harbour-bookfish.qml" line="231"/>
         <source>Albanian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="225"/>
+        <location filename="../qml/harbour-bookfish.qml" line="232"/>
         <source>Serbian</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="226"/>
+        <location filename="../qml/harbour-bookfish.qml" line="233"/>
         <source>Swedish</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="227"/>
+        <location filename="../qml/harbour-bookfish.qml" line="234"/>
         <source>Turkish</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="234"/>
+        <location filename="../qml/harbour-bookfish.qml" line="241"/>
         <source>%1–%2</source>
         <extracomment>Two languages of a dictionary, e.g. &quot;English–German&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="283"/>
+        <location filename="../qml/harbour-bookfish.qml" line="290"/>
         <source>≈ p. %1</source>
         <extracomment>Estimated page of the printed book in a list, e.g. &quot;≈ p. 143&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="285"/>
+        <location filename="../qml/harbour-bookfish.qml" line="292"/>
         <source>p. %1</source>
         <extracomment>Page of the printed book in a list, e.g. &quot;p. 143&quot;</extracomment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="292"/>
+        <location filename="../qml/harbour-bookfish.qml" line="299"/>
         <source>This file is not an EPUB book.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="295"/>
+        <location filename="../qml/harbour-bookfish.qml" line="302"/>
         <source>This book is too large or damaged.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="297"/>
+        <location filename="../qml/harbour-bookfish.qml" line="304"/>
         <source>Not enough free space to open this book.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="299"/>
+        <location filename="../qml/harbour-bookfish.qml" line="306"/>
         <source>This book contains unsafe file names and was not opened.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="301"/>
+        <location filename="../qml/harbour-bookfish.qml" line="308"/>
         <source>This book is protected by DRM and cannot be opened.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="303"/>
+        <location filename="../qml/harbour-bookfish.qml" line="310"/>
         <source>The book could not be read.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="305"/>
+        <location filename="../qml/harbour-bookfish.qml" line="312"/>
         <source>This audiobook cannot be played.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="307"/>
+        <location filename="../qml/harbour-bookfish.qml" line="314"/>
         <source>This book is damaged.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/harbour-bookfish.qml" line="435"/>
+        <location filename="../qml/harbour-bookfish.qml" line="448"/>
         <source>Internal error. Please report it with the log.</source>
         <translation type="unfinished"></translation>
     </message>

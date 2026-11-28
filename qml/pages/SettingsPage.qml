@@ -60,7 +60,9 @@ Page {
                           app.paragraphSpacing > 0
                           ? number(app.paragraphSpacing, 1)
                             //: In the summary of the text settings: paragraphs indented, without space between them
-                          : qsTr("indent")].join(" · ")
+                          : qsTr("indent")]
+                         //: In the summary of the text settings: lines justified to both margins
+                         .concat(app.textAlign === "justify" ? [qsTr("justified")] : []).join(" · ")
                 onClicked: pageStack.push(Qt.resolvedUrl("TextSettingsPage.qml"))
             }
 

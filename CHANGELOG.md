@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Text can be justified: Settings → Text → Text alignment, Left (as
+  before) or Justified. Justified paragraphs are hyphenated in the book's
+  language, also where only the book's metadata names it; headings,
+  centred text and tables stay as they are. With large text a line holds
+  few words, and gaps between them can still be wide. Suggested by
+  RelevanterUsername (#62).
+
 ## 0.2.0 – 2026-11-28
 
 - The library also looks for books and audiobooks in the music folder
