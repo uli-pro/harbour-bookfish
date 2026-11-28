@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.3 – 2026-11-28
 
 - Library in the pull-down menu of a book or audiobook now closes it: the
   next start shows the library instead of that book. A book left open
