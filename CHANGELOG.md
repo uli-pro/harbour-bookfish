@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.2 – 2026-11-28
 
 - The last page of a chapter is no longer shifted to the right, without
   its right margin (the web view of Sailfish OS left the margin out of the
