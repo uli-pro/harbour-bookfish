@@ -228,6 +228,7 @@ addMessageListener("bookfish:layout", function (message) {
     }
     applyMarks(o.marks || [])
     evenColumns(doc)
+    reachLastPage(doc)
     go(target)
     remark()
     if (o.highlight) {
@@ -1643,6 +1644,30 @@ function evenColumns(doc) {
     filler.style.setProperty("padding", "0", "important")
     filler.style.setProperty("border", "0", "important")
     state.scroller.appendChild(filler)
+}
+
+// Gecko 115 leaves the padding after the last column out of the width that
+// can be scrolled: the last page was reached a margin short, its text shifted
+// right by that much (seen on the device; newer Geckos count the padding). A
+// box at the end of the text, moved right by what is missing, widens it. It
+// has no height and no text, so neither pages nor offsets change.
+function reachLastPage(doc) {
+    var old = doc.getElementById("bookfish-tail")
+    if (old)
+        old.parentNode.removeChild(old)
+    var scroller = state.scroller
+    var missing = Math.round(scroller.scrollWidth / state.width) * state.width - scroller.scrollWidth
+    if (missing < 0.5)
+        return
+    var tail = doc.createElementNS(xhtml, "div")
+    tail.id = "bookfish-tail"
+    tail.style.setProperty("position", "relative", "important")
+    tail.style.setProperty("left", missing + "px", "important")
+    tail.style.setProperty("height", "1px", "important")
+    tail.style.setProperty("margin", "-1px 0 0 0", "important")
+    tail.style.setProperty("padding", "0", "important")
+    tail.style.setProperty("border", "0", "important")
+    scroller.appendChild(tail)
 }
 
 // The CSS columns: one screen width each, or two to a screen. Every screen

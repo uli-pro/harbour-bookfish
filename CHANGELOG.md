@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- The last page of a chapter is no longer shifted to the right, without
+  its right margin (the web view of Sailfish OS left the margin out of the
+  width to scroll). Reported by davidrasch on the forum.
+
 ## 0.2.1 – 2026-11-28
 
 - Text can be justified: Settings → Text → Text alignment, Left (as
