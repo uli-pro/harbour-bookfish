@@ -304,7 +304,8 @@ Sleep timer button with the minutes left, e.g. &quot;23 min&quot;</extracomment>
 <context>
     <name>CoverPage</name>
     <message>
-        <location filename="../qml/cover/CoverPage.qml" line="8"/>
+        <location filename="../qml/cover/CoverPage.qml" line="57"/>
+        <location filename="../qml/cover/CoverPage.qml" line="77"/>
         <source>Bookfish</source>
         <extracomment>Application name, usually not translated</extracomment>
         <translation type="unfinished"></translation>

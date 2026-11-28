@@ -23,7 +23,8 @@ and a Sony Xperia 10 III (Sailfish OS 5.0). The interface is in English.
 - **An audiobook player with a sleep timer built in:** stop after 15, 30,
   45, 60 or 90 minutes, fading out gently, or at the end of the chapter.
   Play, pause and 30 seconds back or forward also from the lock screen and
-  the headphones.
+  the headphones; play and pause from the app's cover on the home screen,
+  which shows the cover of the book open.
 - **It keeps your place:** saved every 20 seconds while playing and
   whenever playback stops, also when Sailfish OS stops it (Bluetooth
   headphones out of range, a call, an alarm). The history notes where you

@@ -8,6 +8,10 @@
   centred text and tables stay as they are. With large text a line holds
   few words, and gaps between them can still be wide. Suggested by
   RelevanterUsername (#62).
+- The app's cover on the home screen shows the cover of the book or
+  audiobook open (its title and authors if it has none), with the play
+  button for narration and audiobooks. Suggested by RelevanterUsername
+  (#62).
 
 ## 0.2.0 – 2026-11-28
 
