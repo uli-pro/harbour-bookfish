@@ -525,6 +525,15 @@ def save_last_book(path, epub_path):
     return True
 
 
+def close_book(path):
+    """The reader left the book for the library, see positions.close_last."""
+    try:
+        positions.close_last(path)
+    except OSError as e:
+        return _error("io", str(e))
+    return True
+
+
 def book_shown(path):
     """The book opened last was shown, see positions.load_last."""
     try:

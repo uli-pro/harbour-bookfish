@@ -60,6 +60,9 @@ allow it), or with developer mode:
 pkcon install-local harbour-bookfish-*.noarch.rpm
 ```
 
+Or let [Harpoon](https://forum.sailfishos.org/t/34515) install Bookfish and
+its updates: add `https://github.com/uli-pro/harbour-bookfish` in Harpoon.
+
 Start Bookfish from its icon the first time: Sailfish OS then asks for the
 permissions below.
 

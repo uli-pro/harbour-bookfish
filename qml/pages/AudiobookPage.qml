@@ -558,6 +558,8 @@ Page {
                     closed = true
                     stopKind = "close"
                     stopPlayer()
+                    // Closed: the next start shows the library, not this book.
+                    py.call("bookfish.bridge.close_book", [app.positionsFile])
                     pageStack.pop()
                 }
             }

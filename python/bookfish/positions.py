@@ -18,7 +18,8 @@ until the reader knows the lengths of the chapters) and time (when the
 reader last moved the place, in seconds since 1970). An EPUB and its audiobook
 compare both to offer going to the place of the one used last.
 
-File format: {"books": {key: position}, "last": path of the EPUB file,
+File format: {"books": {key: position}, "last": path of the EPUB file (None
+once the reader closed it for the library),
 "unshown": that path until the book was shown, "recent": paths of the books
 opened last, newest first}; a book's path is that of its EPUB or audio file,
 or of the folder of an audiobook, or an album's (see library.album_path).
@@ -96,6 +97,16 @@ def save_last(path, epub_path):
     state["unshown"] = epub_path
     state["recent"] = ([epub_path] + [p for p in state["recent"] if p != epub_path])[:RECENT]
     _write(path, state)
+
+
+def close_last(path):
+    """The reader left the book for the library: the next start shows the
+    library. The book stays among the recent ones."""
+    state = _read_all(path)
+    if state["last"] is not None or state["unshown"] is not None:
+        state["last"] = None
+        state["unshown"] = None
+        _write(path, state)
 
 
 def shown(path):
