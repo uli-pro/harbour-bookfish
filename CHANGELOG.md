@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.1 – 2026-11-28
 
 - Text can be justified: Settings → Text → Text alignment, Left (as
   before) or Justified. Justified paragraphs are hyphenated in the book's
