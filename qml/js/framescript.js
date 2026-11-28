@@ -163,6 +163,8 @@ addMessageListener("bookfish:layout", function (message) {
                                                       important(columnRule(real, margin, columns)))
         width = real
     }
+    // Our boxes of the last layout would count as the book's text below.
+    removeBoxes(doc)
     normalize(doc, o)
 
     var sentences = []
@@ -228,6 +230,11 @@ addMessageListener("bookfish:layout", function (message) {
     }
     applyMarks(o.marks || [])
     evenColumns(doc)
+    // An odd book must not cost the chapter: without the layout finishing,
+    // QML keeps the view covered.
+    try {
+        reachLastPage(doc)
+    } catch (e) { }
     go(target)
     remark()
     if (o.highlight) {
@@ -1456,6 +1463,10 @@ function drawTable(index) {
     if (!table)
         throw new Error("no table " + index)
     var copy = table.cloneNode(true)
+    // Ours, moved to the edge of the last page: it would widen the picture.
+    var tail = copy.querySelector("#bookfish-tail")
+    if (tail)
+        tail.parentNode.removeChild(tail)
     var originals = [table].concat(Array.prototype.slice.call(table.getElementsByTagName("*")))
     var copies = [copy].concat(Array.prototype.slice.call(copy.getElementsByTagName("*")))
     var copyOf = new Map()
@@ -1637,12 +1648,100 @@ function evenColumns(doc) {
     var style = content.getComputedStyle(state.scroller)
     var filler = doc.createElementNS(xhtml, "div")
     filler.id = "bookfish-filler"
+    plainBox(filler)
     filler.style.setProperty("height", (state.scroller.clientHeight - parseFloat(style.paddingTop)
                                         - parseFloat(style.paddingBottom)) + "px", "important")
     filler.style.setProperty("margin", "0", "important")
     filler.style.setProperty("padding", "0", "important")
     filler.style.setProperty("border", "0", "important")
     state.scroller.appendChild(filler)
+}
+
+// Gecko 115 leaves the padding after the last column out of the width that
+// can be scrolled: the last page was reached a margin short, its text shifted
+// right by that much (seen on the device; newer Geckos count the padding). A
+// box at the end of the text, moved right to the page's edge, widens it. It
+// has no text, so offsets do not change. A float of no net size in the last
+// line of text: after the last paragraph it could need space of its own
+// (margins collapse, the filler fills its column) and begin a new column.
+// Should it still add a page, it goes again.
+function reachLastPage(doc) {
+    var old = doc.getElementById("bookfish-tail")
+    if (old)
+        old.parentNode.removeChild(old)
+    var scroller = state.scroller
+    var pages = Math.round(scroller.scrollWidth / state.width)
+    var missing = pages * state.width - scroller.scrollWidth
+    if (missing < 0.5)
+        return
+    var tail = doc.createElementNS(xhtml, "div")
+    tail.id = "bookfish-tail"
+    plainBox(tail)
+    tail.style.setProperty("float", "left", "important")
+    tail.style.setProperty("position", "relative", "important")
+    tail.style.setProperty("width", "1px", "important")
+    tail.style.setProperty("height", "1px", "important")
+    tail.style.setProperty("margin", "-1px -1px 0 0", "important")
+    // In the block holding the last text, after its sentences: they are
+    // measured by their boxes, which must not include this one. Not in a
+    // flex or grid container, where it would be an item; where it cannot
+    // widen anything (clipped, out of flow), at the end of the text.
+    var block = lastText(doc)
+    if (block)
+        block = block.parentNode
+    while (block && block !== scroller
+           && /^inline|^ruby|^contents|flex|grid/.test(content.getComputedStyle(block).display))
+        block = block.parentNode
+    if (!(block && block !== scroller && place(block, null)))
+        place(scroller, doc.getElementById("bookfish-filler"))
+
+    function place(parent, before) {
+        tail.style.removeProperty("left")
+        parent.insertBefore(tail, before)
+        var right = tail.getBoundingClientRect().right + scroller.scrollLeft
+        tail.style.setProperty("left", (pages * state.width - right) + "px", "important")
+        if (Math.round(scroller.scrollWidth / state.width) !== pages
+                || scroller.scrollWidth < pages * state.width - 1) {
+            parent.removeChild(tail)
+            return false
+        }
+        return true
+    }
+}
+
+// The last text shown in the chapter.
+function lastText(doc) {
+    var walker = doc.createTreeWalker(doc.body, 4)
+    var node = walker.lastChild()
+    while (walker.lastChild())
+        node = walker.currentNode
+    var range = doc.createRange()
+    for (node = walker.currentNode; node; node = walker.previousNode()) {
+        if (node.nodeType !== 3 || !node.textContent.trim())
+            continue
+        range.selectNodeContents(node)
+        if (range.getClientRects().length > 0)
+            return node
+    }
+    return null
+}
+
+// Our own boxes in the text: the book's CSS must not change them.
+function plainBox(box) {
+    ["display: block", "float: none", "clear: none", "width: auto", "min-width: 0", "max-width: none",
+     "min-height: 0", "max-height: none", "padding: 0", "border: 0", "break-before: auto",
+     "break-after: auto", "transform: none"].forEach(function (rule) {
+        var parts = rule.split(": ")
+        box.style.setProperty(parts[0], parts[1], "important")
+    })
+}
+
+function removeBoxes(doc) {
+    ["bookfish-filler", "bookfish-tail"].forEach(function (id) {
+        var box = doc.getElementById(id)
+        if (box)
+            box.parentNode.removeChild(box)
+    })
 }
 
 // The CSS columns: one screen width each, or two to a screen. Every screen
